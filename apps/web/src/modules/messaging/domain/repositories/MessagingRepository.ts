@@ -4,12 +4,17 @@ import type {
   SendAudioInput,
   SendVideoInput,
   SendDocumentInput,
+  SendGroupInput,
   SendMessageResult,
   MessageStatusResult,
 } from "@/modules/messaging/domain/entities/Message";
 
 export interface MessagingRepository {
   sendText(deviceId: string, input: SendTextInput): Promise<SendMessageResult>;
+  sendGroupText(
+    deviceId: string,
+    input: SendGroupInput,
+  ): Promise<SendMessageResult>;
   sendImage(
     deviceId: string,
     input: SendImageInput,

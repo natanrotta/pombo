@@ -323,6 +323,80 @@ describe("SendTextMessageUseCase", () => {
     expect(await outbox.findQueued(device.id, 100)).toHaveLength(0);
   });
 
+  it("sends to a group by JID without calling resolveJid, storing the group JID", async () => {
+    const { sut, device, gateway, outbox, bus } = await setup();
+    const resolveSpy = vi.spyOn(gateway, "resolveJid");
+    const groupJid = "120363000000000001@g.us";
+
+    const out = await sut.execute({
+      accountId: ACCOUNT_A,
+      deviceId: device.id,
+      groupJid,
+      text: "oi grupo",
+      idempotencyKey: "g1",
+    });
+
+    expect(out.status).toBe("PENDING");
+    // Group JIDs are canonical — the user-only onWhatsApp lookup must be skipped.
+    expect(resolveSpy).not.toHaveBeenCalled();
+    expect(gateway.sentTexts).toEqual([
+      { deviceId: device.id, jid: groupJid, text: "oi grupo" },
+    ]);
+    // The stored recipient is the group JID, and message.sent carries it.
+    expect((await outbox.findByIdempotencyKey(device.id, "g1"))?.toJid).toBe(
+      groupJid,
+    );
+    expect(bus.published).toEqual([
+      {
+        type: "message.sent",
+        deviceId: device.id,
+        messageId: out.messageId,
+        phone: groupJid,
+      },
+    ]);
+  });
+
+  it("replays the original group send on same key + same text (idempotent, one send)", async () => {
+    const { sut, device, gateway } = await setup();
+    const first = {
+      accountId: ACCOUNT_A,
+      deviceId: device.id,
+      groupJid: "120363000000000001@g.us",
+      text: "oi grupo",
+      idempotencyKey: "gk",
+    };
+    const a = await sut.execute(first);
+    const b = await sut.execute(first);
+
+    expect(b.messageId).toBe(a.messageId);
+    // The idempotency gate runs before the group/user branch → no second send.
+    expect(gateway.sentTexts).toHaveLength(1);
+  });
+
+  it("queues a group send (202 PENDING) with the group JID when the device is offline", async () => {
+    const { sut, device, gateway, outbox, bus } = await setup();
+    gateway.setConnected(device.id, false);
+    const groupJid = "120363000000000001@g.us";
+
+    const out = await sut.execute({
+      accountId: ACCOUNT_A,
+      deviceId: device.id,
+      groupJid,
+      text: "oi",
+      idempotencyKey: "g-off",
+    });
+
+    expect(out.status).toBe("PENDING");
+    expect(gateway.sentTexts).toHaveLength(0);
+    // Queued, not sent: message.sent must NOT fire before the drain delivers it.
+    expect(bus.published.filter((e) => e.type === "message.sent")).toHaveLength(
+      0,
+    );
+    const row = await outbox.findByIdempotencyKey(device.id, "g-off");
+    expect(row?.status).toBe("PENDING");
+    expect(row?.toJid).toBe(groupJid);
+  });
+
   it("marks the outbox FAILED and re-throws when the send fails", async () => {
     const { sut, device, outbox, gateway } = await setup();
     gateway.sendText = async () => {

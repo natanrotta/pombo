@@ -30,6 +30,24 @@ export class MessageController {
     return res.status(202).json({ ok: true, data: result });
   }
 
+  /** Send a text message to a WhatsApp group. Reuses the text send pipeline —
+   *  the body's `groupJid` is a canonical `<id>@g.us`, so the use case skips the
+   *  user-only JID resolution. */
+  async sendToGroup(req: Request, res: Response): Promise<Response> {
+    const { id } = req.params as { id: string };
+    const idempotencyKey = this.requireIdempotencyKey(req);
+
+    const useCase = container.resolve(SendTextMessageUseCase);
+    const result = await useCase.execute({
+      accountId: req.auth.accountId,
+      deviceId: id,
+      groupJid: req.body.groupJid,
+      text: req.body.text,
+      idempotencyKey,
+    });
+    return res.status(202).json({ ok: true, data: result });
+  }
+
   sendImage = (req: Request, res: Response): Promise<Response> =>
     this.sendRich(req, res, "image");
   sendAudio = (req: Request, res: Response): Promise<Response> =>

@@ -10,7 +10,10 @@ import type { ISendRateLimiter } from "@modules/messaging/domain/provider/send-r
 import { ConflictError, NotFoundError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
 import { SendTextInput } from "@modules/messaging/application/dto/message.dto";
-import { buildUserJid } from "@modules/messaging/domain/value-object/wa-jid";
+import {
+  buildUserJid,
+  buildGroupJid,
+} from "@modules/messaging/domain/value-object/wa-jid";
 import { DrainOutboxUseCase } from "./drain-outbox.use-case";
 
 export interface SendTextOutput {
@@ -59,6 +62,10 @@ export class SendTextMessageUseCase {
         ErrorCodes.DEVICE_NOT_FOUND,
       );
     }
+    // Exactly one recipient is set (compile-enforced by the SendTextInput union).
+    // The recipient carried on the `message.sent` event is the phone for a user
+    // send or the group JID for a group send.
+    const recipient = input.groupJid ?? input.phone!;
     const existing = await this.outboxRepository.findByIdempotencyKey(
       device.id,
       input.idempotencyKey,
@@ -76,12 +83,15 @@ export class SendTextMessageUseCase {
       return { messageId: existing.id, status: "PENDING" };
     }
 
-    // Online: resolve + validate the JID via WhatsApp (immediate "not on
-    // WhatsApp" feedback). Offline: construct it and defer that check to the
-    // drain — enqueue now, send when the device reconnects.
+    // Group: the JID is canonical (`<id>@g.us`) — no `onWhatsApp` (a user-only
+    // lookup), online or offline. User online: resolve + validate the JID via
+    // WhatsApp (immediate "not on WhatsApp" feedback). User offline: construct it
+    // and defer that check to the drain — enqueue now, send on reconnect.
     const online = this.gateway.isConnected(device.id);
     let jid: string;
-    if (online) {
+    if (input.groupJid != null) {
+      jid = buildGroupJid(input.groupJid);
+    } else if (online) {
       const resolved = await this.gateway.resolveJid(device.id, input.phone);
       if (!resolved) {
         throw new NotFoundError(
@@ -178,7 +188,7 @@ export class SendTextMessageUseCase {
       type: "message.sent",
       deviceId: device.id,
       messageId: message.id,
-      phone: input.phone,
+      phone: recipient,
     });
     // Stamp the waMessageId (bookkeeping for a getMessage resend). The message
     // already delivered, so a stamp failure must NOT turn the caller's 202 into

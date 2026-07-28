@@ -2,6 +2,7 @@ import { injectable } from "tsyringe";
 import {
   IWhatsAppGateway,
   SendResult,
+  GroupInfo,
 } from "@modules/devices/domain/provider/whatsapp-gateway.interface";
 import { ConflictError, ServiceUnavailableError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
@@ -46,6 +47,10 @@ export class DisabledWhatsAppGateway implements IWhatsAppGateway {
 
   getCurrentQr(): string | null {
     return null;
+  }
+
+  async listGroups(): Promise<GroupInfo[]> {
+    throw this.disabled();
   }
 
   async resolveJid(): Promise<string | null> {

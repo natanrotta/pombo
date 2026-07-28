@@ -8,6 +8,7 @@ import type {
   SendAudioInput,
   SendVideoInput,
   SendDocumentInput,
+  SendGroupInput,
   MessageStatus,
 } from "@/modules/messaging/domain/entities/Message";
 
@@ -17,7 +18,8 @@ export type SendMessageArgs =
   | { deviceId: string; type: "image"; input: SendImageInput }
   | { deviceId: string; type: "audio"; input: SendAudioInput }
   | { deviceId: string; type: "video"; input: SendVideoInput }
-  | { deviceId: string; type: "document"; input: SendDocumentInput };
+  | { deviceId: string; type: "document"; input: SendDocumentInput }
+  | { deviceId: string; type: "group"; input: SendGroupInput };
 
 /**
  * Fire-and-report send used by the Sandbox. Dispatches to the matching
@@ -40,6 +42,8 @@ export function useSendMessage() {
           return repo.sendVideo(args.deviceId, args.input);
         case "document":
           return repo.sendDocument(args.deviceId, args.input);
+        case "group":
+          return repo.sendGroupText(args.deviceId, args.input);
       }
     },
     onError: (error) => handleError(error),

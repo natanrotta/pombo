@@ -11,6 +11,11 @@
     "type": "Tipo de mensaje",
     "phone": "Número de destino",
     "phonePlaceholder": "(11) 99999-9999",
+    "group": "Grupo de destino",
+    "groupPlaceholder": "Selecciona un grupo",
+    "groupLoading": "Cargando grupos...",
+    "groupEmpty": "Ningún grupo encontrado",
+    "groupError": "No se pudieron cargar los grupos",
     "text": "Mensaje",
     "textPlaceholder": "Escribe el mensaje de prueba...",
     "media": {
@@ -31,7 +36,8 @@
     "image": "Imagen",
     "audio": "Audio",
     "video": "Video",
-    "document": "Documento"
+    "document": "Documento",
+    "group": "Grupo"
   },
   "recent": {
     "title": "Enviados recientemente",
@@ -48,7 +54,8 @@
     "deviceRequired": "Selecciona un dispositivo.",
     "phoneInvalid": "Ingresa un número válido.",
     "textRequired": "Escribe un mensaje.",
-    "mediaRequired": "Indica la URL o el base64 de la media."
+    "mediaRequired": "Indica la URL o el base64 de la media.",
+    "groupRequired": "Selecciona un grupo."
   },
   "actions": {
     "send": "Enviar",

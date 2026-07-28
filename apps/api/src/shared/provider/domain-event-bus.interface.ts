@@ -43,6 +43,9 @@ export type DomainEvent =
       type: "message.sent";
       deviceId: string;
       messageId: string;
+      /** The recipient: a phone number for an individual send, or the group JID
+       *  (`<id>@g.us`) for a group send. Kept named `phone` for webhook
+       *  backward-compatibility; a `recipient` rename is a breaking change. */
       phone: string;
     };
 

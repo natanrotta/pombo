@@ -3,7 +3,10 @@ import { DI_TOKENS } from "@core/container/tokens";
 import { IOutboxRepository } from "@modules/messaging/domain/repository/outbox-repository.interface";
 import { OutboxMessage } from "@modules/messaging/domain/entity/outbox-message.entity";
 import { IWhatsAppGateway } from "@modules/devices/domain/provider/whatsapp-gateway.interface";
-import { userJidToPhone } from "@modules/messaging/domain/value-object/wa-jid";
+import {
+  userJidToPhone,
+  isGroupJid,
+} from "@modules/messaging/domain/value-object/wa-jid";
 import type { ISendRateLimiter } from "@modules/messaging/domain/provider/send-rate-limiter.interface";
 import type { IDomainEventBus } from "@shared/provider/domain-event-bus.interface";
 import type { ILoggerProvider } from "@shared/provider/logger-provider.interface";
@@ -155,7 +158,11 @@ export class DrainOutboxUseCase {
       type: "message.sent",
       deviceId,
       messageId: message.id,
-      phone: userJidToPhone(message.toJid),
+      // Match the live send path's recipient: a group JID rides as-is (it isn't
+      // a phone), a user JID is reduced back to its phone digits.
+      phone: isGroupJid(message.toJid)
+        ? message.toJid
+        : userJidToPhone(message.toJid),
     });
     try {
       await this.outboxRepository.setWaMessageId(message.id, waMessageId);

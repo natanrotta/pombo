@@ -7,6 +7,7 @@ import {
   SendAudioPayload,
   SendVideoPayload,
   SendDocumentPayload,
+  GroupInfo,
 } from "@modules/devices/domain/provider/whatsapp-gateway.interface";
 import type { IDomainEventBus } from "@shared/provider/domain-event-bus.interface";
 import type { ILoggerProvider } from "@shared/provider/logger-provider.interface";
@@ -93,6 +94,11 @@ export class BaileysWhatsAppGateway implements IWhatsAppGateway {
   getCurrentQr(deviceId: string): string | null {
     // Synchronous by contract. No manager yet → no pending QR.
     return this.manager ? this.manager.getCurrentQr(deviceId) : null;
+  }
+
+  async listGroups(deviceId: string): Promise<GroupInfo[]> {
+    const manager = await this.getManager();
+    return manager.listGroups(deviceId);
   }
 
   async resolveJid(deviceId: string, phone: string): Promise<string | null> {

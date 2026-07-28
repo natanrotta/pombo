@@ -77,6 +77,23 @@ describe("DrainOutboxUseCase", () => {
     });
   });
 
+  it("publishes message.sent with the FULL group JID (not stripped) for a drained group message", async () => {
+    const { sut, bus, enqueue } = setup();
+    const groupJid = "120363000000000001@g.us";
+    const g = await enqueue("g", groupJid);
+
+    await sut.execute({ deviceId: DEVICE });
+
+    // A group JID is not a phone — it must ride the event as-is, matching the
+    // live send path (regression guard for the drain's userJidToPhone default).
+    expect(bus.published).toContainEqual({
+      type: "message.sent",
+      deviceId: DEVICE,
+      messageId: g.id,
+      phone: groupJid,
+    });
+  });
+
   it("drains a queued non-text row via the type-matched gateway method (AC-6)", async () => {
     const { sut, gateway, enqueue } = setup();
     await enqueue("img", "5511@s.whatsapp.net", future(), {
