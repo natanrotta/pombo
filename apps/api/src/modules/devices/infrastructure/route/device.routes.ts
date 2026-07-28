@@ -41,6 +41,12 @@ deviceRoutes.get(
   asyncHandler(deviceController.getQr.bind(deviceController)),
 );
 
+deviceRoutes.get(
+  "/:id/groups",
+  validateRequest({ params: DeviceIdParamSchema }),
+  asyncHandler(deviceController.listGroups.bind(deviceController)),
+);
+
 deviceRoutes.patch(
   "/:id/webhooks",
   validateRequest({

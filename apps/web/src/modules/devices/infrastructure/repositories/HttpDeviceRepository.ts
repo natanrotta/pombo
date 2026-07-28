@@ -6,6 +6,7 @@ import type {
   CreatedDevice,
   UpdateDeviceWebhooksInput,
   DeviceQr,
+  DeviceGroup,
   ConnectDeviceResult,
   DisconnectDeviceResult,
 } from "@/modules/devices/domain/entities/Device";
@@ -49,6 +50,10 @@ export class HttpDeviceRepository implements DeviceRepository {
 
   getQr(id: string): Promise<DeviceQr> {
     return httpClient.get<never, DeviceQr>(`/devices/${id}/qr`);
+  }
+
+  listGroups(id: string): Promise<DeviceGroup[]> {
+    return httpClient.get<never, DeviceGroup[]>(`/devices/${id}/groups`);
   }
 
   delete(id: string): Promise<void> {

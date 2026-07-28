@@ -2,6 +2,7 @@ export { RegisterDeviceUseCase } from "./register-device.use-case";
 export { ListDevicesUseCase } from "./list-devices.use-case";
 export { GetDeviceUseCase } from "./get-device.use-case";
 export { GetDeviceQrUseCase } from "./get-device-qr.use-case";
+export { ListDeviceGroupsUseCase } from "./list-device-groups.use-case";
 export { UpdateDeviceWebhooksUseCase } from "./update-device-webhooks.use-case";
 export { ConnectDeviceUseCase } from "./connect-device.use-case";
 export { DisconnectDeviceUseCase } from "./disconnect-device.use-case";

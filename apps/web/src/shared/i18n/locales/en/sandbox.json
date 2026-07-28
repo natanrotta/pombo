@@ -11,6 +11,11 @@
     "type": "Message type",
     "phone": "Recipient number",
     "phonePlaceholder": "(11) 99999-9999",
+    "group": "Recipient group",
+    "groupPlaceholder": "Select a group",
+    "groupLoading": "Loading groups...",
+    "groupEmpty": "No groups found",
+    "groupError": "Couldn't load groups",
     "text": "Message",
     "textPlaceholder": "Type the test message...",
     "media": {
@@ -31,7 +36,8 @@
     "image": "Image",
     "audio": "Audio",
     "video": "Video",
-    "document": "Document"
+    "document": "Document",
+    "group": "Group"
   },
   "recent": {
     "title": "Recently sent",
@@ -48,7 +54,8 @@
     "deviceRequired": "Select a device.",
     "phoneInvalid": "Enter a valid number.",
     "textRequired": "Type a message.",
-    "mediaRequired": "Provide the media URL or base64."
+    "mediaRequired": "Provide the media URL or base64.",
+    "groupRequired": "Select a group."
   },
   "actions": {
     "send": "Send",

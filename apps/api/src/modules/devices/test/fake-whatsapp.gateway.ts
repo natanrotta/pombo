@@ -5,8 +5,11 @@ import {
   SendAudioPayload,
   SendVideoPayload,
   SendDocumentPayload,
+  GroupInfo,
 } from "@modules/devices/domain/provider/whatsapp-gateway.interface";
 import { type RichMessageType } from "@modules/messaging/domain/value-object/message-type";
+import { ServiceUnavailableError } from "@shared/error";
+import { ErrorCodes } from "@shared/error/error-codes";
 
 /**
  * In-memory WhatsApp gateway for specs — no real socket. Records calls and lets
@@ -31,6 +34,7 @@ export class FakeWhatsAppGateway implements IWhatsAppGateway {
   private connected = new Set<string>();
   private jidByPhone = new Map<string, string | null>();
   private qrByDevice = new Map<string, string>();
+  private groupsByDevice = new Map<string, GroupInfo[]>();
   private nextWaMessageId = 0;
   private enabled = true;
 
@@ -47,6 +51,10 @@ export class FakeWhatsAppGateway implements IWhatsAppGateway {
   setQr(deviceId: string, qr: string | null): void {
     if (qr === null) this.qrByDevice.delete(deviceId);
     else this.qrByDevice.set(deviceId, qr);
+  }
+
+  setGroups(deviceId: string, groups: GroupInfo[]): void {
+    this.groupsByDevice.set(deviceId, groups);
   }
 
   setEnabled(value: boolean): void {
@@ -77,6 +85,19 @@ export class FakeWhatsAppGateway implements IWhatsAppGateway {
 
   getCurrentQr(deviceId: string): string | null {
     return this.qrByDevice.get(deviceId) ?? null;
+  }
+
+  // Mirrors the real gateway: a live socket is required, so an offline device
+  // throws DEVICE_OFFLINE rather than returning an empty list.
+  async listGroups(deviceId: string): Promise<GroupInfo[]> {
+    if (!this.connected.has(deviceId)) {
+      throw new ServiceUnavailableError(
+        "The device is not connected",
+        undefined,
+        ErrorCodes.DEVICE_OFFLINE,
+      );
+    }
+    return this.groupsByDevice.get(deviceId) ?? [];
   }
 
   async resolveJid(_deviceId: string, phone: string): Promise<string | null> {

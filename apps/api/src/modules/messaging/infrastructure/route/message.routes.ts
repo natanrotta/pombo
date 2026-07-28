@@ -8,6 +8,7 @@ import {
 } from "@core/http/middlewares";
 import {
   SendMessageDTOSchema,
+  SendGroupMessageDTOSchema,
   SendImageDTOSchema,
   SendAudioDTOSchema,
   SendVideoDTOSchema,
@@ -31,6 +32,17 @@ messageRoutes.post(
     body: SendMessageDTOSchema,
   }),
   asyncHandler(messageController.send.bind(messageController)),
+);
+
+// Group text send — same params + Idempotency-Key contract as the text send
+// above, but the recipient is a group JID (`<id>@g.us`) instead of a phone.
+messageRoutes.post(
+  "/devices/:id/messages/group",
+  validateRequest({
+    params: SendMessageParamSchema,
+    body: SendGroupMessageDTOSchema,
+  }),
+  asyncHandler(messageController.sendToGroup.bind(messageController)),
 );
 
 // Rich sends — one route per type, each with its own body schema. Same params +

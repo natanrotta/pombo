@@ -19,11 +19,16 @@ describe("queryKeys", () => {
   });
 
   describe("devices namespace", () => {
-    it("nests list/detail/qr under the devices root, encoding the id", () => {
+    it("nests list/detail/qr/groups under the devices root, encoding the id", () => {
       expect(queryKeys.devices.all).toEqual(["devices"]);
       expect(queryKeys.devices.list()).toEqual(["devices", "list"]);
       expect(queryKeys.devices.detail("dev-1")).toEqual(["devices", "detail", "dev-1"]);
       expect(queryKeys.devices.qr("dev-1")).toEqual(["devices", "qr", "dev-1"]);
+      expect(queryKeys.devices.groups("dev-1")).toEqual([
+        "devices",
+        "groups",
+        "dev-1",
+      ]);
     });
 
     it("keeps detail and qr keys distinct for the same device id", () => {

@@ -11,6 +11,7 @@ export const queryKeys = {
     list: () => [...queryKeys.devices.all, "list"] as const,
     detail: (id: string) => [...queryKeys.devices.all, "detail", id] as const,
     qr: (id: string) => [...queryKeys.devices.all, "qr", id] as const,
+    groups: (id: string) => [...queryKeys.devices.all, "groups", id] as const,
   },
   account: {
     all: ["account"] as const,

@@ -14,7 +14,7 @@ import { useFormState } from "@/shared/hooks/useFormState";
 import { useNotify } from "@/shared/hooks/useNotify";
 import { maskPhoneBr, unformatPhone, formatPhoneDisplay } from "@/shared/utils/phone";
 import { ROUTE_PATHS } from "@/app/router/RoutePaths";
-import { useDevicesList } from "@/modules/devices";
+import { useDevicesList, useDeviceGroups } from "@/modules/devices";
 import {
   useSendMessage,
   useMessageStatus,
@@ -25,26 +25,30 @@ import { RecipientNumberField } from "@/modules/messaging/presentation/component
 import { SandboxResult } from "@/modules/messaging/presentation/components/SandboxResult";
 import {
   type MessageType,
+  type SandboxMessageType,
   type SendMessageResult,
   type MessageStatus,
 } from "@/modules/messaging/domain/entities/Message";
 
 const MEDIA_TYPES: readonly MessageType[] = ["image", "audio", "video", "document"];
-const MESSAGE_TYPES: readonly MessageType[] = [
+const MESSAGE_TYPES: readonly SandboxMessageType[] = [
   "text",
   "image",
   "audio",
   "video",
   "document",
+  "group",
 ];
 
 const isMedia = (type: string): boolean =>
-  MEDIA_TYPES.includes(type as MessageType);
+  MEDIA_TYPES.includes(type as SandboxMessageType as MessageType);
 
 type SandboxForm = {
   deviceId: string;
   messageType: string;
   phone: string;
+  /** Group recipient JID (`<id>@g.us`) — active only for the "group" type. */
+  groupJid: string;
   text: string;
   /** Shared across the four media types (only one is active at a time). */
   mediaUrl: string;
@@ -53,6 +57,7 @@ type SandboxForm = {
 };
 
 const EMPTY_TYPE_FIELDS = {
+  groupJid: "",
   text: "",
   mediaUrl: "",
   caption: "",
@@ -99,9 +104,21 @@ export function SandboxPage() {
     },
     {
       deviceId: (v) => (v ? null : "required"),
-      phone: (v) => (unformatPhone(v).length >= 10 ? null : "invalid"),
+      // The phone field is inactive for a group send (it uses groupJid instead).
+      phone: (v, f) =>
+        f.messageType === "group"
+          ? null
+          : unformatPhone(v).length >= 10
+            ? null
+            : "invalid",
+      groupJid: (v, f) =>
+        f.messageType === "group" ? (v ? null : "required") : null,
       text: (v, f) =>
-        f.messageType === "text" ? (v.trim() ? null : "required") : null,
+        f.messageType === "text" || f.messageType === "group"
+          ? v.trim()
+            ? null
+            : "required"
+          : null,
       mediaUrl: (v, f) =>
         isMedia(f.messageType) ? (v.trim() ? null : "required") : null,
     },
@@ -136,6 +153,28 @@ export function SandboxPage() {
     [t],
   );
 
+  // The device's groups feed the recipient picker for the "group" type. Only
+  // fetched while that type is active (the backend needs a live socket).
+  const groupsQuery = useDeviceGroups(
+    form.formData.deviceId,
+    messageType === "group",
+  );
+  const groupOptions = useMemo(
+    () =>
+      (groupsQuery.data ?? []).map((group) => ({
+        value: group.jid,
+        label: group.name || group.jid,
+      })),
+    [groupsQuery.data],
+  );
+  const groupPlaceholder = groupsQuery.isError
+    ? t("fields.groupError")
+    : groupsQuery.isLoading
+      ? t("fields.groupLoading")
+      : groupOptions.length === 0
+        ? t("fields.groupEmpty")
+        : t("fields.groupPlaceholder");
+
   // Switching type keeps device + phone, but clears the type-specific fields so
   // a stale value from another type can never ride along on the next send.
   const handleTypeChange = useCallback(
@@ -155,9 +194,15 @@ export function SandboxPage() {
     const phone = unformatPhone(form.formData.phone);
     const f = form.formData;
     const caption = f.caption.trim() || undefined;
-    switch (f.messageType as MessageType) {
+    switch (f.messageType as SandboxMessageType) {
       case "text":
         return { deviceId, type: "text", input: { phone, text: f.text.trim() } };
+      case "group":
+        return {
+          deviceId,
+          type: "group",
+          input: { groupJid: f.groupJid, text: f.text.trim() },
+        };
       case "image":
         return {
           deviceId,
@@ -196,12 +241,13 @@ export function SandboxPage() {
     try {
       const res = await sendMessage.mutateAsync(args);
       setResult(res);
-      addRecipient(form.formData.phone);
+      // Recents are phone-keyed — a group send has no phone to remember.
+      if (messageType !== "group") addRecipient(form.formData.phone);
       showSuccess(t("success"));
     } catch {
       // Error surfaced by the mutation's onError toast.
     }
-  }, [form, buildArgs, sendMessage, addRecipient, showSuccess, t]);
+  }, [form, buildArgs, sendMessage, addRecipient, showSuccess, t, messageType]);
 
   const handleReset = useCallback(() => {
     reset({
@@ -248,19 +294,32 @@ export function SandboxPage() {
                 />
               </SimpleGrid>
 
-              <RecipientNumberField
-                label={t("fields.phone")}
-                placeholder={t("fields.phonePlaceholder")}
-                value={form.formData.phone}
-                onChange={(v) => setField("phone", maskPhoneBr(v))}
-                error={form.errors.phone ? t("errors.phoneInvalid") : undefined}
-                inputMode="tel"
-                recents={recents}
-                onSelectRecent={(digits) => setField("phone", maskPhoneBr(digits))}
-                onRemoveRecent={removeRecipient}
-              />
+              {messageType === "group" ? (
+                <SelectField
+                  label={t("fields.group")}
+                  placeholder={groupPlaceholder}
+                  options={groupOptions}
+                  value={form.formData.groupJid}
+                  onChange={(v) => setField("groupJid", v)}
+                  error={
+                    form.errors.groupJid ? t("errors.groupRequired") : undefined
+                  }
+                />
+              ) : (
+                <RecipientNumberField
+                  label={t("fields.phone")}
+                  placeholder={t("fields.phonePlaceholder")}
+                  value={form.formData.phone}
+                  onChange={(v) => setField("phone", maskPhoneBr(v))}
+                  error={form.errors.phone ? t("errors.phoneInvalid") : undefined}
+                  inputMode="tel"
+                  recents={recents}
+                  onSelectRecent={(digits) => setField("phone", maskPhoneBr(digits))}
+                  onRemoveRecent={removeRecipient}
+                />
+              )}
 
-              {messageType === "text" && (
+              {(messageType === "text" || messageType === "group") && (
                 <TextAreaField
                   label={t("fields.text")}
                   placeholder={t("fields.textPlaceholder")}

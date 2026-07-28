@@ -6,6 +6,7 @@ import type {
   SendAudioInput,
   SendVideoInput,
   SendDocumentInput,
+  SendGroupInput,
   SendMessageResult,
   MessageStatusResult,
 } from "@/modules/messaging/domain/entities/Message";
@@ -25,6 +26,13 @@ function newIdempotencyKey(): string {
 export class HttpMessagingRepository implements MessagingRepository {
   sendText(deviceId: string, input: SendTextInput): Promise<SendMessageResult> {
     return this.send(`/devices/${deviceId}/messages`, input);
+  }
+
+  sendGroupText(
+    deviceId: string,
+    input: SendGroupInput,
+  ): Promise<SendMessageResult> {
+    return this.send(`/devices/${deviceId}/messages/group`, input);
   }
 
   sendImage(

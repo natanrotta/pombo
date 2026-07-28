@@ -13,6 +13,7 @@ import {
   SendAudioPayload,
   SendVideoPayload,
   SendDocumentPayload,
+  GroupInfo,
 } from "@modules/devices/domain/provider/whatsapp-gateway.interface";
 import { ServiceUnavailableError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
@@ -40,6 +41,7 @@ export interface SessionManager {
   logout(deviceId: string): Promise<void>;
   isConnected(deviceId: string): boolean;
   getCurrentQr(deviceId: string): string | null;
+  listGroups(deviceId: string): Promise<GroupInfo[]>;
   resolveJid(deviceId: string, phone: string): Promise<string | null>;
   sendText(deviceId: string, jid: string, text: string): Promise<SendResult>;
   sendImage(
@@ -417,6 +419,27 @@ export const makeSessionManager = (
       const results = await sock.onWhatsApp(phone);
       const match = results?.[0];
       return match?.exists ? match.jid : null;
+    },
+
+    // The groups the device participates in. `groupFetchAllParticipating` needs
+    // a live socket (no offline queue for a read), so the readiness gate throws
+    // DEVICE_OFFLINE when the device isn't connected. Map the Baileys
+    // GroupMetadata down to the domain GroupInfo here — the only place a group
+    // shape crosses into the app.
+    async listGroups(deviceId) {
+      const sock = requireOpenSocket(sockets, openDevices, deviceId);
+      // Map the Baileys metadata down to the domain GroupInfo. Typed via a
+      // minimal structural shape (only id + subject) because Baileys'
+      // `GroupMetadata` is ambiguously re-exported from the package root and
+      // can't be imported by name — this adapter is the anti-corruption boundary.
+      const groups = (await sock.groupFetchAllParticipating()) as Record<
+        string,
+        { id: string; subject: string }
+      >;
+      return Object.values(groups).map((group) => ({
+        jid: group.id,
+        name: group.subject,
+      }));
     },
 
     async sendText(deviceId, jid, text) {

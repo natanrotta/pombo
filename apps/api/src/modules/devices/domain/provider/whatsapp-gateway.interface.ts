@@ -36,6 +36,16 @@ export interface SendDocumentPayload {
   caption?: string;
 }
 
+/** A WhatsApp group the device participates in. `jid` is the canonical group id
+ *  (`<id>@g.us`) used as the send recipient; `name` is the group subject. The
+ *  domain shape the Baileys `GroupMetadata` is mapped down to inside
+ *  `session-manager` — no Baileys type crosses this port. Mirrored on the
+ *  frontend as `DeviceGroup` (keep in sync). */
+export interface GroupInfo {
+  jid: string;
+  name: string;
+}
+
 export interface IWhatsAppGateway {
   connect(deviceId: string): Promise<void>;
   disconnect(deviceId: string): Promise<void>;
@@ -45,6 +55,11 @@ export interface IWhatsAppGateway {
    *  (not connecting, already connected, or logged out). Synchronous by
    *  contract — read from the in-process session cache. */
   getCurrentQr(deviceId: string): string | null;
+  /** The WhatsApp groups the connected device participates in. Requires a live
+   *  socket — throws DEVICE_OFFLINE (503) when the device is not connected, the
+   *  same offline convention as the send path (there is no offline queue for a
+   *  read). */
+  listGroups(deviceId: string): Promise<GroupInfo[]>;
   resolveJid(deviceId: string, phone: string): Promise<string | null>;
   sendText(deviceId: string, jid: string, text: string): Promise<SendResult>;
   sendImage(

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { repositories } from "@/core/di/repositories";
 import { queryKeys } from "@/core/query/queryKeys";
+import { STALE_TIMES } from "@/core/query/staleTimes";
 import { useErrorHandler } from "@/core/query/useErrorHandler";
 import type {
   CreateDeviceInput,
@@ -86,6 +87,26 @@ export function useDeviceQr(id: string, enabled: boolean) {
     refetchInterval: enabled ? QR_POLL_INTERVAL_MS : false,
     refetchIntervalInBackground: false,
     gcTime: 0,
+  });
+}
+
+/**
+ * The WhatsApp groups a connected device participates in (GET /devices/:id/groups).
+ * Requires a live socket on the backend, so it's only enabled for a device the
+ * caller knows is connected (the Sandbox gates on `enabled`). Not polled — the
+ * list is fetched on demand when the group send flow is opened.
+ */
+export function useDeviceGroups(id: string, enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.devices.groups(id),
+    queryFn: () => repositories.devices.listGroups(id),
+    enabled: enabled && Boolean(id),
+    // Live-socket data (a device can join/leave groups); keep the dedup window
+    // short so a reopened picker reflects reality without hammering the socket.
+    staleTime: STALE_TIMES.volatile,
+    // The endpoint 503s when the socket is down — a retry can't fix that, so
+    // fail fast to the error state instead of 3 redundant round-trips.
+    retry: false,
   });
 }
 
