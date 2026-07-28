@@ -82,6 +82,15 @@ export interface IWhatsAppGateway {
     jid: string,
     payload: SendDocumentPayload,
   ): Promise<SendResult>;
+  /**
+   * Toggle the "typing…" (composing) presence for a chat. Best-effort and
+   * cosmetic: `on=true` shows composing, `on=false` clears it (paused). A no-op
+   * when the device has no open socket — presence must NEVER fail a send path,
+   * so this deliberately does not throw `DEVICE_OFFLINE` like the `send*`
+   * methods. The caller must pass a fully-qualified JID (as `send*` do, via
+   * `resolveJid`); a raw phone number silently reaches no one.
+   */
+  setTyping(deviceId: string, jid: string, on: boolean): Promise<void>;
   /** True when the gateway is live (WHATSAPP_ENABLED). The disabled impl
    *  returns false so use cases can short-circuit with WA_GATEWAY_DISABLED. */
   isEnabled(): boolean;

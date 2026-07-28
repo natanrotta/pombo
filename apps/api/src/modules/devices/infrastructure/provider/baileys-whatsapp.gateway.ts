@@ -151,6 +151,13 @@ export class BaileysWhatsAppGateway implements IWhatsAppGateway {
     return manager.sendDocument(deviceId, jid, payload);
   }
 
+  async setTyping(deviceId: string, jid: string, on: boolean): Promise<void> {
+    // Best-effort presence: if the manager was never built, no socket is open,
+    // so there's nothing to type to. Guard like isConnected/getCurrentQr/closeAll
+    // instead of forcing a lazy Baileys init on a cosmetic call.
+    return this.manager?.setTyping(deviceId, jid, on);
+  }
+
   /** Composition-root helper: close all sockets on graceful shutdown. No-op if
    *  the manager was never built. */
   closeAll(): void {

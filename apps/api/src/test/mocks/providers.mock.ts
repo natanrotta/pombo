@@ -8,6 +8,7 @@ import { IMailProvider } from "@shared/provider/mail-provider.interface";
 import { IDatabaseStatusProvider } from "@shared/provider/database-status-provider.interface";
 import { INodeExporterMetricsProvider } from "@shared/provider/node-exporter-metrics-provider.interface";
 import { ISendRateLimiter } from "@modules/messaging/domain/provider/send-rate-limiter.interface";
+import { ISendPacer } from "@modules/messaging/domain/provider/send-pacer.interface";
 import { AppConfig } from "@shared/provider/app-config.interface";
 
 type MockOf<T> = {
@@ -124,6 +125,16 @@ export function mockSendRateLimiter(): MockOf<ISendRateLimiter> {
   };
 }
 
+/** Human send pacer stub — no typing, no pause by default (fast; effectively the
+ *  human-pacing-off behavior). Override the return values per test to exercise
+ *  typing/long-pause. */
+export function mockSendPacer(): MockOf<ISendPacer> {
+  return {
+    typingDelayMs: vi.fn().mockReturnValue(0),
+    longPauseMs: vi.fn().mockReturnValue(0),
+  };
+}
+
 /**
  * Plain-value AppConfig for constructing SUTs that inject the config port.
  * Defaults mirror the dev env defaults; override per-test as needed.
@@ -144,6 +155,15 @@ export function mockAppConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     // test overrides it to exercise throttling.
     SEND_RATE_MAX: 1000,
     SEND_RATE_WINDOW_MS: 60000,
+    // Human send pacer (rhythm under the rate ceiling) — defaults mirror env.ts.
+    HUMAN_PACING_ENABLED: false,
+    TYPING_MS_PER_CHAR: 50,
+    TYPING_MIN_MS: 1500,
+    TYPING_MAX_MS: 20000,
+    SEND_JITTER_PCT: 0.3,
+    LONG_PAUSE_PROBABILITY: 0.15,
+    LONG_PAUSE_MIN_MS: 30000,
+    LONG_PAUSE_MAX_MS: 120000,
     WEBHOOK_TIMEOUT_MS: 5000,
     WEBHOOK_MAX_ATTEMPTS: 4,
     WEBHOOK_RETRY_BASE_DELAY_MS: 1000,

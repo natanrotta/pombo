@@ -22,6 +22,15 @@ export interface AppConfig {
   OUTBOX_PRUNE_INTERVAL_MS: number;
   SEND_RATE_MAX: number;
   SEND_RATE_WINDOW_MS: number;
+  // Human send pacer (rhythm under the SEND_RATE ceiling — not a second throttle).
+  HUMAN_PACING_ENABLED: boolean;
+  TYPING_MS_PER_CHAR: number;
+  TYPING_MIN_MS: number;
+  TYPING_MAX_MS: number;
+  SEND_JITTER_PCT: number;
+  LONG_PAUSE_PROBABILITY: number;
+  LONG_PAUSE_MIN_MS: number;
+  LONG_PAUSE_MAX_MS: number;
   WEBHOOK_TIMEOUT_MS: number;
   WEBHOOK_MAX_ATTEMPTS: number;
   WEBHOOK_RETRY_BASE_DELAY_MS: number;
