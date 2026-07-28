@@ -77,6 +77,13 @@ export class DisabledWhatsAppGateway implements IWhatsAppGateway {
     throw this.disabled();
   }
 
+  async setTyping(): Promise<void> {
+    // no-op — presence is cosmetic. Unlike the send* methods (which throw
+    // WA_GATEWAY_DISABLED as a backstop), this must be safe to call even when
+    // WhatsApp is disabled so the humanized send path never crashes in a
+    // WHATSAPP_ENABLED=false env.
+  }
+
   private disabled(): ServiceUnavailableError {
     return new ServiceUnavailableError(
       "The WhatsApp integration is disabled in this environment",

@@ -64,6 +64,7 @@ export interface SessionManager {
     jid: string,
     payload: SendDocumentPayload,
   ): Promise<SendResult>;
+  setTyping(deviceId: string, jid: string, on: boolean): Promise<void>;
   closeAll(): void;
 }
 
@@ -524,6 +525,21 @@ export const makeSessionManager = (
         ...(payload.caption ? { caption: payload.caption } : {}),
       });
       return { waMessageId: extractWaMessageId(sent) };
+    },
+
+    // Best-effort "typing…" presence. No-op when the socket isn't open —
+    // presence is cosmetic and must never throw into a send path (unlike the
+    // send* methods, which surface DEVICE_OFFLINE). Mirrors requireOpenSocket's
+    // readiness check without the throw. `composing` shows typing; `paused`
+    // clears it. WhatsApp auto-expires `composing` after ~10s — the caller
+    // (roadmap E3) is responsible for refreshing it during a long typing window.
+    // KNOWN UNKNOWN (resolve at E1's live-validation gate): some Baileys setups
+    // need an `available` presence before `composing` renders to the recipient.
+    // If so, E3 must send `available` first — captured here so it isn't lost.
+    async setTyping(deviceId, jid, on) {
+      const sock = sockets.get(deviceId);
+      if (!sock || !openDevices.has(deviceId)) return;
+      await sock.sendPresenceUpdate(on ? "composing" : "paused", jid);
     },
 
     // Graceful shutdown: close() every socket, NEVER logout() — logout wipes the

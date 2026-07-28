@@ -6,14 +6,11 @@ import { IOutboxRepository } from "@modules/messaging/domain/repository/outbox-r
 import { OutboxMessage } from "@modules/messaging/domain/entity/outbox-message.entity";
 import { type MessageStatus } from "@modules/messaging/domain/value-object/message-status";
 import { AppConfig } from "@shared/provider/app-config.interface";
-import type { IDomainEventBus } from "@shared/provider/domain-event-bus.interface";
-import type { ISendRateLimiter } from "@modules/messaging/domain/provider/send-rate-limiter.interface";
 import { ConflictError, NotFoundError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
 import { SendRichInput } from "@modules/messaging/application/dto/message.dto";
 import { buildUserJid } from "@modules/messaging/domain/value-object/wa-jid";
 import { DrainOutboxUseCase } from "./drain-outbox.use-case";
-import { dispatchOutboxSend } from "./outbox-send-dispatch";
 
 export interface SendRichOutput {
   messageId: string;
@@ -41,13 +38,12 @@ function stableStringify(value: unknown): string {
 
 /**
  * The rich (non-text) send path: image, audio, video and document.
- * Byte-for-byte the same outbox contract as `SendTextMessageUseCase`
- * — write the row BEFORE the send, 202 = accepted (offline → queued for the
- * reconnect drain; over-budget → queued + drain kicked), idempotency guarded by
- * the DB unique with a code fast-path for the sequential replay. The only
- * difference is the body lives in `payload` (compared for idempotency) and the
- * send is dispatched by `type` via `dispatchOutboxSend` — so a queued image is
- * replayed as an image, never as text.
+ * Byte-for-byte the same outbox contract as `SendTextMessageUseCase` — write the
+ * row BEFORE handing it to the drain, 202 = accepted (online → drain kicked now;
+ * offline → the reconnect drain). Idempotency is guarded by the DB unique with a
+ * code fast-path for the sequential replay. The only difference from the text
+ * path is the body lives in `payload` (compared for idempotency) and the drain
+ * dispatches by `type` — so a queued image is replayed as an image, never text.
  */
 @injectable()
 export class SendRichMessageUseCase {
@@ -60,10 +56,6 @@ export class SendRichMessageUseCase {
     private readonly gateway: IWhatsAppGateway,
     @inject(DI_TOKENS.AppConfig)
     private readonly config: AppConfig,
-    @inject(DI_TOKENS.DomainEventBus)
-    private readonly bus: IDomainEventBus,
-    @inject(DI_TOKENS.SendRateLimiter)
-    private readonly rateLimiter: ISendRateLimiter,
     @inject(DrainOutboxUseCase)
     private readonly drainOutbox: DrainOutboxUseCase,
   ) {}
@@ -156,65 +148,13 @@ export class SendRichMessageUseCase {
       throw error;
     }
 
-    // Offline → the row is queued; the drain sends it on reconnect. 202 now.
-    if (!online) {
-      return { messageId: message.id, status: "PENDING" };
-    }
-
-    // Over the per-device send budget → queue it (don't send now) and kick the
-    // drain, which paces itself on the same rate limiter and sends it once the
-    // budget frees. Single-flight, so this joins a running drain or starts one.
-    if (!this.rateLimiter.tryConsume(device.id)) {
+    // 202 = accepted. The send belongs ENTIRELY to the drain (paced + humanized,
+    // dispatched by type — a queued image is replayed as an image, never as text):
+    // online kicks it now (single-flight — joins or starts a drain), offline waits
+    // for the `session.connected` reconnect drain. resolveJid above already gave
+    // the caller the synchronous "not on WhatsApp" 404.
+    if (online) {
       void this.drainOutbox.execute({ deviceId: device.id }).catch(() => {});
-      return { messageId: message.id, status: "PENDING" };
-    }
-
-    let waMessageId: string;
-    try {
-      ({ waMessageId } = await dispatchOutboxSend(
-        this.gateway,
-        device.id,
-        message,
-      ));
-    } catch (error) {
-      // The socket dropped between the readiness check and the send: keep the
-      // row QUEUED (unsent) so the drain resends it on reconnect. A real send
-      // error (still connected) is terminal → FAILED so the consumer sees it.
-      if (!this.gateway.isConnected(device.id)) {
-        return { messageId: message.id, status: "PENDING" };
-      }
-      try {
-        await this.outboxRepository.updateStatus(
-          message.id,
-          "FAILED",
-          "send failed",
-        );
-      } catch {
-        // swallow — never mask the original error below
-      }
-      throw error;
-    }
-
-    // The gateway ACCEPTED the send. Signal it (webhooks → on_send) BEFORE the
-    // waMessageId stamp, so a stamp failure can't suppress the event.
-    this.bus.publish({
-      type: "message.sent",
-      deviceId: device.id,
-      messageId: message.id,
-      phone: input.phone,
-    });
-    // Stamp the waMessageId (bookkeeping for a getMessage resend). Best-effort:
-    // the message already delivered, so a stamp failure must NOT turn the 202
-    // into a 500, and must NOT leave the row PENDING (the reconnect drain would
-    // re-send it) — move it to SERVER_ACK instead.
-    try {
-      await this.outboxRepository.setWaMessageId(message.id, waMessageId);
-    } catch {
-      await this.outboxRepository
-        .updateStatus(message.id, "SERVER_ACK")
-        .catch(() => {
-          // swallow — the send already succeeded; never fail the caller here
-        });
     }
     return { messageId: message.id, status: "PENDING" };
   }

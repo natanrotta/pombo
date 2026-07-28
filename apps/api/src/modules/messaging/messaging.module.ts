@@ -5,6 +5,8 @@ import { IOutboxRepository } from "@modules/messaging/domain/repository/outbox-r
 import { PrismaOutboxRepository } from "@modules/messaging/infrastructure/repository/prisma-outbox.repository";
 import { ISendRateLimiter } from "@modules/messaging/domain/provider/send-rate-limiter.interface";
 import { TokenBucketSendRateLimiter } from "@modules/messaging/infrastructure/provider/token-bucket-send-rate-limiter";
+import { ISendPacer } from "@modules/messaging/domain/provider/send-pacer.interface";
+import { HumanSendPacer } from "@modules/messaging/infrastructure/provider/human-send-pacer";
 import { DrainOutboxUseCase } from "@modules/messaging/application/use-case/messages";
 
 /**
@@ -30,6 +32,23 @@ export function registerMessagingModule(container: DependencyContainer): void {
       return new TokenBucketSendRateLimiter(
         config.SEND_RATE_MAX,
         config.SEND_RATE_WINDOW_MS,
+      );
+    }),
+  });
+  // The human send pacer (typing/jitter rhythm under the rate-limit ceiling).
+  // Stateless — cached only for cheapness, not for correctness. Consumed by the
+  // outbox drain (DrainOutboxUseCase) when HUMAN_PACING_ENABLED is on.
+  container.register<ISendPacer>(DI_TOKENS.SendPacer, {
+    useFactory: instanceCachingFactory((c) => {
+      const config = c.resolve<AppConfig>(DI_TOKENS.AppConfig);
+      return new HumanSendPacer(
+        config.TYPING_MS_PER_CHAR,
+        config.TYPING_MIN_MS,
+        config.TYPING_MAX_MS,
+        config.SEND_JITTER_PCT,
+        config.LONG_PAUSE_PROBABILITY,
+        config.LONG_PAUSE_MIN_MS,
+        config.LONG_PAUSE_MAX_MS,
       );
     }),
   });

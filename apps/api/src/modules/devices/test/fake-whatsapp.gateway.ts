@@ -28,8 +28,19 @@ export class FakeWhatsAppGateway implements IWhatsAppGateway {
     type: RichMessageType;
     payload: unknown;
   }[] = [];
+  /** Every setTyping call, in order: `{ deviceId, jid, on }`. Recorded
+   *  unconditionally (even when the device isn't "connected") — assert the
+   *  on/off presence sequence in E3 specs. */
+  public typingCalls: { deviceId: string; jid: string; on: boolean }[] = [];
+  /** Ordered log of presence-vs-send actions, to assert a "typing…" (composing)
+   *  precedes its send. `"typing"` on setTyping(on=true), `"text"`/`"rich"` on a
+   *  send. */
+  public callLog: ("typing" | "text" | "rich")[] = [];
   /** Set a type to force its send to throw (drives the FAILED-path specs). */
   public failTypes = new Set<RichMessageType | "text">();
+
+  /** Count of resolveJid calls — assert the offline path skips WA resolution. */
+  public resolveCalls = 0;
 
   private connected = new Set<string>();
   private jidByPhone = new Map<string, string | null>();
@@ -101,6 +112,7 @@ export class FakeWhatsAppGateway implements IWhatsAppGateway {
   }
 
   async resolveJid(_deviceId: string, phone: string): Promise<string | null> {
+    this.resolveCalls += 1;
     // Default: echo a jid derived from the phone unless overridden.
     if (this.jidByPhone.has(phone)) return this.jidByPhone.get(phone) ?? null;
     return `${phone}@s.whatsapp.net`;
@@ -113,6 +125,7 @@ export class FakeWhatsAppGateway implements IWhatsAppGateway {
   ): Promise<SendResult> {
     if (this.failTypes.has("text")) throw new Error("send failed");
     this.sentTexts.push({ deviceId, jid, text });
+    this.callLog.push("text");
     return this.nextResult();
   }
 
@@ -148,6 +161,11 @@ export class FakeWhatsAppGateway implements IWhatsAppGateway {
     return this.recordRich(deviceId, jid, "document", payload);
   }
 
+  async setTyping(deviceId: string, jid: string, on: boolean): Promise<void> {
+    this.typingCalls.push({ deviceId, jid, on });
+    if (on) this.callLog.push("typing");
+  }
+
   private recordRich(
     deviceId: string,
     jid: string,
@@ -156,6 +174,7 @@ export class FakeWhatsAppGateway implements IWhatsAppGateway {
   ): SendResult {
     if (this.failTypes.has(type)) throw new Error("send failed");
     this.sentRich.push({ deviceId, jid, type, payload });
+    this.callLog.push("rich");
     return this.nextResult();
   }
 
