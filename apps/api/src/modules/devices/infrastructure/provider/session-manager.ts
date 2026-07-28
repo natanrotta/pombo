@@ -245,6 +245,46 @@ export const makeSessionManager = (
         },
       );
 
+      // Group delivery/read is PER-PARTICIPANT: WhatsApp emits no aggregate
+      // status on `messages.update` for a group send (that's why a group message
+      // would otherwise sit at PENDING forever), so the receipts land here, one
+      // per participant. "At least one" semantics: the first participant to
+      // receive moves the message to DELIVERY_ACK, the first to read/play to
+      // READ. The downstream monotonic guard makes this idempotent and never
+      // regresses — so it's also harmless for 1:1 (redundant with the status
+      // above). Only our own outbound messages (`fromMe`) carry a send status.
+      sock.ev.on(
+        "message-receipt.update",
+        (
+          updates: Array<{
+            key: { id?: string | null; fromMe?: boolean | null };
+            receipt: {
+              receiptTimestamp?: number | null;
+              readTimestamp?: number | null;
+              playedTimestamp?: number | null;
+            };
+          }>,
+        ) => {
+          for (const { key, receipt } of updates) {
+            if (!key.fromMe || !key.id) continue;
+            const status: DomainMessageStatus | null =
+              receipt.readTimestamp != null || receipt.playedTimestamp != null
+                ? "READ"
+                : receipt.receiptTimestamp != null
+                  ? "DELIVERY_ACK"
+                  : null;
+            if (status) {
+              deps.bus.publish({
+                type: "session.message_status",
+                deviceId,
+                waMessageId: key.id,
+                status,
+              });
+            }
+          }
+        },
+      );
+
       sock.ev.on(
         "connection.update",
         (update: {
