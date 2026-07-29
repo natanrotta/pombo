@@ -2,6 +2,11 @@
  *  `outbox_message_type` enum. */
 export type MessageType = "text" | "image" | "audio" | "video" | "document";
 
+/** The compose options the Sandbox offers. `"group"` is a UI-only routing
+ *  concept: a group send is a text message to a `@g.us` JID, stored on the
+ *  backend as a `text` outbox row — it is NOT a backend `outbox_message_type`. */
+export type SandboxMessageType = MessageType | "group";
+
 export interface SendTextInput {
   phone: string;
   text: string;
@@ -29,6 +34,13 @@ export interface SendDocumentInput {
   document: string;
   fileName?: string;
   caption?: string;
+}
+
+/** Send a text message to a group. `groupJid` is the canonical `<id>@g.us`
+ *  identifier (from `GET /devices/:id/groups`). */
+export interface SendGroupInput {
+  groupJid: string;
+  text: string;
 }
 
 /** The delivery lifecycle of a message, mirroring the backend

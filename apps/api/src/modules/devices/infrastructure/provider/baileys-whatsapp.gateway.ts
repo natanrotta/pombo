@@ -7,6 +7,7 @@ import {
   SendAudioPayload,
   SendVideoPayload,
   SendDocumentPayload,
+  GroupInfo,
 } from "@modules/devices/domain/provider/whatsapp-gateway.interface";
 import type { IDomainEventBus } from "@shared/provider/domain-event-bus.interface";
 import type { ILoggerProvider } from "@shared/provider/logger-provider.interface";
@@ -95,6 +96,11 @@ export class BaileysWhatsAppGateway implements IWhatsAppGateway {
     return this.manager ? this.manager.getCurrentQr(deviceId) : null;
   }
 
+  async listGroups(deviceId: string): Promise<GroupInfo[]> {
+    const manager = await this.getManager();
+    return manager.listGroups(deviceId);
+  }
+
   async resolveJid(deviceId: string, phone: string): Promise<string | null> {
     const manager = await this.getManager();
     return manager.resolveJid(deviceId, phone);
@@ -143,6 +149,13 @@ export class BaileysWhatsAppGateway implements IWhatsAppGateway {
   ): Promise<SendResult> {
     const manager = await this.getManager();
     return manager.sendDocument(deviceId, jid, payload);
+  }
+
+  async setTyping(deviceId: string, jid: string, on: boolean): Promise<void> {
+    // Best-effort presence: if the manager was never built, no socket is open,
+    // so there's nothing to type to. Guard like isConnected/getCurrentQr/closeAll
+    // instead of forcing a lazy Baileys init on a cosmetic call.
+    return this.manager?.setTyping(deviceId, jid, on);
   }
 
   /** Composition-root helper: close all sockets on graceful shutdown. No-op if

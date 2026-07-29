@@ -5,6 +5,7 @@ import {
   ListDevicesUseCase,
   GetDeviceUseCase,
   GetDeviceQrUseCase,
+  ListDeviceGroupsUseCase,
   UpdateDeviceWebhooksUseCase,
   ConnectDeviceUseCase,
   DisconnectDeviceUseCase,
@@ -39,6 +40,13 @@ export class DeviceController {
   async getQr(req: Request, res: Response): Promise<Response> {
     const { id } = req.params as { id: string };
     const useCase = container.resolve(GetDeviceQrUseCase);
+    const result = await useCase.execute(req.auth.accountId, id);
+    return res.status(200).json({ ok: true, data: result });
+  }
+
+  async listGroups(req: Request, res: Response): Promise<Response> {
+    const { id } = req.params as { id: string };
+    const useCase = container.resolve(ListDeviceGroupsUseCase);
     const result = await useCase.execute(req.auth.accountId, id);
     return res.status(200).json({ ok: true, data: result });
   }

@@ -56,6 +56,8 @@ export const DI_TOKENS = {
   DisconnectDebouncer: "DisconnectDebouncer",
   /** Per-device outbound send rate limiter (anti-ban throttle). */
   SendRateLimiter: "SendRateLimiter",
+  /** Human send pacer — typing/jitter rhythm under the SendRateLimiter ceiling. */
+  SendPacer: "SendPacer",
 
   // ── Application services ──────────────────────────────────────────────
   AuthProfileBuilder: "AuthProfileBuilder",

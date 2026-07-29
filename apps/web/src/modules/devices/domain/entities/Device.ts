@@ -48,6 +48,13 @@ export interface DeviceQr {
   qr: string | null;
 }
 
+/** A WhatsApp group the device participates in. Mirrors the backend
+ *  `GroupInfo` (keep in sync). `jid` (`<id>@g.us`) is the send recipient. */
+export interface DeviceGroup {
+  jid: string;
+  name: string;
+}
+
 export interface ConnectDeviceResult {
   id: string;
   status: DeviceStatus;

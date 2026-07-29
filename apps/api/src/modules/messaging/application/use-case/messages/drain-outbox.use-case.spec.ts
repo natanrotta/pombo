@@ -3,7 +3,13 @@ import { InMemoryOutboxRepository } from "@modules/messaging/test/in-memory-outb
 import { FakeWhatsAppGateway } from "@modules/devices/test/fake-whatsapp.gateway";
 import { TokenBucketSendRateLimiter } from "@modules/messaging/infrastructure/provider/token-bucket-send-rate-limiter";
 import type { ISendRateLimiter } from "@modules/messaging/domain/provider/send-rate-limiter.interface";
-import { mockLoggerProvider, mockSendRateLimiter } from "@test/mocks";
+import type { ISendPacer } from "@modules/messaging/domain/provider/send-pacer.interface";
+import {
+  mockAppConfig,
+  mockLoggerProvider,
+  mockSendPacer,
+  mockSendRateLimiter,
+} from "@test/mocks";
 import type {
   DomainEvent,
   IDomainEventBus,
@@ -21,17 +27,26 @@ class RecordingBus implements IDomainEventBus {
 
 const future = (): Date => new Date(Date.now() + 60 * 60 * 1000);
 
-const setup = (rateLimiter: ISendRateLimiter = mockSendRateLimiter()) => {
+const setup = (
+  rateLimiter: ISendRateLimiter = mockSendRateLimiter(),
+  opts: { pacer?: ISendPacer; humanPacingEnabled?: boolean } = {},
+) => {
   const outbox = new InMemoryOutboxRepository();
   const gateway = new FakeWhatsAppGateway();
   const bus = new RecordingBus();
   gateway.setConnected(DEVICE, true);
+  const pacer = opts.pacer ?? mockSendPacer();
+  const config = mockAppConfig({
+    HUMAN_PACING_ENABLED: opts.humanPacingEnabled ?? false,
+  });
   const sut = new DrainOutboxUseCase(
     outbox,
     gateway,
     bus,
     rateLimiter,
     mockLoggerProvider(),
+    pacer,
+    config,
   );
   const enqueue = (
     idempotencyKey: string,
@@ -48,7 +63,7 @@ const setup = (rateLimiter: ISendRateLimiter = mockSendRateLimiter()) => {
         : { text: `t-${idempotencyKey}` }),
       expiresAt,
     });
-  return { outbox, gateway, bus, sut, enqueue };
+  return { outbox, gateway, bus, sut, enqueue, pacer };
 };
 
 describe("DrainOutboxUseCase", () => {
@@ -74,6 +89,23 @@ describe("DrainOutboxUseCase", () => {
       deviceId: DEVICE,
       messageId: a.id,
       phone: "5511",
+    });
+  });
+
+  it("publishes message.sent with the FULL group JID (not stripped) for a drained group message", async () => {
+    const { sut, bus, enqueue } = setup();
+    const groupJid = "120363000000000001@g.us";
+    const g = await enqueue("g", groupJid);
+
+    await sut.execute({ deviceId: DEVICE });
+
+    // A group JID is not a phone — it must ride the event as-is, matching the
+    // live send path (regression guard for the drain's userJidToPhone default).
+    expect(bus.published).toContainEqual({
+      type: "message.sent",
+      deviceId: DEVICE,
+      messageId: g.id,
+      phone: groupJid,
     });
   });
 
@@ -197,9 +229,90 @@ describe("DrainOutboxUseCase", () => {
     expect(calls).toBe(1);
   });
 
+  it("re-checks the queue when a kick arrives mid-drain (no lost wakeup)", async () => {
+    const { sut, gateway, enqueue } = setup();
+    await enqueue("a", "5511@s.whatsapp.net");
+    let firstSend = true;
+    const realSendText = gateway.sendText.bind(gateway);
+    gateway.sendText = async (d, j, t) => {
+      if (firstSend) {
+        firstSend = false;
+        // While A is being sent, enqueue B and fire a concurrent kick. The kick
+        // is collapsed by the single-flight guard — it MUST arm the re-run so the
+        // running drain re-queries and sends B, not leave it stuck.
+        await enqueue("b", "5522@s.whatsapp.net");
+        void sut.execute({ deviceId: DEVICE });
+      }
+      return realSendText(d, j, t);
+    };
+
+    await sut.execute({ deviceId: DEVICE });
+
+    // Without the re-arm, B (enqueued after the drain's findQueued) would sit
+    // unsent — only A would appear here.
+    expect(gateway.sentTexts.map((s) => s.jid)).toEqual([
+      "5511@s.whatsapp.net",
+      "5522@s.whatsapp.net",
+    ]);
+  });
+
   it("no-ops when nothing is queued", async () => {
     const { sut, gateway } = setup();
     await sut.execute({ deviceId: DEVICE });
     expect(gateway.sentTexts).toHaveLength(0);
+  });
+
+  // ── Human pacing (E3) ──────────────────────────────────────────────────────
+
+  it("shows typing before sending when human pacing is enabled", async () => {
+    const { sut, gateway, pacer, enqueue } = setup(mockSendRateLimiter(), {
+      humanPacingEnabled: true,
+    });
+    await enqueue("a", "5511@s.whatsapp.net");
+
+    await sut.execute({ deviceId: DEVICE });
+
+    // Composing raised for the target jid, typing duration derived from the text
+    // length ("t-a" → 3), and the message still went out.
+    expect(gateway.typingCalls).toContainEqual({
+      deviceId: DEVICE,
+      jid: "5511@s.whatsapp.net",
+      on: true,
+    });
+    // Exactly one composing per message — a duplicate indicator is observable.
+    expect(gateway.typingCalls.filter((c) => c.on)).toHaveLength(1);
+    // …and it precedes the send (a reorder would leave the above green).
+    expect(gateway.callLog).toEqual(["typing", "text"]);
+    expect(pacer.typingDelayMs).toHaveBeenCalledWith(3);
+    expect(gateway.sentTexts).toHaveLength(1);
+  });
+
+  it("does NOT show typing when human pacing is disabled (default)", async () => {
+    const { sut, gateway, pacer, enqueue } = setup(); // flag off
+    await enqueue("a", "5511@s.whatsapp.net");
+
+    await sut.execute({ deviceId: DEVICE });
+
+    expect(gateway.typingCalls).toHaveLength(0);
+    expect(pacer.typingDelayMs).not.toHaveBeenCalled();
+    expect(gateway.sentTexts).toHaveLength(1);
+  });
+
+  it("rolls a long pause BETWEEN messages, but not after the last in the batch (D12)", async () => {
+    const { sut, gateway, pacer, enqueue } = setup(mockSendRateLimiter(), {
+      humanPacingEnabled: true,
+    });
+    await enqueue("a", "5511@s.whatsapp.net");
+    await enqueue("b", "5522@s.whatsapp.net");
+
+    await sut.execute({ deviceId: DEVICE });
+
+    // 2 messages, 1 batch: the pause is rolled after the 1st (an inter-message
+    // gap) but skipped after the 2nd/last — so exactly one roll (returns 0 anyway).
+    expect(pacer.longPauseMs).toHaveBeenCalledTimes(1);
+    // Typing still runs for BOTH messages (paceTyping is per-message), and each
+    // composing precedes its send — asserted via the ordered call log.
+    expect(gateway.typingCalls.filter((c) => c.on)).toHaveLength(2);
+    expect(gateway.callLog).toEqual(["typing", "text", "typing", "text"]);
   });
 });

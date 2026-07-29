@@ -15,6 +15,7 @@ export {
   mockDatabaseStatusProvider,
   mockNodeExporterMetricsProvider,
   mockSendRateLimiter,
+  mockSendPacer,
   mockAppConfig,
 } from "./providers.mock";
 

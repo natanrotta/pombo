@@ -72,6 +72,38 @@ describe("MessageController", () => {
     expect(mockExecute).not.toHaveBeenCalled();
   });
 
+  it("sendToGroup maps groupJid + text → input and returns 202", async () => {
+    mockExecute.mockResolvedValue({ messageId: "m1", status: "PENDING" });
+    const { req, res, status, json } = mockReqRes({ params: { id: "d1" } });
+    req.__setHeader("Idempotency-Key", "key-1");
+    req.body = { groupJid: "120363000000000001@g.us", text: "oi" };
+
+    await controller.sendToGroup(req, res);
+
+    expect(mockExecute).toHaveBeenCalledWith({
+      accountId: "acc-1",
+      deviceId: "d1",
+      groupJid: "120363000000000001@g.us",
+      text: "oi",
+      idempotencyKey: "key-1",
+    });
+    expect(status).toHaveBeenCalledWith(202);
+    expect(json).toHaveBeenCalledWith({
+      ok: true,
+      data: { messageId: "m1", status: "PENDING" },
+    });
+  });
+
+  it("sendToGroup throws BadRequest when the Idempotency-Key header is missing", async () => {
+    const { req, res } = mockReqRes({ params: { id: "d1" } });
+    req.body = { groupJid: "120363000000000001@g.us", text: "oi" };
+
+    await expect(controller.sendToGroup(req, res)).rejects.toBeInstanceOf(
+      BadRequestError,
+    );
+    expect(mockExecute).not.toHaveBeenCalled();
+  });
+
   it("sendImage maps body→input (payload = body minus phone) with the image type → 202", async () => {
     mockExecute.mockResolvedValue({ messageId: "m1", status: "PENDING" });
     const { req, res, status, json } = mockReqRes({ params: { id: "d1" } });

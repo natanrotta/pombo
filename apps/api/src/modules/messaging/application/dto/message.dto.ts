@@ -6,6 +6,20 @@ export const SendMessageDTOSchema = z.object({
   text: z.string().trim().min(1),
 });
 
+// A group JID is `<groupId>@g.us`. Validated by the `@g.us` suffix + a non-empty
+// local part rather than a strict digit shape: the group id must accept exactly
+// what `GET /devices/:id/groups` returns (numeric, legacy `<creator>-<ts>`, or
+// any future server-issued form) so the list never surfaces a JID the send
+// rejects. The suffix still excludes a user JID (`@s.whatsapp.net`) and a bare
+// number.
+export const SendGroupMessageDTOSchema = z.object({
+  groupJid: z
+    .string()
+    .trim()
+    .regex(/^[^@\s]+@g\.us$/, "groupJid must be a WhatsApp group JID (…@g.us)"),
+  text: z.string().trim().min(1),
+});
+
 export const SendMessageParamSchema = z.object({
   id: z.string().uuid("Invalid device ID format"),
 });
@@ -15,6 +29,7 @@ export const MessageIdParamSchema = z.object({
 });
 
 export type SendMessageDTO = z.infer<typeof SendMessageDTOSchema>;
+export type SendGroupMessageDTO = z.infer<typeof SendGroupMessageDTOSchema>;
 export type SendMessageParam = z.infer<typeof SendMessageParamSchema>;
 export type MessageIdParam = z.infer<typeof MessageIdParamSchema>;
 
@@ -40,16 +55,24 @@ export const SendAudioDTOSchema = z.object({ phone, ...audioBody });
 export const SendVideoDTOSchema = z.object({ phone, ...videoBody });
 export const SendDocumentDTOSchema = z.object({ phone, ...documentBody });
 
-/** Input carried into the send use case. `accountId` (tenant scope) + device id
- *  + idempotency key are added by the controller from `req.auth`, the route and
- *  the header. */
-export interface SendTextInput {
+/** Fields every text send carries, regardless of recipient kind. `accountId`
+ *  (tenant scope) + device id + idempotency key are added by the controller from
+ *  `req.auth`, the route and the header. */
+interface SendTextBase {
   accountId: string;
   deviceId: string;
-  phone: string;
   text: string;
   idempotencyKey: string;
 }
+
+/** Input carried into the send use case. A **discriminated union** so exactly one
+ *  recipient is set at the type level: `phone` for an individual send (the JID is
+ *  resolved/validated via `onWhatsApp`), or `groupJid` for a group send (already
+ *  canonical `<id>@g.us`, so `resolveJid` is skipped). `?: never` makes passing
+ *  both — or neither — a compile error, not a runtime `undefined` JID. */
+export type SendTextInput =
+  | (SendTextBase & { phone: string; groupJid?: never })
+  | (SendTextBase & { groupJid: string; phone?: never });
 
 /** Input carried into `SendRichMessageUseCase`. `payload` is the validated body
  *  minus `phone` — the per-type shape (`SendImagePayload`, …) is enforced by the

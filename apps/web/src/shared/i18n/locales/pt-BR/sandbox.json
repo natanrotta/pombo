@@ -11,6 +11,11 @@
     "type": "Tipo da mensagem",
     "phone": "Número de destino",
     "phonePlaceholder": "(11) 99999-9999",
+    "group": "Grupo de destino",
+    "groupPlaceholder": "Selecione um grupo",
+    "groupLoading": "Carregando grupos...",
+    "groupEmpty": "Nenhum grupo encontrado",
+    "groupError": "Não foi possível carregar os grupos",
     "text": "Mensagem",
     "textPlaceholder": "Digite a mensagem de teste...",
     "media": {
@@ -24,14 +29,17 @@
     "fileName": "Nome do arquivo",
     "fileNamePlaceholder": "documento.pdf",
     "caption": "Legenda",
-    "captionPlaceholder": "Legenda opcional"
+    "captionPlaceholder": "Legenda opcional",
+    "count": "Quantidade",
+    "countHelper": "Enfileira várias mensagens para ver a fila e o ritmo humanizado (digitando + variação) na prática."
   },
   "type": {
     "text": "Texto",
     "image": "Imagem",
     "audio": "Áudio",
     "video": "Vídeo",
-    "document": "Documento"
+    "document": "Documento",
+    "group": "Grupo"
   },
   "recent": {
     "title": "Recém enviados",
@@ -48,25 +56,23 @@
     "deviceRequired": "Selecione um dispositivo.",
     "phoneInvalid": "Informe um número válido.",
     "textRequired": "Digite uma mensagem.",
-    "mediaRequired": "Informe a URL ou o base64 da mídia."
+    "mediaRequired": "Informe a URL ou o base64 da mídia.",
+    "groupRequired": "Selecione um grupo.",
+    "countInvalid": "Informe de 1 a 20."
   },
   "actions": {
     "send": "Enviar",
     "clear": "Limpar"
   },
-  "result": {
-    "title": "Resultado do envio",
+  "queue": {
+    "title": "Fila de envio",
+    "summary": "{{total}} na fila",
+    "item": "Mensagem {{index}}/{{total}}",
+    "pacingHint": "Com o ritmo humanizado ativo, o destinatário vê \"digitando…\" e as mensagens saem espaçadas — acompanhe a fila drenar acima.",
     "empty": {
       "title": "Nenhum envio ainda",
-      "description": "Envie uma mensagem de teste para acompanhar o status por aqui em tempo real."
-    },
-    "messageId": "ID da mensagem",
-    "failureReason": "Motivo da falha",
-    "live": "Atualizando o status em tempo real...",
-    "done": "Status final.",
-    "statusError": "Não foi possível obter o status. Tente novamente.",
-    "note": "Observação",
-    "noteValue": "Envio de teste — não é persistido, apenas em memória."
+      "description": "Envie uma ou mais mensagens de teste para acompanhar a fila drenar aqui em tempo real."
+    }
   },
-  "success": "Mensagem enviada para processamento."
+  "success": "{{total}} mensagem(ns) na fila de envio."
 }

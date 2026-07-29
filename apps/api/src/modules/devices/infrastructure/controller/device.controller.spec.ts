@@ -80,6 +80,18 @@ describe("DeviceController", () => {
     });
   });
 
+  it("listGroups passes account + id and returns 200 { ok, data }", async () => {
+    const groups = [{ jid: "120363000000000001@g.us", name: "Team" }];
+    mockExecute.mockResolvedValue(groups);
+    const { req, res, status, json } = mockReqRes({ params: { id: "d1" } });
+
+    await controller.listGroups(req, res);
+
+    expect(mockExecute).toHaveBeenCalledWith("acc-1", "d1");
+    expect(status).toHaveBeenCalledWith(200);
+    expect(json).toHaveBeenCalledWith({ ok: true, data: groups });
+  });
+
   it("updateWebhooks passes account + id + body and returns 200", async () => {
     mockExecute.mockResolvedValue({ id: "d1", webhooks: {} });
     const { req, res, status } = mockReqRes({
