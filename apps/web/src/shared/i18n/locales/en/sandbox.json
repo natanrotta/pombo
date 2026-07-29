@@ -29,7 +29,9 @@
     "fileName": "File name",
     "fileNamePlaceholder": "document.pdf",
     "caption": "Caption",
-    "captionPlaceholder": "Optional caption"
+    "captionPlaceholder": "Optional caption",
+    "count": "Quantity",
+    "countHelper": "Queue several messages to watch the queue and the humanized pacing (typing + jitter) in action."
   },
   "type": {
     "text": "Text",
@@ -55,25 +57,22 @@
     "phoneInvalid": "Enter a valid number.",
     "textRequired": "Type a message.",
     "mediaRequired": "Provide the media URL or base64.",
-    "groupRequired": "Select a group."
+    "groupRequired": "Select a group.",
+    "countInvalid": "Enter a value between 1 and 20."
   },
   "actions": {
     "send": "Send",
     "clear": "Clear"
   },
-  "result": {
-    "title": "Send result",
+  "queue": {
+    "title": "Send queue",
+    "summary": "{{total}} in queue",
+    "item": "Message {{index}}/{{total}}",
+    "pacingHint": "With humanized pacing on, the recipient sees \"typing…\" and messages go out spaced apart — watch the queue drain above.",
     "empty": {
       "title": "No send yet",
-      "description": "Send a test message to follow its status here in real time."
-    },
-    "messageId": "Message ID",
-    "failureReason": "Failure reason",
-    "live": "Updating status in real time...",
-    "done": "Final status.",
-    "statusError": "Couldn't fetch the status. Please try again.",
-    "note": "Note",
-    "noteValue": "Test send — not persisted, in memory only."
+      "description": "Send one or more test messages to watch the queue drain here in real time."
+    }
   },
-  "success": "Message queued for processing."
+  "success": "{{total}} message(s) queued for sending."
 }

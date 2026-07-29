@@ -29,7 +29,9 @@
     "fileName": "Nombre del archivo",
     "fileNamePlaceholder": "documento.pdf",
     "caption": "Leyenda",
-    "captionPlaceholder": "Leyenda opcional"
+    "captionPlaceholder": "Leyenda opcional",
+    "count": "Cantidad",
+    "countHelper": "Encola varios mensajes para ver la cola y el ritmo humanizado (escribiendo + variación) en la práctica."
   },
   "type": {
     "text": "Texto",
@@ -55,25 +57,22 @@
     "phoneInvalid": "Ingresa un número válido.",
     "textRequired": "Escribe un mensaje.",
     "mediaRequired": "Indica la URL o el base64 de la media.",
-    "groupRequired": "Selecciona un grupo."
+    "groupRequired": "Selecciona un grupo.",
+    "countInvalid": "Ingresa de 1 a 20."
   },
   "actions": {
     "send": "Enviar",
     "clear": "Limpiar"
   },
-  "result": {
-    "title": "Resultado del envío",
+  "queue": {
+    "title": "Cola de envío",
+    "summary": "{{total}} en la cola",
+    "item": "Mensaje {{index}}/{{total}}",
+    "pacingHint": "Con el ritmo humanizado activo, el destinatario ve \"escribiendo…\" y los mensajes salen espaciados — sigue la cola vaciarse arriba.",
     "empty": {
       "title": "Aún no hay envíos",
-      "description": "Envía un mensaje de prueba para seguir su estado aquí en tiempo real."
-    },
-    "messageId": "ID del mensaje",
-    "failureReason": "Motivo del fallo",
-    "live": "Actualizando el estado en tiempo real...",
-    "done": "Estado final.",
-    "statusError": "No se pudo obtener el estado. Inténtalo de nuevo.",
-    "note": "Nota",
-    "noteValue": "Envío de prueba — no se guarda, solo en memoria."
+      "description": "Envía uno o más mensajes de prueba para seguir la cola vaciarse aquí en tiempo real."
+    }
   },
-  "success": "Mensaje enviado para procesamiento."
+  "success": "{{total}} mensaje(s) en la cola de envío."
 }
