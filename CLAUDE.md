@@ -1,6 +1,6 @@
-# Boilerplate — Task Lifecycle Contract
+# Pombo — Task Lifecycle Contract
 
-This file defines the **task lifecycle** for implementation work in this repository. It is loaded automatically into every Claude Code session and applies to direct requests and to every specialist skill (`/backend`, `/frontend`, `/fullstack`).
+This file defines the **task lifecycle** for implementation work in this repository. It is loaded automatically into every Claude Code session and applies to direct requests and to every specialist skill (`/backend`, `/frontend`, `/fullstack`, `/ai-backend`).
 
 **Methodology: Spec-Driven Development (SDD).** Every non-trivial task starts with a written contract — a **Task Spec** in `.claude/specs/<slug>.md` (template and lifecycle in `.claude/patterns/spec.md`) — produced by `/triage`, `/architect`, or the implementing specialist BEFORE any code. Implementation targets the spec's acceptance criteria; the babysit loop and `/finish-task` Phase 4.6 verify the diff against it. The contract kills the two invisible failure modes: silent scope cuts and inflated code (R26–R28 in BASELINE).
 
@@ -66,7 +66,7 @@ The user expects to describe a task **once**, then see it executed end-to-end wi
 
 ## Zero-friction mode — the user should never need to think about the workflow
 
-**The user opens a new prompt and describes the task in natural language (Portuguese or English). That's it.** They should never have to type `/backend`, `/frontend`, `/fullstack`, `/finish-task`, or any specialist command. You — the assistant — drive the entire flow **inside the current Claude Code session** — one conversation per task. The only command the user types explicitly is `/start-task` (or its natural-language equivalents) when they want a fresh worktree + branch + PR flow. Without that, you stay on the current branch.
+**The user opens a new prompt and describes the task in natural language (Portuguese or English). That's it.** They should never have to type `/backend`, `/frontend`, `/fullstack`, `/ai-backend`, `/finish-task`, or any specialist command. You — the assistant — drive the entire flow **inside the current Claude Code session** — one conversation per task. The only command the user types explicitly is `/start-task` (or its natural-language equivalents) when they want a fresh worktree + branch + PR flow. Without that, you stay on the current branch.
 
 Before responding to any user message, you MUST decide which of these states you are in:
 
@@ -118,7 +118,7 @@ If the user did **not** say something like the above, default to **inline mode**
 
 1. Acknowledge in one sentence ("Vou aplicar a mudança direto na branch atual.") so the user knows you skipped the worktree.
 2. **`/triage` is optional in inline mode.** Run it only if the change spans multiple files OR the user explicitly asks for a challenge round ("me ajuda a pensar antes", "questiona isso"). For trivial fixes, skip straight to step 3.
-3. Route to the specialist (`/backend`, `/frontend`, `/fullstack`) the same way as in worktree mode (or honor `/triage`'s recommendation if you ran it).
+3. Route to the specialist (`/backend`, `/frontend`, `/fullstack`, `/ai-backend`) the same way as in worktree mode (or honor `/triage`'s recommendation if you ran it).
 4. Specialist runs Step 0 (knowledge) → Step 0.5 (BASELINE activation) → Step 0.75 (contract — if `/triage` didn't write the spec, the specialist writes the micro-spec for non-trivial changes) → implement → Step N (BABYSIT self-audit loop, including spec compliance). The babysit loop runs in inline mode too — drift catches happen regardless of where the code lives.
 5. **Stop after implementation.** Do not run `/finish-task`. Do not commit, push, or open a PR unless the user asks.
 6. End with a one-sentence summary of what changed. The user decides the next step.
@@ -128,14 +128,14 @@ If the user did **not** say something like the above, default to **inline mode**
 Whenever you are in a worktree, **every file operation must target that worktree**:
 - Prefer absolute paths rooted at the worktree for `Read`, `Edit`, `Write`, `Glob`, `Grep`.
 - For `Bash`, prefix long-running or cwd-sensitive commands with `cd <worktree-path> && …`.
-- Never edit files under `/Users/natanrotta/Documents/repositories/boilerplate-monorepo/**` from within a worktree task — that's the main checkout and editing it would corrupt the isolation.
+- Never edit files under `/Users/natanrotta/Documents/repositories/pombo/**` from within a worktree task — that's the main checkout and editing it would corrupt the isolation.
 - Never create a second worktree for the same task. One worktree = one conversation, until the user says otherwise.
 
 ---
 
 ## Specialist Auto-Routing
 
-**The user does NOT need to type `/backend`, `/frontend`, `/fullstack` explicitly.** When the user describes a task in natural language (with or without a command), you MUST classify the scope yourself and invoke the correct specialist via the `Skill` tool before entering Plan Mode.
+**The user does NOT need to type `/backend`, `/frontend`, `/fullstack`, or `/ai-backend` explicitly.** When the user describes a task in natural language (with or without a command), you MUST classify the scope yourself and invoke the correct specialist via the `Skill` tool before entering Plan Mode.
 
 ### `/triage` runs FIRST (worktree mode)
 
@@ -151,11 +151,13 @@ In inline mode, `/triage` is optional. Run it only when the change spans multipl
 
 Analyze the user's description and the files the task will likely touch. Use these rules in order:
 
-1. **Only backend signals** (API, endpoint, route, Express, Prisma, migration, SQL, repository, service, worker, BullMQ, queue, webhook, cron, DI container, Zod schema, DTO, Vitest, `apps/api/**`) → `/backend`
-2. **Only frontend signals** (component, page, route in React Router, Chakra, TanStack Query, hook, form, modal, i18n, selector, Playwright, `apps/web/**`) → `/frontend`
-3. **Both backend AND frontend signals in the same task** (new endpoint + new UI to consume it, new field in DB + form to edit it, filter in list + query param in API) → `/fullstack`
-4. **Read-only analysis, scoping, architectural discussion with no implementation** → `/brainstorm` or `/architect` (brainstorm for scope validation, architect for full technical specs)
-5. **Read-only audit / "what's wrong with this code" / normalization sweep against patterns** → `/normalize` (dispatches the `code-auditor` subagent in an isolated context and returns a severity-graded report)
+1. **AI / LLM / RAG / embeddings / prompts / LangChain / assistant / tool-calling** → `/ai-backend` (Pombo has no AI infra yet — this specialist also owns building the foundation, see its "Status in Pombo")
+2. **Only backend signals** (API, endpoint, route, Express, Prisma, migration, SQL, repository, service, worker, BullMQ, queue, webhook, cron, DI container, Zod schema, DTO, Vitest, Baileys/WhatsApp gateway, outbox, `apps/api/**`) → `/backend`
+3. **Only frontend signals** (component, page, route in React Router, Chakra, TanStack Query, hook, form, modal, i18n, selector, Playwright, `apps/web/**`) → `/frontend`
+4. **Both backend AND frontend signals in the same task** (new endpoint + new UI to consume it, new field in DB + form to edit it, filter in list + query param in API) → `/fullstack`
+5. **Read-only analysis, scoping, architectural discussion with no implementation** → `/brainstorm` or `/architect` (brainstorm for scope validation, architect for full technical specs)
+6. **Read-only audit / "what's wrong with this code" / normalization sweep against patterns** → `/normalize` (dispatches the `code-auditor` subagent in an isolated context and returns a severity-graded report)
+7. **Observability / "is prod reporting?" / an incident log, print or stacktrace to diagnose / Bugsnag** → `/bugsnag` (dispatches the `bugsnag-analyst` subagent: live account + reporter wiring, diagnosis only). **Security question / threat model / hardening** → `/security`. **Deploy / infra / production ops** → `/devops`.
 
 ### Ambiguity rule
 
@@ -167,7 +169,7 @@ A wrong specialist costs a 10-second correction. Interrupting the user for every
 
 When you auto-route, **always tell the user** in one short sentence which specialist you chose and why, before handing off. Example:
 
-> "This touches both the `GET /users` endpoint and the `UsersListPage` UI, so I'm invoking `/fullstack`."
+> "This touches both the `GET /devices` endpoint and the `DevicesListPage` UI, so I'm invoking `/fullstack`."
 
 The user can then correct you in one message ("no, just `/frontend`, the endpoint is already done") before any work begins.
 
@@ -175,17 +177,19 @@ The user can then correct you in one message ("no, just `/frontend`, the endpoin
 
 | User's prompt | Routing |
 |---|---|
-| "preciso adicionar um filtro de status na listagem de usuários" | `/fullstack` (UI dropdown + API query param) |
-| "adiciona retry exponencial no worker de webhooks" | `/backend` (worker-only) |
-| "o input de busca some depois de aplicar filtro" | `/frontend` (UI bug) |
-| "crie um endpoint POST /users/invite que envia um convite" | `/backend` (endpoint + service only) |
-| "adiciona um campo de avatar no formulário de perfil que chama o endpoint PATCH /users/me" | `/frontend` (endpoint already exists — only UI work) |
+| "preciso adicionar um filtro de status na listagem de dispositivos" | `/fullstack` (UI dropdown + API query param) |
+| "adiciona retry exponencial no envio de webhooks" | `/backend` (worker-only) |
+| "o QR do modal de conexão some depois de reconectar" | `/frontend` (UI bug) |
+| "crie um endpoint POST /devices/:id/messages/location que envia uma localização" | `/backend` (endpoint + use case + gateway only) |
+| "adiciona um botão de 'desconectar' no card do dispositivo que chama o endpoint POST /devices/:id/disconnect" | `/frontend` (endpoint already exists — only UI work) |
+| "classifica as mensagens recebidas com um LLM e responde automaticamente" | `/ai-backend` (LLM — starts by building the provider foundation) |
+| "a API de produção parou de reportar erros" / "diagnostica esse stacktrace" | `/bugsnag` (diagnosis, no code) |
 | "refatorar o fluxo de login" | **Ambiguous** — ask: backend (auth middleware/JWT) / frontend (login page) / fullstack (both)? |
-| "melhorar a performance da listagem de usuários" | **Ambiguous** — ask: API query optimization / React render optimization / both? |
+| "melhorar a performance da listagem de dispositivos" | **Ambiguous** — ask: API query optimization / React render optimization / both? |
 
 ### Explicit override
 
-If the user DOES type `/backend`, `/frontend`, `/fullstack` explicitly, honor the choice immediately — do not re-classify or second-guess. The explicit command is authoritative.
+If the user DOES type `/backend`, `/frontend`, `/fullstack`, or `/ai-backend` explicitly, honor the choice immediately — do not re-classify or second-guess. The explicit command is authoritative.
 
 ---
 
@@ -255,9 +259,10 @@ Run `/cleanup-task` to remove the worktree and delete the local branch. It verif
 | **0** | **`/start-task`** | Worktree only | Run only when the user explicitly asks for a worktree. Skip in inline mode. |
 | **1** | **`/triage`** | Worktree (mandatory), Inline (optional) | Tri-perspective intake — architect + engineer + product subagents in parallel; batches questions into ONE `AskUserQuestion`; persists the **Task Spec** to `.claude/specs/<slug>.md`. Skip for trivial fixes; escalate to `/architect` for L-sized features (it persists the spec at Gate 2). |
 | 2 | `EnterPlanMode` → `ExitPlanMode` | Both | Native Claude Code plan mode (only for large/risky/architectural tasks; everything else is inline plan in 3–6 bullets) |
-| 3 | `/backend` `/frontend` `/fullstack` | Both | Implementing specialists. Each runs Step 0 (knowledge), Step 0.5 (BASELINE activation), Step 0.75 (Task Spec contract), implementation against the ACs, then Step N (BABYSIT self-audit loop with `code-auditor` + `code-reviewer`, including spec compliance). |
+| 3 | `/backend` `/frontend` `/fullstack` `/ai-backend` | Both | Implementing specialists. Each runs Step 0 (knowledge), Step 0.5 (BASELINE activation), Step 0.75 (Task Spec contract), implementation against the ACs, then Step N (BABYSIT self-audit loop with `code-auditor` + `code-reviewer`, including spec compliance). |
 | 3 (research only) | `/brainstorm` `/architect` | Both | Read-only — hand off to an implementer |
 | 3 (audit only) | `/normalize` | Both | Read-only — dispatches the `code-auditor` subagent and returns a severity-graded normalization report. `/normalize knowledge` runs the knowledge consolidation pass. |
+| 3 (domain experts) | `/security` `/devops` `/bugsnag` | Both | Consultant + implementer skills with their own read-only lens agents (`security-auditor`, `bugsnag-analyst`). Fixes go through the standard flow — they are never a parallel gate. |
 | 4 | `/code-review` | Worktree only | Called by `/finish-task` Phase 5 |
 | 5 | `/check` | Worktree only | Standalone validation loop; `/finish-task` Phase 6 runs the same suite |
 | **4–6** | **`/finish-task`** | Worktree only | Required at the end of a worktree task. Runs all gates and owns commit + push + PR (internal Phases 4.5–8: coverage → spec compliance → contract sync → review → tests → PR → learning). **Never run automatically in inline mode.** |
@@ -271,12 +276,13 @@ Five layers protect against pattern drift. They are described here so future ses
 
 ### 1. Patterns docs (authority)
 
-`.claude/patterns/{BASELINE,spec,backend,backend-modules,frontend,code-review-checklist}.md` are the single source of truth. Every specialist skill defers to them.
+`.claude/patterns/{BASELINE,spec,backend,backend-modules,frontend,e2e,security,bugsnag,code-review-checklist}.md` are the single source of truth. Every specialist skill defers to them.
 
 - **`BASELINE.md`** is the one-page non-negotiables doc (rule IDs R1–R28). Specialists "activate" the applicable IDs at task start (Step 0.5) and re-check them in the babysit loop. This is the fast-load compass.
 - **`spec.md`** defines Spec-Driven Development: the Task Spec template, who writes it, and the spec-compliance checklist (`SC-*` codes). The spec owns WHAT a task delivers; the docs below own HOW.
 - **`backend.md` / `frontend.md`** are the canonical lifecycle docs (full architecture, all patterns).
 - **`backend-modules.md`** is the authority for the backend **physical organization**: `apps/api/src` is **module-first** (`modules/<domain>/ · shared/ · core/ · test/`), NOT layer-first. It owns WHERE a backend file goes (the module skeleton, the 16-domain list, the singular type subfolders, the `@modules`/`@core`/`@shared`/`@test` aliases). `backend.md` owns HOW (the request lifecycle & patterns). When they seem to disagree on a path, `backend-modules.md` wins.
+- **`e2e.md`**, **`security.md`** and **`bugsnag.md`** own their lenses (Playwright conventions + `E-*`; the app security model + `SEC-*`; error reporting + `BS-*`).
 - **`code-review-checklist.md`** is the full anti-pattern catalog with portable codes (`B-C1`, `F-H3`, `X-C2`, `SC-H2`...) that are referenced by every other quality-enforcement piece below.
 
 ### 2. Live hooks (advisory, written-time)
@@ -285,7 +291,7 @@ Five layers protect against pattern drift. They are described here so future ses
 
 | Hook | Triggers on | Catches (sample) |
 |---|---|---|
-| `.claude/hooks/post-edit-backend.sh` | `apps/api/src/**/*.ts` | `B-C4` `throw new Error`, `B-H12` `console.log`, `B-C7` `$queryRawUnsafe`, `B-H3` Prisma catch missing `mapPrismaError`, `B-C9` use case touching Request/Response, `B-C10` domain importing infrastructure, `B-H8` `findMany` without pagination |
+| `.claude/hooks/post-edit-backend.sh` | `apps/api/src/**/*.ts` | `B-C4` `throw new Error`, `B-H12` `console.log`, `B-C13` direct LLM call, `B-C7` `$queryRawUnsafe`, `B-H3` Prisma catch missing `mapPrismaError`, `B-C9` use case touching Request/Response, `B-C10` domain importing infrastructure, `B-H8` `findMany` without pagination |
 | `.claude/hooks/post-edit-frontend.sh` | `apps/web/src/**/*.{ts,tsx}` | `F-C3` yellow/orange/amber tones, `F-C2` hardcoded hex outside theme, `F-C7` direct fetch/axios, `F-C9` hardcoded route literals, `F-H16` `useColorMode()` conditional, `F-H6` raw `<Input>`/`<Textarea>`/`<Select>` outside shared/forms |
 
 If a hook fires repeatedly on legitimate code, fix the heuristic in the script — never silence the warning.
@@ -307,10 +313,10 @@ If a hook fires repeatedly on legitimate code, fix the heuristic in the script �
 `.claude/agents/code-auditor.md` is a read-only subagent that runs in **isolated context**. It is invoked in three scenarios:
 
 1. **By `/normalize`** — when the user asks "what's wrong with this code" / "audit this module" / "normalize this PR".
-2. **By the per-specialist BABYSIT loop** — every specialist (`/backend`, `/frontend`, `/fullstack`) calls the auditor on its diff before declaring done; fixes findings; re-audits. Up to 3 iterations.
+2. **By the per-specialist BABYSIT loop** — every specialist (`/backend`, `/frontend`, `/fullstack`, `/ai-backend`) calls the auditor on its diff before declaring done; fixes findings; re-audits. Up to 3 iterations.
 3. **By `/code-review`** during `/finish-task` — final pass before the PR.
 
-The auditor never modifies files. After the report, the user (or the orchestrator) hands off to `/backend`, `/frontend`, `/fullstack` to apply the fixes.
+The auditor never modifies files. After the report, the user (or the orchestrator) hands off to `/backend`, `/frontend`, `/fullstack`, or `/ai-backend` to apply the fixes.
 
 ### 5. Triage gate + BABYSIT loop + telemetry (intake → in-loop → ledger)
 

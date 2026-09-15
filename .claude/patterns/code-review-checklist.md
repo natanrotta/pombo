@@ -25,11 +25,11 @@ For full architectural context, see `.claude/patterns/backend.md` and `.claude/p
 
 | # | Anti-pattern | Why it's critical |
 |---|--------------|-------------------|
-| B-C1 | **Missing owner filter** (`owner_id` / `user_id` / `account_id`) on a Prisma query (read OR write) on an owned table | Cross-owner data leak |
+| B-C1 | **Missing `account_id` filter** on a request-driven Prisma query (read OR write) | Cross-tenant data leak. (The documented `*Internal` / `listAll` / `updateStatus` system-triggered methods are the only exceptions — see `patterns/backend.md` § Multi-tenancy) |
 | B-C2 | **Missing `deleted_at: null` filter** on a read | Returns soft-deleted data |
-| B-C3 | **Cross-owner access without an ownership check** (`ensureOwner(...)`) | Data leak |
+| B-C3 | **Cross-account access not enforced** — an entity reached without an `accountId`-scoped repository read (or, after an unscoped read, without an explicit same-account policy check) | Data leak |
 | B-C4 | **`throw new Error(...)`** in domain or application | Becomes 500 with no code; violates `AppError` contract |
-| B-C5 | **Sensitive data in logs** (full names/emails, request bodies with personal data, password, tokens, secrets) | PII/secret leak — Pino `redact` is not a substitute for not logging |
+| B-C5 | **Sensitive data in logs** (phone numbers, message text, contact/group names, user email, webhook URLs with secrets, WhatsApp session keys, password, tokens, full prompts) | PII/secret leak — Pino `redact` is not a substitute for not logging |
 | B-C6 | **Missing `validateRequest(...)` middleware** on a route accepting input | Untrusted input reaches the use case |
 | B-C7 | **Raw SQL with string interpolation** | Injection |
 | B-C8 | **Response shape that breaks the envelope** (`res.json(data)` without `{ ok, data }`) | Frontend `httpClient` interceptor will misparse |
@@ -37,6 +37,7 @@ For full architectural context, see `.claude/patterns/backend.md` and `.claude/p
 | B-C10 | **Domain or application imports from `infrastructure/`** | Inverted dependency, breaks Clean Architecture |
 | B-C11 | **Auth middleware missing** on a route that's not explicitly public | Anyone can call it |
 | B-C12 | **CSRF token check skipped** on a state-changing route in cookie-auth flow | CSRF vulnerability |
+| B-C13 | **Direct LLM API/SDK call** (fetch/axios to OpenAI/Anthropic, or the vendor SDK imported outside `core/provider/llm/`) instead of an `ILlmProvider` port | No cost tracking, no fallback, no observability (R23) |
 
 ### High (should fix)
 
@@ -51,13 +52,13 @@ For full architectural context, see `.claude/patterns/backend.md` and `.claude/p
 | B-H7 | Multi-step write across tables not wrapped in `prisma.$transaction(...)` | Risk of orphan rows on partial failure |
 | B-H8 | List endpoint without pagination (`findMany` without `skip`/`take`) | Unbounded query; will timeout at scale |
 | B-H9 | N+1 query (loop calling `findById` instead of `findMany({ where: { id: { in: ids } } })`) | Easy to miss; add an `include` or batch query |
-| B-H10 | Long-running operation (file cleanup, bulk delete >10, email, slow external call) inline instead of queued | Move to BullMQ |
-| B-H11 | Inline ownership check (`if (!entity \|\| entity.ownerId !== caller)`) instead of an `ensureOwner(...)` policy | Use the policy helper |
+| B-H10 | Long-running operation (file cleanup, bulk delete >10, email, webhook fan-out, LLM call) inline instead of queued | Move to BullMQ |
+| B-H11 | Inline tenancy check (`if (!entity \|\| entity.accountId !== caller)`) after an unscoped read, instead of a scoped repository read (`findById(accountId, id)`) | Scope the read; if a post-read check is genuinely needed, add a `shared/policy/` helper, never an inline `if` |
 | B-H12 | `console.log` instead of `ILoggerProvider` | Replace; never ship `console.*` |
-| B-H13 | Missing `@@index([owner_id])` on an owned table | Add in `schema.prisma` and migrate |
+| B-H13 | Missing `@@index([account_id])` on a multi-tenant table | Add in `schema.prisma` and migrate |
 | B-H14 | Test mocks the database (Prisma client) instead of mocking the repository | Mock at the repository boundary; integration tests should hit a real DB |
 | B-H15 | Job processor missing per-item `try/catch` (one bad item kills the whole batch) | Wrap each iteration; track `succeeded` / `failed` |
-| B-H16 | `ForbiddenError` thrown for cross-owner access (reveals existence) | Use `NotFoundError` instead |
+| B-H16 | `ForbiddenError` thrown for cross-tenant access (reveals existence) | Use `NotFoundError` instead |
 
 ### Medium (recommended)
 
@@ -66,8 +67,9 @@ For full architectural context, see `.claude/patterns/backend.md` and `.claude/p
 | B-M1 | DTO not reusing `UuidParamSchema` / `PaginationQuerySchema` / `BulkDeleteDTOSchema` | Compose from `shared/dto/common.dto.ts` |
 | B-M2 | Date received as `z.string()` instead of `z.coerce.date()` | Use `z.coerce.date()` so the use case receives a `Date` |
 | B-M3 | Bulk-delete route declared **after** `/:id` (route conflict) | Declare `/bulk` BEFORE `/:id` |
+| B-M4 | Write on a cached entity (`Cached*Repository`) without the matching eviction, or eviction ordered before the write | Evict after the write; document the sub-TTL stale window (see `knowledge/code-review.md`) |
 | B-M5 | `safeS3Delete()` not used for file cleanup (regular delete that can throw) | Use `safeS3Delete` (idempotent, swallows missing-key) |
-| B-M6 | Repository method on an owned table missing its owner parameter | Add it; even if not strictly needed today, every read should be owner-scoped |
+| B-M6 | Request-driven repository method missing the `accountId` parameter | Add it; every request-driven read/write is tenant-scoped. System-triggered methods must be named `*Internal` and documented |
 | B-M7 | Tests assert on entity (`.id`) instead of `expect.objectContaining({ ... })` for partial match | Use `expect.objectContaining` for resilience |
 | B-M8 | New entity created without a factory (`makeXxx`) | Add factory in `modules/<domain>/test/`; reuse across tests |
 | B-M9 | New repository created without a `mockXxxRepository()` | Add in `src/test/mocks/repositories.mock.ts` |
@@ -100,7 +102,7 @@ For full architectural context, see `.claude/patterns/backend.md` and `.claude/p
 | F-C6 | **`queryClient.invalidateQueries()` with no key** (or with `queryKeys.X.all`) | Refetches everything; wrecks perf |
 | F-C7 | **Hardcoded API path** (`fetch("/api/...")`) instead of repository method | Breaks contract layering |
 | F-C8 | **User-visible string not in i18n** | Untranslated; breaks pt-BR/en/es flow |
-| F-C9 | **Hardcoded route string** (`navigate("/users/" + id)`) instead of `ROUTE_PATHS.userDetail.replace(":id", id)` | Refactor-hostile |
+| F-C9 | **Hardcoded route string** (`navigate("/devices/" + id)`) instead of `ROUTE_PATHS.deviceDetail.replace(":id", id)` | Refactor-hostile |
 | F-C20 | **Kitchen-sink hook** — hook em `modules/*/presentation/hooks/` com >2 `useQuery` distintos | Quebra em hooks focados (uma query principal + mutations). Quebra o lazy boundary do tab e força fetch de dados não consumidos. Exceção: hooks compartilhados em `shared/hooks/` que compõem (`useDetailPageController`, etc.) |
 
 ### High (should fix)
@@ -125,15 +127,17 @@ For full architectural context, see `.claude/patterns/backend.md` and `.claude/p
 | F-H16 | Color-mode conditional in component (`useColorMode().colorMode === "dark" ? ... : ...`) | Use semantic token with `_dark` variant |
 | F-H17 | Test selectors using CSS classes (`.chakra-button`, `.css-xyz`) | Use `getByRole` / `getByLabel` / `getByText` |
 | F-H18 | `<AppTabs>` com `isLazy={false}` sem justificativa documentada | Default global é lazy; opt-out apenas se a aba precisa pré-montar (raro, documentar no código) — ver `patterns/frontend.md` § Data-fetching scope |
-| F-H19 | Hook de feature com `useQuery` que não aceita `{ enabled }` opcional | Callers fora de tab boundary (ex: `useUser` chamado só pelo nome no breadcrumb) precisam poder suspender |
+| F-H19 | Hook de feature com `useQuery` que não aceita `{ enabled }` opcional | Callers fora de tab boundary (ex: `useDeviceDetail` chamado só pelo nome no breadcrumb) precisam poder suspender — `useDeviceQr(id, enabled)` / `useDeviceGroups(id, enabled)` são o precedente |
 | F-H20 | `staleTime` como literal numérico (ex: `5 * 60_000`) em vez de `STALE_TIMES.x` | Importar de `core/query/staleTimes.ts` (`default` / `reference` / `volatile` / `subscription`). Exceção: `staleTime: 0` (refetch sempre, intencional em polling) |
-| F-H21 | `queryKey` montado via spread inline (`[...queryKeys.X.Y(), params]`) em vez de chamar `queryKeys.X.Y(params)` | Factory deve aceitar params na assinatura. Spread inline quebra o contrato e esconde a forma da key de tooling/DevTools |
+| F-H21 | `queryKey` montado via spread inline (`[...queryKeys.X.Y(), params]`) em vez de chamar `queryKeys.X.Y(params)` | Factory deve aceitar params na assinatura (ver `messaging.messageStatus(id)`, `devices.qr(id)`). Spread inline quebra o contrato e esconde a forma da key de tooling/DevTools |
 | F-H22 | `useInfiniteQuery` com filtros/search no queryKey sem `placeholderData: keepPreviousData` | Sem isso, o grid colapsa para skeleton em cada keystroke/troca de filtro. `useInfiniteListPage` já cobre — hooks que constroem `useInfiniteQuery` direto precisam adicionar manualmente |
 | F-H23 | `gcTime ≤ staleTime` no `queryClient` (ou em hook que sobrescreva ambos) | Quando bate, cache evictado no instante que vira stale — navegação away-and-back sempre refetch. Regra: `gcTime ≥ 3× staleTime.reference` (ver `GC_TIMES` em `staleTimes.ts`) |
-| F-H24 | Módulo em `apps/web/src/modules/<m>` sem barrel `index.ts` (API pública ausente) | Adicionar `index.ts` exportando entity types + hooks públicos — ver `docs/architecture/web-structure/proposal.md` § skeleton |
+| F-H24 | Módulo em `apps/web/src/modules/<m>` sem barrel `index.ts` (API pública ausente) | Adicionar `index.ts` exportando entity types + hooks públicos — ver `modules/devices/index.ts` como referência |
 | F-H25 | Import cross-módulo alcançando internals (`@/modules/<outro>/(domain\|infrastructure\|presentation)/**`) em vez do barrel `@/modules/<outro>` | Importar pelo barrel; um módulo é caixa-preta para os outros (§ regra de fronteira) |
 | F-H26 | `presentation` importando `infrastructure` direto (classe/instância de `Http*Repository`) | Resolver o repositório via `core/di` e consumir por um hook — também pego por `no-restricted-imports` no `.eslintrc.cjs` |
 | F-H27 | React Context (`createContext`) definido solto na raiz de `presentation/` em vez de `presentation/context/` | Mover a definição + o Provider para `presentation/context/` (§ slots) |
+| F-H29 | `useQuery` / `useInfiniteQuery` / `useMutation` definido inline em componente/página/context em vez de um hook de módulo (`presentation/hooks/`) ou `shared/hooks/` | Extrair para o hook dono; coreografia de UI acoplada ao ciclo da mutation (overlay, redirect, polling stop) entra por callbacks/opções do hook (precedente: `useMessageStatus` em `messaging/presentation/hooks/`). (`F-H28` está reservado — código compartilhado com o repo irmão) |
+| F-H30 | Mesma resource key com mais de uma definição de query (queryFn/enabled/staleTime duplicados por call site) | Um hook canônico por recurso (`useDevicesList`, `useDeviceDetail(id)`, `useMessageStatus(id)`); consumidores derivam do dono ou passam `{ enabled }`/tier. Segundo observer intencional (polling compartilhado, ex.: o QR poll) exige comentário no hook |
 
 ### Medium (recommended)
 
@@ -151,10 +155,10 @@ For full architectural context, see `.claude/patterns/backend.md` and `.claude/p
 | F-M10 | Search input not debounced (or debounce > 300ms) | Use `useDebounce(value, 300)` or `useServerListPage` (built-in) |
 | F-M11 | Auto-save debounce ≠ 1500ms | Match the project default (`useDetailPageController`) |
 | F-M12 | Heavy component imported eagerly (rich text editor, chart lib) | `React.lazy()` |
-| F-M13 | Section consome um hook de relação eager quando o dado só é usado condicionalmente (modal fechado, lista vazia) | Adicionar `enabled` derivado da condição (`enabled: items.length > 0 \|\| modal.isOpen`). Variante section-scoped do F-C20 |
+| F-M13 | Section consome um hook de relação eager (ex.: `useDeviceGroups(id)`) quando o dado só é usado condicionalmente (modal fechado, lista vazia) | Adicionar `enabled` derivado da condição (`enabled: items.length > 0 \|\| modal.isOpen`). Variante section-scoped do F-C20 |
 | F-M14 | `usePrefetchEntity` / `prefetchQuery` chamado com `staleTime` diferente do consumidor que vai ler o cache | Quebra deduplicação — prefetch dispara fetch duplo. Mesmo `STALE_TIMES.x` em ambos |
 | F-M15 | ListPage / modal de create chama `useEntity()` (entity hook completo) só para consumir mutations | Padrão definitivo: hook focado em ações (`useXActions()` / `useCreateX()`) construído com `useEntityActions` / `useEntityCreate` de `shared/hooks/`. Pattern transicional `useEntity({ enabled: false })` registra observer fantasma — não usar em código novo |
-| F-M16 | `useUser(undefined)` etc — chamar entity-hook sem id para pegar só `createX` | Usar `useCreateX()` focado. O entity-hook deveria exigir id (callers de create-only não precisam do detail useQuery) |
+| F-M16 | `useDeviceDetail(undefined)` etc — chamar entity-hook sem id para pegar só `createX` | Usar `useCreateX()` focado (`useCreateDevice` é o precedente). O entity-hook deveria exigir id (callers de create-only não precisam do detail useQuery) |
 
 ### Low / Nitpick
 
@@ -207,10 +211,10 @@ Canonical doc: `patterns/e2e.md`. Same rubric as the **F-** family — Critical 
 
 | # | Issue |
 |---|-------|
-| E-L1 | `describe("...")` title doesn't mirror the spec filename (`user-create.spec.ts` → `describe("User Creation")`) |
+| E-L1 | `describe("...")` title doesn't mirror the spec filename (`device-create.spec.ts` → `describe("Device Creation")`) |
 | E-L2 | Bilingual regex missing case-insensitive `i` flag |
 | E-L3 | Unused imports from `@playwright/test` (`expect` re-imported from the fixture barrel) |
-| E-L4 | POM method named `clickXButton` when `clickX` reads cleaner — follow the boilerplate POM style (`clickAdd`, `submit<Form>`, `delete<Entity>FromList`) |
+| E-L4 | POM method named `clickXButton` when `clickX` reads cleaner — follow the project POM style (`clickAdd`, `submit<Form>`, `delete<Entity>FromList`) |
 
 ---
 

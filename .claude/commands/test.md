@@ -89,13 +89,13 @@ export function make{Entity}(overrides: Partial<{Entity}Props> = {}): {Entity} {
 }
 ```
 
-**Existing factories:** `makeUser` (in `modules/user/test/`). Add one `make<Entity>` per new entity, co-located in that module's `test/` folder.
+**Existing factories:** `makeUser` (`modules/user/test/user.factory.ts`), `makeDevice` (`modules/devices/test/device.factory.ts`). Add one `make<Entity>` per new entity, co-located in that module's `test/` folder. Some modules ship **in-memory doubles** instead of `vi.fn()` mocks — `InMemoryDevicesRepository`, `InMemoryOutboxRepository`, `InMemoryApiTokenRepository`, `FakeWhatsAppGateway`, `FakeWebhookSender` — prefer them when the behavior under test is stateful (drain, idempotency, status transitions).
 
 **Rules:**
 - `Partial<EntityProps>` for overrides
 - Sequential counter in the module
 - Fixed date: `new Date("2025-01-01")`
-- Default IDs: `"user-1"` for relations
+- Default IDs: `"account-1"`, `"user-1"`, `"device-1"` for relations
 
 ---
 
@@ -122,8 +122,8 @@ export function mock{Entity}Repository(): MockOf<I{Entity}Repository> {
 ```
 
 **Existing mocks:**
-- **Repositories:** `mockUserRepository` (add one `mock<Entity>Repository` per new repo).
-- **Providers:** mockHashProvider, mockJwtProvider, mockCacheProvider, mockStorageProvider, mockQueueProvider, mockLoggerProvider
+- **Repositories:** `mockUserRepository`, `mockPasswordResetTokenRepository`, `mockEmailVerificationPinRepository` (add one `mock<Entity>Repository` per new repo, or an `in-memory-*.repository.ts` in the module's `test/`).
+- **Providers:** mockHashProvider, mockJwtProvider, mockCacheProvider (+ `InMemoryCacheProvider` — note its `increment` ignores TTL), mockStorageProvider, mockQueueProvider, mockLoggerProvider, mockMailProvider, mockAppConfig, mockDatabaseStatusProvider, mockNodeExporterMetricsProvider, mockSendRateLimiter, mockSendPacer
 
 ---
 

@@ -2,13 +2,13 @@
 
 **This document is the single source of truth for how a backend request flows from HTTP to database and back.**
 
-Every backend skill (`/backend`, `/fullstack`, `/architect`, `/code-review`, `/test`) MUST defer to this document. If a skill contradicts this file, this file wins. If you discover a divergence between this file and the actual code, update this file (PR + reviewer approval) — never let the skills drift.
+Every backend skill (`/backend`, `/fullstack`, `/ai-backend`, `/architect`, `/code-review`, `/test`) MUST defer to this document. If a skill contradicts this file, this file wins. If you discover a divergence between this file and the actual code, update this file (PR + reviewer approval) — never let the skills drift.
 
 > **📁 Physical organization is MODULE-FIRST — see [`backend-modules.md`](./backend-modules.md).**
 > `apps/api/src` is organized `modules/<domain>/ · shared/ · core/ · test/`, NOT
 > layer-first. The **layer + type** names below (`domain/entity/`,
 > `application/use-case/`, `infrastructure/controller/`, …) are unchanged — they
-> now nest **inside each module** (e.g. `modules/user/application/use-case/…`),
+> now nest **inside each module** (e.g. `modules/devices/application/use-case/…`),
 > with singular type subfolders. This doc owns the request **lifecycle & patterns
 > (HOW)**; `backend-modules.md` owns **where a file goes (WHERE)**. The section
 > paths below are the real module-first locations (`modules/<domain>/…`, `core/…`, `shared/…`).
@@ -39,7 +39,7 @@ Every backend skill (`/backend`, `/fullstack`, `/architect`, `/code-review`, `/t
 
 ```
 apps/api/src/
-  modules/<domain>/            # the business — one folder per DOMAIN (auth + user to start)
+  modules/<domain>/            # the business — one folder per DOMAIN (7 today — see backend-modules.md)
     domain/
       entity/                  # <x>.entity.ts (+ .spec.ts co-located)
       repository/              # <x>-repository.interface.ts (PORT — contract + Create/Update types)
@@ -53,7 +53,7 @@ apps/api/src/
       controller/              # <x>.controller.ts — thin: resolve use case, return envelope
       route/                   # <x>.routes.ts (feature routes; the aggregator lives in core/http)
       repository/              # prisma-<x>-repository.ts (Prisma impl of the domain port)
-      provider/                # concrete adapters (external service clients, only if any)
+      provider/                # concrete adapters (the Baileys gateway, the HTTP webhook sender, the send pacer — only if any)
     util/  constant/           # domain-flavored helpers / constants (business names)
     test/                      # <x>.factory.ts (test data builders for THIS module)
     <domain>.module.ts         # DI wiring: register<Domain>Module(container) — repo bindings only
@@ -61,10 +61,10 @@ apps/api/src/
   shared/                      # pure kernel — ZERO domain knowledge, importable anywhere
     error/                     # AppError hierarchy + ErrorCodes enum
     i18n/                      # i18next config + locales/{pt-BR,en,es}/
-    util/                      # pagination, safe-s3-delete, slugify (named by purpose)
-    constant/                  # queue names, limits, defaults
-    policy/                    # ensure-authenticated (reusable authz)
-    provider/                  # generic provider PORTS (ICacheProvider, IJwtProvider…)
+    util/                      # html, parse-expires-in, safe-s3-delete, with-cache (named by purpose)
+    constant/                  # defaults
+    policy/                    # (none yet) reusable authz helpers for an explicit post-read check
+    provider/                  # generic provider PORTS (ICacheProvider, IJwtProvider, IQueueProvider…)
     type/                      # cross-module domain primitives (JsonValue, FieldValue, enums)
     dto/                       # common.dto (pagination/response schemas shared by all modules)
 
@@ -83,8 +83,9 @@ apps/api/src/
   main.ts                      # bootstrap only (listen, cron, queue wiring)
 ```
 
-**Path aliases:** `@modules/*` `@core/*` `@shared/*` `@test/*` `@generated/*`. DI tokens are imported from
-`@core/container/tokens`.
+**Path aliases:** `@modules/*` `@core/*` `@shared/*` `@test/*` `@generated/*`. The old
+`@domain` / `@application` / `@infrastructure` / `@tests` are **gone**. DI tokens are imported from
+`@core/container/tokens` (`DI_TOKENS.X` — typed string keys; never a bare string literal).
 
 **Dependency rule (inward only, unchanged):** `domain` ← `application` ← `infrastructure` inside each
 module. `modules/` may import `shared/` and `core/` (ports); `core/` may import `shared/`; `shared/`
@@ -96,16 +97,16 @@ imports nobody. A module NEVER imports another module's `infrastructure/` — on
 
 ## Canonical Request Lifecycle
 
-For `PATCH /users/me` (illustrative):
+For `POST /devices` (the real flow — `modules/devices`):
 
-1. `modules/user/infrastructure/route/user.routes.ts` → router matches verb/path
-2. `authMiddleware()` — verifies JWT, loads user, attaches `req.auth = { userId, role, language }`
-3. `validateRequest({ body: UpdateUserDTOSchema })` — Zod parse; on failure throws `ValidationError`
-4. `asyncHandler(controller.updateMe.bind(controller))` — wraps async to forward rejections to error middleware
-5. `UserController.updateMe(req, res)` — `container.resolve(UpdateUserUseCase).execute(req.auth.userId, req.body)`
-6. Use case: validates preconditions → calls repository → triggers side effects (queue jobs, cache invalidation) → returns response DTO
-7. `PrismaUserRepository.update()` → `toEntity()` → returns domain entity
-8. Controller responds: `res.status(200).json({ ok: true, data: result })`
+1. `modules/devices/infrastructure/route/device.routes.ts` → router matches verb/path (mounted at `/devices` by `core/http/routes/index.ts`, behind the global + `userRateLimit` limiters)
+2. `authMiddleware()` — verifies the JWT from the `pombo_at` cookie, loads the user, attaches `req.auth = { userId, accountId, language, scope? }`
+3. `validateRequest({ body: RegisterDeviceDTOSchema })` — Zod parse; on failure throws `ValidationError`
+4. `asyncHandler(controller.register.bind(controller))` — wraps async to forward rejections to error middleware
+5. `DeviceController.register(req, res)` — `container.resolve(RegisterDeviceUseCase).execute(req.auth.accountId, req.body)`
+6. Use case: validates preconditions (unique name per account) → calls the repository → triggers side effects (domain events, cache eviction) → returns response DTO
+7. `CachedDevicesRepository` (decorator) → `PrismaDevicesRepository.create()` → `toEntity()` → returns domain entity
+8. Controller responds: `res.status(201).json({ ok: true, data: result })`
 9. Any thrown error → `errorHandlerMiddleware` → translates via i18n → `{ ok: false, error: { message, code, details? } }` with the right HTTP status
 
 ---
@@ -115,28 +116,32 @@ For `PATCH /users/me` (illustrative):
 ### Entity (`modules/<domain>/domain/entity/{entity}.entity.ts`)
 
 ```typescript
-export interface UserProps {
+// Illustrative — mirror `modules/devices/domain/entity/device.entity.ts` for the exact props.
+export interface DeviceProps {
   id: string;
+  accountId: string;
   name: string;
-  email: string;
-  passwordHash: string;
+  identifier: string | null;       // the paired WhatsApp number — null until pairing
+  status: DeviceStatus;            // value object: modules/devices/domain/value-object/device-status.ts
+  webhookSecret: string | null;    // per-device HMAC secret — returned exactly once, never re-exposed
+  webhooks: DeviceWebhooks;        // one URL per event (null = unset)
+  lastConnectedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-  deletedAt: Date | null;
 }
 
-export class User {
-  private readonly props: UserProps;
-  constructor(props: UserProps) { this.props = props; }
+export class Device {
+  private readonly props: DeviceProps;
+  constructor(props: DeviceProps) { this.props = props; }
 
   get id(): string { return this.props.id; }
+  get accountId(): string { return this.props.accountId; }
   get name(): string { return this.props.name; }
-  get email(): string { return this.props.email; }
   // ... one getter per field
 
   public toJSON() {
-    const { passwordHash, ...safe } = this.props;
-    return safe;  // omit sensitive fields here (password, tokens)
+    const { webhookSecret, ...safe } = this.props;
+    return safe;  // omit sensitive fields here (secrets, tokens, session keys)
   }
 }
 ```
@@ -146,41 +151,50 @@ export class User {
 ### Repository Interface (`modules/<domain>/domain/repository/{entity}-repository.interface.ts`)
 
 ```typescript
-export interface CreateUserData { name: string; email: string; passwordHash: string; }
-export interface UpdateUserData { name?: string; email?: string; }
+export interface CreateDeviceData { accountId: string; name: string; webhookSecret: string; }
+export type UpdateDeviceWebhooksData = Partial<DeviceWebhooks>;   // null clears a URL, absent leaves it
 
-export interface IUserRepository {
-  findById(id: string): Promise<User | null>;
-  findByEmail(email: string): Promise<User | null>;
-  create(data: CreateUserData): Promise<User>;
-  update(id: string, data: UpdateUserData): Promise<User>;
-  delete(id: string): Promise<void>;
+export interface IDevicesRepository {
+  // ── Tenant-scoped (request-driven, R1) — accountId FIRST ──────────────
+  findById(accountId: string, id: string): Promise<Device | null>;
+  findByName(accountId: string, name: string): Promise<Device | null>;
+  list(accountId: string): Promise<Device[]>;
+  create(data: CreateDeviceData): Promise<Device>;
+  updateWebhooks(accountId: string, id: string, webhooks: UpdateDeviceWebhooksData): Promise<Device>;
+  delete(accountId: string, id: string): Promise<void>;
+
+  // ── System-triggered (no tenant scope; keyed by PK) — documented, never reachable from a user request
+  findByIdInternal(id: string): Promise<Device | null>;
+  listAll(): Promise<Device[]>;
+  updateStatus(id: string, status: DeviceStatus, identifier?: string | null): Promise<Device>;
 }
 ```
 
-**Rules:** `Create*` has required fields; `Update*` is all-optional with `| null` for clearable fields; a paginated list returns `{ data, total }`. When a resource is owned by a specific user, take an `ownerId` argument on every method and scope every query by it (the same pattern multi-tenant apps use for `accountId`).
+**Rules:** every **request-driven** method takes `accountId` first (multi-tenancy — R1) and returns `null` on a miss (the use case turns it into `NotFoundError`, R3); **system-triggered** methods (socket events, the `/health` aggregate, cron) are suffixed `*Internal` / named `listAll` / `updateStatus`, documented in the interface, and never reachable from a user request; `Create*` has required fields; `Update*` is all-optional with `| null` for clearable fields; a paginated list returns `{ data, total }`.
 
 ### Prisma Repository (`modules/<domain>/infrastructure/repository/prisma-{entity}-repository.ts`)
 
 ```typescript
 @injectable()
-export class PrismaUserRepository implements IUserRepository {
-  private toEntity(row: UserRow): User {
-    return new User({
+export class PrismaDevicesRepository implements IDevicesRepository {
+  private toEntity(row: DeviceRow): Device {
+    return new Device({
       id: row.id,
+      accountId: row.account_id,
       name: row.name,
-      email: row.email,
-      passwordHash: row.password_hash,
+      status: row.status,
+      identifier: row.identifier,
+      webhookSecret: row.webhook_secret,
+      webhooks: { /* one column per event → one field */ },
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-      deletedAt: row.deleted_at,
     });
   }
 
-  async findById(id: string): Promise<User | null> {
+  async findById(accountId: string, id: string): Promise<Device | null> {
     try {
-      const row = await prisma.user.findFirst({
-        where: { id, deleted_at: null },
+      const row = await prisma.device.findFirst({
+        where: { id, account_id: accountId },   // + `deleted_at: null` on soft-deletable tables (user, account)
       });
       return row ? this.toEntity(row) : null;
     } catch (error) { throw mapPrismaError(error); }
@@ -188,52 +202,51 @@ export class PrismaUserRepository implements IUserRepository {
 }
 ```
 
-**Rules:** `@injectable()`; private `toEntity()` (snake_case → camelCase); a private `includeRelations` getter for a reusable join shape (with soft-delete on relations) when the entity has any; **every** Prisma catch → `mapPrismaError(error)`; soft-delete = `update({ deleted_at: new Date() })`, never physical; `deleted_at: null` on every read (plus the owner column when the row is owned); `prisma.$transaction` for multi-table writes; `Promise.all([findMany, count])` for paginated reads.
+**Rules:** `@injectable()`; private `toEntity()` (snake_case → camelCase); a private `includeRelations` getter for a reusable join shape (with soft-delete on relations) when the entity has any; **every** Prisma catch → `mapPrismaError(error)`; soft-delete = `update({ deleted_at: new Date() })`, never physical, on user-facing records (`user`, `account`, …) — the documented exception is `device`: a deleted pairing is physically removed together with its Signal keys (`auth_key` cascades), because a stale session must not linger; `account_id` (+ `deleted_at: null` where the column exists) on every request-driven read; `prisma.$transaction` for multi-table writes; `Promise.all([findMany, count])` for paginated reads. A cache-aside decorator (`CachedDevicesRepository`, `cached-user-repository.ts`) wraps the Prisma repo when reads are hot — it evicts **after** the write and documents the sub-TTL stale window.
 
 ### Use Case (`modules/<domain>/application/use-case/{feature}/{action}-{entity}.use-case.ts`)
 
 ```typescript
 @injectable()
-export class CreateUserUseCase {
+export class GetDeviceUseCase {
   constructor(
-    @inject("UserRepository") private readonly userRepo: IUserRepository,
-    @inject("HashProvider") private readonly hashProvider: IHashProvider,
+    @inject(DI_TOKENS.DevicesRepository) private readonly devicesRepo: IDevicesRepository,
   ) {}
 
-  async execute(data: CreateUserDTO): Promise<UserResponseDTO> {
-    // 1. Validate preconditions (existence, uniqueness, state) — throw typed errors with ErrorCodes
-    const existing = await this.userRepo.findByEmail(data.email);
-    if (existing) throw new ConflictError("Email already in use", undefined, ErrorCodes.AUTH_EMAIL_ALREADY_EXISTS);
-    // 2. Mutate via repository
-    const passwordHash = await this.hashProvider.hash(data.password);
-    const user = await this.userRepo.create({ name: data.name, email: data.email, passwordHash });
-    // 3. Side effects (queue, cache invalidation, file cleanup) — after the mutation succeeds
+  async execute(accountId: string, id: string): Promise<DeviceResponseDTO> {
+    // 1. Scoped read — a device of another account resolves to null (R1)
+    const device = await this.devicesRepo.findById(accountId, id);
+    // 2. Miss → NotFoundError, never ForbiddenError (R3)
+    if (!device) throw new NotFoundError("Device not found", undefined, ErrorCodes.DEVICE_NOT_FOUND);
+    // 3. Side effects (queue, domain event, cache eviction) — after a successful mutation, when any
     // 4. Return response DTO (never raw entity)
-    return user.toJSON();
+    return device.toJSON();
   }
 }
 ```
 
-**Rules:** one operation per use case; `@injectable()` + `@inject("Token")` for all deps; receives validated DTOs, returns response DTOs; **never** touches `Request`/`Response`; throws `AppError` subclass with `ErrorCodes`; queues background jobs **after** successful mutations; invalidates caches immediately after writes; use CAS for state transitions with concurrent access; use `safeS3Delete()` for file cleanup (idempotent).
+**Rules:** one operation per use case; `@injectable()` + `@inject(DI_TOKENS.X)` for **all** deps — including concrete classes (the dev runtime `tsx` does not emit `design:paramtypes`, see `backend-modules.md` § DI); receives validated DTOs, returns response DTOs; **never** touches `Request`/`Response`; throws `AppError` subclass with `ErrorCodes`; queues background jobs **after** successful mutations; evicts caches immediately after writes; the write-before-send contract for anything that leaves the process (persist the outbox row, **then** call the gateway/webhook — the id in the 202 must already be committed); use CAS for state transitions with concurrent access; use `safeS3Delete()` for file cleanup (idempotent).
 
 ### DTO — Zod (`modules/<domain>/application/dto/{entity}.dto.ts`)
 
 ```typescript
-export const CreateUserDTOSchema = z.object({
-  name: z.string().trim().min(1),
-  email: z.string().trim().email(),
-  password: z.string().min(8),
+export const RegisterDeviceDTOSchema = z.object({
+  name: z.string().trim().min(1).max(60),
 });
 
-export const UpdateUserDTOSchema = z.object({
-  name: z.string().trim().min(1).optional(),
-  email: z.string().trim().email().optional(),
+const WebhookUrlSchema = z.string().trim().url()
+  .refine((v) => /^https?:\/\//i.test(v), { message: "Webhook URL must use http(s)" })
+  .nullable();
+
+export const UpdateDeviceWebhooksDTOSchema = z.object({
+  onMessageStatus: WebhookUrlSchema.optional(),   // null = clear, omit = unchanged
+  // ... one key per event
 });
 
-export type CreateUserDTO = z.infer<typeof CreateUserDTOSchema>;
-export type UpdateUserDTO = z.infer<typeof UpdateUserDTOSchema>;
+export type RegisterDeviceDTO = z.infer<typeof RegisterDeviceDTOSchema>;
+export type UpdateDeviceWebhooksDTO = z.infer<typeof UpdateDeviceWebhooksDTOSchema>;
 
-export interface UserResponseDTO { id: string; name: string; email: string; createdAt: Date; }
+export interface DeviceResponseDTO { id: string; accountId: string; name: string; status: DeviceStatus; ... }
 ```
 
 **Reuse first:** `UuidParamSchema`, `PaginationQuerySchema`, `PaginatedResponseDTO<T>`, `BulkDeleteDTOSchema` from `shared/dto/common.dto.ts`. Always `.trim()` strings; use `z.coerce.date()` for date strings, `z.coerce.number()` for query numerics; nullable+optional means `null` clears and omit means unchanged.
@@ -241,51 +254,56 @@ export interface UserResponseDTO { id: string; name: string; email: string; crea
 ### Controller (`modules/<domain>/infrastructure/controller/{entity}.controller.ts`)
 
 ```typescript
-export class UserController {
-  async create(req: Request, res: Response): Promise<Response> {
-    const useCase = container.resolve(CreateUserUseCase);
-    const result = await useCase.execute(req.body);
+export class DeviceController {
+  async register(req: Request, res: Response): Promise<Response> {
+    const useCase = container.resolve(RegisterDeviceUseCase);
+    const result = await useCase.execute(req.auth.accountId, req.body);
     return res.status(201).json({ ok: true, data: result });
   }
 }
 ```
 
-**Rules:** thin (resolve + delegate + envelope); auth via `req.auth.{userId,role,language}`; **never** put business logic here; **never** catch errors (let them bubble to error middleware).
+**Rules:** thin (resolve + delegate + envelope); auth via `req.auth.{userId,accountId,language,scope?}` (session) or `req.apiAuth.{accountId,tokenId}` (public token API); **never** put business logic here; **never** catch errors (let them bubble to error middleware).
 
 ### Route (`modules/<domain>/infrastructure/route/{entity}.routes.ts`)
 
 ```typescript
-const userRoutes = Router();
-const ctrl = container.resolve(UserController);
+const deviceRoutes = Router();
+const ctrl = container.resolve(DeviceController);
 
-userRoutes.use(authMiddleware());
+deviceRoutes.use(authMiddleware());                            // every device route is session-guarded
 
-userRoutes.get("/me",
-  asyncHandler(ctrl.getMe.bind(ctrl)));
+deviceRoutes.post("/",
+  validateRequest({ body: RegisterDeviceDTOSchema }),
+  asyncHandler(ctrl.register.bind(ctrl)));
 
-userRoutes.patch("/me",
-  validateRequest({ body: UpdateUserDTOSchema }),
-  asyncHandler(ctrl.updateMe.bind(ctrl)));
+deviceRoutes.get("/",
+  asyncHandler(ctrl.list.bind(ctrl)));
 
-userRoutes.delete("/me",
-  asyncHandler(ctrl.deleteMe.bind(ctrl)));
+deviceRoutes.get("/:id",
+  validateRequest({ params: DeviceIdParamSchema }),
+  asyncHandler(ctrl.getById.bind(ctrl)));
 
-export { userRoutes };
+deviceRoutes.patch("/:id/webhooks",
+  validateRequest({ params: DeviceIdParamSchema, body: UpdateDeviceWebhooksDTOSchema }),
+  asyncHandler(ctrl.updateWebhooks.bind(ctrl)));
+
+export { deviceRoutes };
 ```
 
-Register in `core/http/routes/index.ts`: `router.use("/users", userRoutes)`.
+Register in `core/http/routes/index.ts`: `router.use("/devices", deviceRoutes)`. Declare `/bulk`-style literal routes **before** `/:id` to avoid conflicts (`B-M3`).
 
-**Middleware order:** `authMiddleware()` → `validateRequest({ params?, query?, body? })` → `requireRole(...)` (when needed) → upload (when handling files) → `asyncHandler(handler)`.
+**Middleware order:** `authMiddleware()` (or `apiTokenAuthMiddleware()` on `/api/v1/*`, or a scoped variant such as `emailVerificationAuthMiddleware()`) → `validateRequest({ params?, query?, body? })` → upload (when handling files) → `asyncHandler(handler)`. Rate limiters are mounted at the aggregator level (`core/http/routes/index.ts`: `authRateLimit` on `/auth`, `userRateLimit` after it; `publicRateLimit` / the per-token limiter on public surfaces).
 
 ### Dependency Injection (`core/container/index.ts`)
 
 ```typescript
-container.registerSingleton<IUserRepository>("UserRepository", PrismaUserRepository);
-container.registerSingleton<IJwtProvider>("JwtProvider", JsonWebTokenJwtProvider);
-container.registerSingleton<IHashProvider>("HashProvider", BcryptHashProvider);
+container.registerSingleton<IDevicesRepository>(DI_TOKENS.DevicesRepository, PrismaDevicesRepository);
+container.registerSingleton<IJwtProvider>(DI_TOKENS.JwtProvider, JsonWebTokenJwtProvider);
+container.registerSingleton<IWebhookSender>(DI_TOKENS.WebhookSender, HttpWebhookSender);
 ```
 
-**Rules:** all string tokens; all singletons; use cases are **not** registered (resolved per-request via `container.resolve(UseCase)` so request-scoped state is fresh). Group registrations by category (repositories, providers, services).
+**Rules:** every token comes from `DI_TOKENS` (`core/container/tokens.ts` — typed keys, one place); all singletons; use cases are **not** registered (resolved per-request via `container.resolve(UseCase)` so request-scoped state is fresh); each module exposes `register<Domain>Module(container)` in `<domain>.module.ts` for its repo bindings, and `core/container/index.ts` composes them. Group registrations by category (repositories, providers, services, config values). Middleware factories capture their singletons **once** at creation time — never `container.resolve()` per request inside the handler (`knowledge/code-review.md`).
 
 ---
 
@@ -293,11 +311,13 @@ container.registerSingleton<IHashProvider>("HashProvider", BcryptHashProvider);
 
 ### Auth context
 
-`authMiddleware()` populates `req.auth`. Treat it as guaranteed inside any route after the middleware runs. Never trust a client-supplied owner id — always read the acting user from `req.auth.userId`.
+`authMiddleware()` populates `req.auth = { userId, accountId, language, scope? }` (session JWT in the `pombo_at` cookie). `apiTokenAuthMiddleware()` populates `req.apiAuth = { accountId, tokenId }` on the public `/api/v1/*` surface (`pmb_` Bearer token, SHA-256 matched against the stored hash). Treat them as guaranteed inside any route after the middleware runs. Never trust a client-supplied `accountId` — always read the tenant from `req.auth.accountId` / `req.apiAuth.accountId`.
 
-### Resource ownership
+### Multi-tenancy
 
-The boilerplate ships single-user, but the moment you add a resource owned by a user (or, later, a tenant/account), **every read and write must filter by the owner column**. Read the owner from `req.auth.userId`, never from the request body. Use a policy helper (e.g. `ensureOwner(entity, req.auth.userId)`) instead of inline `if (!entity || entity.ownerId !== callerId)`, and on mismatch throw `NotFoundError` (never `ForbiddenError` — don't reveal that a resource exists for another owner). This is the exact pattern a multi-tenant app applies with `account_id`.
+Every request-driven read **and** write filters by `account_id`. In this repo the scoping lives in the **repository signature** — `findById(accountId, id)`, `updateWebhooks(accountId, id, …)`, `delete(accountId, id)` — so a use case cannot forget it: a row of another tenant resolves to `null` and the use case throws `NotFoundError` (never `ForbiddenError` — don't reveal that the resource exists in another tenant). Never write `if (!entity || entity.accountId !== callerAccountId)` after an unscoped read (`B-H11`); if a genuinely post-read check is ever needed, add a `shared/policy/ensure-same-account.ts` helper rather than an inline `if`.
+
+**System-triggered paths** (Baileys session events, the `/health` aggregate, cron) have no requesting account: their repository methods are suffixed `*Internal` / named `listAll` / `updateStatus`, keyed by the primary key, documented in the interface, and never reachable from a user request. A `Device` returned by such a path carries its real `accountId`, but that value was **not** validated against a caller — never forward it into a tenant-scoped method as a stand-in for `req.auth.accountId` (confused deputy). See `IDevicesRepository` for the canonical wording.
 
 ### Soft delete
 
@@ -306,7 +326,7 @@ Default. `delete()` = `update({ deleted_at: new Date() })`. Every read includes 
 ### Error handling
 
 ```typescript
-throw new NotFoundError("User not found", undefined, ErrorCodes.USER_NOT_FOUND);
+throw new NotFoundError("Device not found", undefined, ErrorCodes.DEVICE_NOT_FOUND);
 throw new ConflictError("Email already in use", undefined, ErrorCodes.AUTH_EMAIL_ALREADY_EXISTS);
 throw new ValidationError("Invalid status", { field: ["..."] }, ErrorCodes.INVALID_STATUS);
 throw new InternalError("S3 upload failed", originalError, ErrorCodes.FILE_UPLOAD_FAILED);
@@ -366,16 +386,16 @@ Use `PaginationQuerySchema` (`page`, `limit`, `search`, `sortBy`, `sortOrder`) a
 Bootstrap in `core/bootstrap/{feature}-queue.bootstrap.ts`:
 
 ```typescript
-export function bootstrapUserQueues(): void {
-  const queueProvider = container.resolve<IQueueProvider>("QueueProvider");
-  queueProvider.createQueue("user-operations");
-  queueProvider.registerProcessor("user-operations",
-    createSendWelcomeEmailProcessor(/* injected deps */),
+export function bootstrapWebhookQueues(): void {
+  const queueProvider = container.resolve<IQueueProvider>(DI_TOKENS.QueueProvider);
+  queueProvider.createQueue("webhook-delivery");
+  queueProvider.registerProcessor("webhook-delivery",
+    createDispatchWebhookProcessor(/* injected deps */),
     /* concurrency */ 3);
 }
 ```
 
-Call `bootstrapUserQueues()` from `main.ts`. Defaults: 3 attempts, exponential backoff (1s base), `removeOnComplete: 100`, `removeOnFail: 200`. Job IDs should be deterministic when duplicate prevention matters (`jobId: ${entityType}:${entityId}`). Bull Board admin UI at `/admin/queues` (dev only).
+Call `bootstrap<Feature>Queues()` from `main.ts` (create `core/bootstrap/` on first use — today the gateway's periodic work is wired by `core/service/whatsapp/gateway-boot.ts` and the cron by `core/service/scheduler/cron.service.ts`; a BullMQ processor follows the shape above, next to the `IQueueProvider` / `IFlowProducer` ports). Defaults: 3 attempts, exponential backoff (1s base), `removeOnComplete: 100`, `removeOnFail: 200`. Job IDs should be deterministic when duplicate prevention matters (`jobId: ${entityType}:${entityId}`). Bull Board admin UI at `/admin/queues` (dev only).
 
 ### When to queue vs sync (decision)
 
@@ -383,8 +403,9 @@ Call `bootstrapUserQueues()` from `main.ts`. Defaults: 3 attempts, exponential b
 |----------|--------|-----|
 | Sending email/SMS/notification | **Yes** | External, can fail, retry |
 | Bulk delete (>10) | **Yes** | Risk of timeout; needs retry per item |
-| Heavy file ops (S3 cleanup, image processing) | **Yes** | Slow, user shouldn't wait |
-| Call to a slow/expensive external API | **Yes** | Expensive, slow, must retry |
+| Heavy file ops (S3 cleanup, media processing) | **Yes** | Slow, user shouldn't wait |
+| Webhook delivery to the customer's URL | **Yes** (bounded retries) | External, can fail, must not block the send path |
+| LLM call / embedding generation | **Yes** | Expensive, slow, must retry |
 | Simple CRUD (create/get/update/list) | **No** | Fast; user expects immediate feedback |
 
 ### When to use a transaction
@@ -392,14 +413,14 @@ Call `bootstrapUserQueues()` from `main.ts`. Defaults: 3 attempts, exponential b
 | Scenario | Tx? | Why |
 |----------|-----|-----|
 | Create entity + relation rows | **Yes** | Partial state = orphan rows |
-| Multi-table signup (User + Profile + Settings) | **Yes** | Atomic |
+| Multi-table signup (Account + User — `user-signup.transaction.ts`) | **Yes** | Atomic |
 | Cascading delete with relations | **Yes** | All-or-nothing |
 | Single-table CRUD | **No** | Prisma op already atomic |
 | Update + S3 cleanup | **No** | Cleanup is idempotent (use `safeS3Delete`) |
 
 ### Logging
 
-Use `ILoggerProvider` (Pino) — never `console.log`. Structured fields: `userId`, `entityId`, `latencyMs`, `outcome`. **Never** log PII or secrets: no full names/emails in plaintext where avoidable, no passwords or tokens, no request bodies containing personal data.
+Use `ILoggerProvider` (Pino) — never `console.log`. Structured fields: `accountId`, `userId`, `deviceId`, `entityId`, `latencyMs`, `outcome`. **Never** log PII or secrets: no phone numbers or JIDs in plaintext where avoidable, no message text, no contact/group names, no webhook URLs carrying secrets, no WhatsApp session keys (`auth_key`), no tokens, no full prompts or embeddings. The pino `redact` list (`core/http/logger.ts`) is defense in depth, not a license.
 
 ### i18n
 
@@ -421,10 +442,24 @@ Before creating anything new, check this table.
 | `"StorageProvider"` | `IStorageProvider` | `S3StorageProvider` | S3 upload / delete / signed URL |
 | `"QueueProvider"` | `IQueueProvider` | `BullMQQueueProvider` | Queues with retry/backoff |
 | `"LoggerProvider"` | `ILoggerProvider` | `PinoLoggerProvider` | Structured logging |
-| `"MailProvider"` | `IMailProvider` | (your SMTP/transactional impl) | Send transactional email |
+| `"MailProvider"` | `IMailProvider` | (Resend impl) | Transactional e-mail |
+| `"EventBus"` | `IEventBus` | Redis pub/sub | Cross-process events (SSE fan-out) |
+| `"DomainEventBus"` | `IDomainEventBus` | in-process typed bus | Session + message-status vocabulary between modules |
+| `"FlowProducer"` | `IFlowProducer` | BullMQ flow producer | Parent/child job graphs |
+| `"DatabaseStatusProvider"` / `"NodeExporterMetricsProvider"` / `"CiProvider"` | `I*Provider` | Postgres probe / node_exporter / GitHub Actions | The `/api/health` + status surfaces |
+| `"WhatsAppGateway"` | `IWhatsAppGateway` (`modules/devices/domain/provider`) | `BaileysWhatsAppGateway` or `DisabledWhatsAppGateway` (by `WHATSAPP_ENABLED`) | The WhatsApp port |
+| `"WebhookSender"` | `IWebhookSender` (`modules/webhooks/domain/provider`) | `HttpWebhookSender` | Signs (HMAC-SHA256) + delivers webhooks with bounded retries |
+| `"SendRateLimiter"` / `"SendPacer"` | ports in `modules/messaging/domain/provider` | token bucket / human pacer | Anti-ban throttle + typing/jitter rhythm |
 
-> Add new provider ports to `shared/provider/` (interface) and their concrete
-> impls to `core/provider/` (see `backend-modules.md` § port vs impl split).
+> Add a new **generic** provider port to `shared/provider/` (interface) and its concrete impl to `core/provider/<kind>/`; a **domain-flavored** port (like the gateway) lives in `modules/<domain>/domain/provider/` with its adapter in `modules/<domain>/infrastructure/provider/` (see `backend-modules.md` § port vs impl split). Every token is a `DI_TOKENS` entry.
+
+### Existing Services
+
+| Token | Class | Purpose |
+|-------|-------|---------|
+| `"AesGcmEncryptionService"` (+ `AesGcmEncryptionConfig`) | `core/service/aes-gcm-encryption.service.ts` | AES-256-GCM for secrets at rest |
+| `"AuthProfileBuilder"` | `modules/auth/application/service/auth/auth-profile.builder.ts` | Builds the `/auth/me` profile |
+| — (called from `main.ts`) | `core/service/error-reporter/` · `core/service/scheduler/cron.service.ts` · `core/service/whatsapp/{advisory-lock,gateway-boot}.ts` | Bugsnag facade · node-cron · single-replica gateway lock + boot |
 
 ### Shared Utilities
 
@@ -432,7 +467,9 @@ Before creating anything new, check this table.
 |---------|----------|---------|
 | `buildPaginationMeta()` | `shared/util/pagination.ts` | `{ page, limit, total, totalPages }` |
 | `safeS3Delete()` | `shared/util/safe-s3-delete.ts` | Delete S3 object without throwing |
-| `generateUserPublicCode()` | `shared/util/generate-public-code.ts` | Public code generator |
+| `extractS3Key()` | `shared/util/extract-s3-key.ts` | Extract object key from S3 URL |
+| `withCache()` | `shared/util/with-cache.ts` | Read-aside cache helper over `ICacheProvider` |
+| `parseExpiresIn()` | `shared/util/parse-expires-in.ts` | `15m` / `30d` → milliseconds |
 | `mapPrismaError()` | `core/database/prisma/prisma-error-mapper.ts` | Translate Prisma errors → AppError |
 
 ---
@@ -441,29 +478,29 @@ Before creating anything new, check this table.
 
 | Type | Pattern | Example |
 |------|---------|---------|
-| Entity | `{entity}.entity.ts` | `user.entity.ts` |
-| Repo interface | `{entity}-repository.interface.ts` | `user-repository.interface.ts` |
-| Repo impl | `prisma-{entity}-repository.ts` | `prisma-user-repository.ts` |
-| Use case | `{action}-{entity}.use-case.ts` | `create-user.use-case.ts` |
-| DTO | `{entity}.dto.ts` | `user.dto.ts` |
-| Controller | `{entity}.controller.ts` | `user.controller.ts` |
-| Route | `{entity}.routes.ts` | `user.routes.ts` |
+| Entity | `{entity}.entity.ts` | `device.entity.ts` |
+| Repo interface | `{entity}-repository.interface.ts` | `devices-repository.interface.ts` |
+| Repo impl | `prisma-{entity}-repository.ts` (or `.repository.ts`) | `prisma-devices.repository.ts` |
+| Use case | `{action}-{entity}.use-case.ts` | `register-device.use-case.ts` |
+| DTO | `{entity}.dto.ts` | `device.dto.ts` |
+| Controller | `{entity}.controller.ts` | `device.controller.ts` |
+| Route | `{entity}.routes.ts` | `device.routes.ts` |
 | Middleware | `{name}.middleware.ts` | `auth.middleware.ts` |
 | Provider interface | `{type}-provider.interface.ts` | `jwt-provider.interface.ts` |
 | Provider impl | `{impl}-{type}-provider.ts` | `bcrypt-hash-provider.ts` |
-| Queue bootstrap | `{feature}-queue.bootstrap.ts` | `user-queue.bootstrap.ts` |
-| Processor | `{action}-{entity}.processor.ts` | `send-welcome-email.processor.ts` |
-| Test | `*.spec.ts` (next to source) | `create-user.spec.ts` |
-| Factory | `{entity}.factory.ts` | `user.factory.ts` |
-| Mock | in `test/mocks/repositories.mock.ts` | `mockUserRepository()` |
+| Queue bootstrap | `{feature}-queue.bootstrap.ts` | `webhook-queue.bootstrap.ts` |
+| Processor / job | `{action}-{entity}.processor.ts` · `{name}.job.ts` | `dispatch-webhook.processor.ts` · `prune-outbox.job.ts` |
+| Test | `*.spec.ts` (next to source) | `register-device.use-case.spec.ts` |
+| Factory | `{entity}.factory.ts` | `device.factory.ts` |
+| Mock | in `test/mocks/repositories.mock.ts` (or an `in-memory-*.repository.ts` in the module's `test/`) | `mockUserRepository()` · `InMemoryDevicesRepository` |
 
-**Database (Prisma):** `snake_case` table + column names with `@@map`. UUID PKs. `created_at`/`updated_at` timestamps. `deleted_at DateTime?` for soft delete. `@@index([owner_id])` on every owned table. Cascades: `Cascade` for owned deps, `SetNull` for optional refs.
+**Database (Prisma):** `snake_case` table + column names with `@@map`. UUID PKs. `created_at`/`updated_at` timestamps. `deleted_at DateTime?` for soft delete. `@@index([account_id])` on every multi-tenant table. Cascades: `Cascade` for owned deps, `SetNull` for optional refs.
 
 ---
 
 ## Tests
 
-- **Location:** `*.spec.ts` next to source (`create-user.use-case.spec.ts` next to `create-user.use-case.ts`)
+- **Location:** `*.spec.ts` next to source (`register-device.use-case.spec.ts` next to `register-device.use-case.ts`)
 - **Factories:** `apps/api/src/modules/<domain>/test/{entity}.factory.ts` (sequential ids, fixed `new Date("2025-01-01")`)
 - **Mocks:** `apps/api/src/test/mocks/repositories.mock.ts`, `providers.mock.ts` (`MockOf<T>` with `vi.fn()`)
 - **SUT name:** `sut` (System Under Test)

@@ -72,7 +72,7 @@ Phase 1 below (Contract Design) fills the spec's §4 (Contracts & interfaces) �
 5. **ALWAYS i18n in 3 languages** for both backend ErrorCodes and frontend UI strings
 6. **ALWAYS handle errors end-to-end** — every backend ErrorCode must propagate to a user-visible toast via `AppError`
 7. **ALWAYS paginate list endpoints** — never unbounded
-8. **ALWAYS soft-delete + owner-scoped** — `deleted_at` filter + owner-column filter on every query on an owned table
+8. **ALWAYS soft-delete + multi-tenant** — `deleted_at` filter + `account_id` filter on every query
 
 ---
 
@@ -197,7 +197,7 @@ User edits field in EditableInfoGrid
   → Express: authMiddleware → validateRequest(body) → controller
   → controller: container.resolve(UpdateEntityUseCase).execute(id, accountId, dto)
   → use case validates → repository.update(id, accountId, data)
-  → PrismaRepository: prisma.entity.update({ where: { id, owner_id, deleted_at: null }, data })
+  → PrismaRepository: prisma.entity.update({ where: { id, account_id, deleted_at: null }, data })
   → returns Entity (mapped via toEntity)
   → controller: res.status(200).json({ ok: true, data: entity.toJSON() })
   → Axios interceptor unwraps → returns data
@@ -272,7 +272,7 @@ Frontend mutation
 
 ### Relations (EntityA ↔ EntityB)
 
-- **Backend:** link/unlink use cases that validate both entities exist + same owner
+- **Backend:** link/unlink use cases that validate both entities exist + same `accountId`
 - **Frontend:** `queryKeys.entityA.linkedEntityB(id)`, link/unlink mutations invalidate that key only, `LinkEntityModal` + `AppTabs` section
 
 ### Dynamic Fields
@@ -417,7 +417,7 @@ A delivered feature meets ALL:
 
 - **Functional:** full CRUD + paginated search + detail with auto-save (if editable) + translated errors + empty states
 - **Type-safe:** zero `any`; entities are exact mirrors of API DTOs
-- **Performant:** `@@index([owner_id])`; `keepPreviousData`; debounced search (300ms) + auto-save (1500ms); `memo()` on mapped components; selective invalidation (never `all`)
+- **Performant:** `@@index([account_id])`; `keepPreviousData`; debounced search (300ms) + auto-save (1500ms); `memo()` on mapped components; selective invalidation (never `all`)
 - **UX:** responsive, skeletons, auto-save toast, bulk + confirm, 3 locales
 - **Architecture:** Clean Arch respected on backend; module structure on frontend; DI registered; ErrorCodes + i18n complete
 - **Anti-patterns:** zero Critical / High items from `patterns/code-review-checklist.md`

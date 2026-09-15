@@ -65,7 +65,7 @@ gh pr list --head <branch> --state all --json number,state,mergedAt,url
 If the current working directory is inside the worktree being removed, `git worktree remove` will fail. Change to the main checkout first:
 
 ```bash
-cd /Users/natanrotta/Documents/repository/boilerplate
+cd /Users/natanrotta/Documents/repositories/pombo
 ```
 
 ### 5. Remove the worktree

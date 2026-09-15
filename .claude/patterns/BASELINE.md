@@ -12,11 +12,11 @@ For full architectural context, defer to:
 
 ## How to use this doc
 
-Every specialist (`/backend`, `/frontend`, `/fullstack`) MUST do this at the start of every task:
+Every specialist (`/backend`, `/frontend`, `/fullstack`, `/ai-backend`) MUST do this at the start of every task:
 
 1. Read this file fully (it is intentionally short).
 2. Output a one-line **Baseline activation** statement listing the rule IDs that apply to the current task.
-   > **Baseline activated:** R1 (resource ownership), R6 (response envelope), R10 (semantic tokens). Out of scope: R12, R14.
+   > **Baseline activated:** R1 (multi-tenancy), R6 (response envelope), R10 (semantic tokens). Out of scope: R12, R14.
 3. Re-check the activated rules during the in-loop self-audit (see § BABYSIT loop below).
 4. If a rule is genuinely impossible to apply, document the exception in the PR body — never silently violate it.
 
@@ -34,7 +34,7 @@ Before creating ANYTHING new, walk this 5-question gate:
 2. **Can the existing thing be extended (one extra prop, one extra method) instead of cloned?** Extension wins.
 3. **If extension is impossible, is the new thing reusable?** Place it in `shared/` (FE) or `modules/<domain>/application/service/` (domain-scoped) / `shared/util/` (generic, no domain) (BE) — never inside a feature module if any other module could need it.
 4. **Did you grep for the same string / behavior in the codebase?** If 2+ files implement the same logic, consolidate before adding the third.
-5. **Are you mirroring an existing pattern in style?** Naming, file layout, error-handling shape, response shape — copy an existing reference module (`auth` / `user` on the backend, `settings` on the frontend) before improvising.
+5. **Are you mirroring an existing pattern in style?** Naming, file layout, error-handling shape, response shape — copy the canonical reference module (`devices` — `apps/api/src/modules/devices` on the backend, `apps/web/src/modules/devices` on the frontend) before improvising.
 
 A new file that fails questions 1–3 is a code smell. Stop and reconsider.
 
@@ -46,11 +46,11 @@ A new file that fails questions 1–3 is a code smell. Stop and reconsider.
 
 | ID | Rule | Anchor |
 |----|------|--------|
-| R1 | Every Prisma query (read AND write) on an **owned** table filters by its owner column (`owner_id` / `user_id`; `account_id` once you add tenancy). | `B-C1` |
+| R1 | Every Prisma query (read AND write) on a multi-tenant table filters by `account_id`, taken from `req.auth.accountId` (or `req.apiAuth.accountId` on the public API) — never from the body. | `B-C1` |
 | R2 | Every read filters `deleted_at: null`. Soft delete is the default. | `B-C2` |
-| R3 | Cross-owner access uses an ownership policy (`ensureOwner(...)`) and throws `NotFoundError` (never `ForbiddenError`). | `B-C3`, `B-H11`, `B-H16` |
+| R3 | Cross-tenant access is impossible by construction: request-driven repository methods take `accountId` and return `null` on a miss; the use case throws `NotFoundError` (never `ForbiddenError`). Never launder an `accountId` from a system-triggered (`*Internal`) read into a scoped query. | `B-C3`, `B-H11`, `B-H16` |
 | R4 | Errors use `AppError` subclasses with `ErrorCode`. **Never** `throw new Error(...)`. | `B-C4` |
-| R5 | Logging via `ILoggerProvider` (Pino). **Never** `console.*`. **Never** log PII or secrets. | `B-C5`, `B-H12` |
+| R5 | Logging via `ILoggerProvider` (Pino). **Never** `console.*`. **Never** log PII (phone numbers, message text, contact/group names) or secrets (tokens, WhatsApp session keys, webhook secrets). | `B-C5`, `B-H12` |
 | R6 | Success response: `{ ok: true, data }`. Error response: `{ ok: false, error: { message, code, details? } }`. Paginated: `{ data, meta: { page, limit, total, totalPages } }`. | `B-C8` |
 | R7 | Use cases receive DTOs, return DTOs. They **never** touch `Request` / `Response`. | `B-C9` |
 | R8 | Domain ← Application ← Infrastructure (one-way). No back-imports. | `B-C10` |
@@ -63,7 +63,7 @@ A new file that fails questions 1–3 is a code smell. Stop and reconsider.
 | R10 | Semantic tokens only (`bg.*`, `text.*`, `border.*`, `status.*`). **No hardcoded hex.** | `F-C2` |
 | R11 | **No yellow / orange / amber.** Purple for warnings, red for errors, accent (green) for success. | `F-C3` (hard project rule) |
 | R12 | Components never call `httpClient` directly. Always: hook → repository → httpClient. | `F-C1`, `F-C7` |
-| R13 | New repository → registered in `core/di/repositories.ts`. New query key → added to `core/query/queryKeys.ts` (factory: `all` / `list` / `search` / `detail`). | `F-H1`, `F-H2` |
+| R13 | New repository → registered in `core/di/repositories.ts`. New query key → added to `core/query/queryKeys.ts` (factory: `all` / `list` / `search` / `detail` / `linked*`). | `F-H1`, `F-H2` |
 | R14 | Every mutation has `onError`. `invalidateQueries` is selective — never `queryKeys.X.all` unless every sub-key is genuinely affected. | `F-C5`, `F-C6` |
 | R15 | Routes via `ROUTE_PATHS` constants. UI strings via i18n in all 3 locales (pt-BR, en, es). | `F-C8`, `F-C9`, `F-H15` |
 | R16 | Forms use `FormField` / `SelectField` / `DateField` / etc. (RHF + Zod for validated forms; `useFormState` for simple modals). Never raw `<Input>` in feature code. | `F-H5`, `F-H6` |
@@ -78,6 +78,7 @@ A new file that fails questions 1–3 is a code smell. Stop and reconsider.
 | R20 | Backend response field renames update the frontend entity in the same PR. New backend `ErrorCode` ships with translations in all 3 locales AND a frontend toast. | `X-C1`, `X-C2`, `X-H1`, `X-H5` |
 | R21 | New env var → registered in `apps/api/src/core/config/env.ts` Zod schema. Migrations consider rollback for non-empty production tables. | `X-H4`, `X-C3` |
 | R22 | **No secrets in commits.** API keys, tokens, DB URLs with creds → environment only. | `X-C4` |
+| R23 | LLM calls always via an `ILlmProvider` port (never a vendor SDK/`fetch` in a use case). Embeddings via an embedding service. Retrieval filtered by `account_id` (+ the conversation's entity). Usage/cost logged via an AI-usage repository. (Pombo has no AI infra yet — the first AI task builds this foundation; see `/ai-backend`.) | `B-C13` |
 
 ### Tests (mandatory in this project)
 
@@ -114,7 +115,7 @@ Specialists do not "implement, then hand off and hope". They self-audit in a **3
    - After the second red iteration, escalate via `AskUserQuestion`.
 5. **Level 3 — `/duck-debug` (Rubber Duck Debugging, optional — only for M/L tasks).**
    - Only after levels 1 and 2 are clean.
-   - **Skip** if the diff is trivial (typo / rename / one-liner / test-only / styling-only). **Run** if any of: ≥4 files; new module / repository / use case; `domain/` modified; Prisma migration; auth / permissions / resource-ownership surface; cross-layer contract change.
+   - **Skip** if the diff is trivial (typo / rename / one-liner / test-only / styling-only). **Run** if any of: ≥4 files; new module / repository / use case; `domain/` modified; Prisma migration; auth / multi-tenant / PII / WhatsApp-session / webhook-signature surface; cross-layer contract change.
    - Invoke `/duck-debug` via the `Skill` tool. It orchestrates a 2-round dialogue between `duck-explainer` (verbalizes the change in 5 sections, no code blocks) and `duck-challenger` (reads only the explanation in Round 1, asks 3-7 naive-but-cirurgical questions, emits verdict CLEAN / GAPS / DESIGN-SMELL).
    - **GAPS** → fix the listed gaps → rerun `/duck-debug` (max 2 reruns).
    - **DESIGN-SMELL** → escalate via `AskUserQuestion`.

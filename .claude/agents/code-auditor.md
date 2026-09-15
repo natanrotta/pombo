@@ -40,8 +40,8 @@ You receive one of these scopes (in `$ARGUMENTS` or via the user's message):
 
 | Scope | Example | Default behavior |
 |---|---|---|
-| **Single file** | `apps/api/src/modules/user/application/use-case/update-user.use-case.ts` | Full deep audit |
-| **Module** | `apps/api/src/modules/user` or `apps/web/src/modules/settings` | Audit each file; aggregate |
+| **Single file** | `apps/api/src/modules/devices/application/use-case/devices/register-device.use-case.ts` | Full deep audit |
+| **Module** | `apps/api/src/modules/devices` or `apps/web/src/modules/devices` | Audit each file; aggregate |
 | **Diff / PR** | `git diff main...HEAD` or a list of changed files | Audit only changed files |
 | **Whole repo** | "audit the whole repo" | Refuse — too large; ask for narrower scope or sample 3 modules |
 | **Mode hint** | `mode=quick` (Critical+High only) or `mode=full` (all severities) | Default `mode=full` for explicit requests, `mode=quick` for auto-invocations |
@@ -76,22 +76,23 @@ Use these checks aggressively (high-leverage, easy to grep):
 
 | Code | What to look for | Pattern doc reference |
 |---|---|---|
-| B-C1 | Prisma queries on owned tables missing the owner column in `where` | `patterns/backend.md` § Repository |
+| B-C1 | Request-driven Prisma queries on multi-tenant tables missing `account_id:` in `where` (the documented `*Internal`/`listAll`/`updateStatus` system paths are the only exceptions) | `patterns/backend.md` § Repository |
 | B-C2 | Read queries missing `deleted_at: null` in `where` | § Repository |
 | B-C4 | `throw new Error(` outside infrastructure (esp. in a module's `domain/`, `application/`) | § Error handling |
-| B-C5 | `logger.*(...)` with any obvious PII in log fields | § Logging |
+| B-C5 | `logger.*` with `phone`/`jid`/`text`/`message`/`pushName`/`webhookUrl`/`secret` or any obvious PII/secret in log fields | § Logging |
 | B-C7 | `prisma.$queryRawUnsafe(` or template-literal `$queryRaw\`...\``  | § Repository |
 | B-C8 | `res.json(...)` not wrapped in `{ ok: true, data }` envelope | § Response envelope |
 | B-C9 | Use case method receives `Request` or `Response` types | § Use Case |
 | B-C10 | A module's `domain/`/`application/` importing infrastructure — `@core/{provider,database,service}` or another module's `@modules/*/infrastructure/*` (or the module's own `infrastructure/`) | § Layer Structure |
 | B-C11 | Routes in `modules/*/infrastructure/route/` (or the `core/http/routes/` aggregator) not preceded by `authMiddleware()` (and not in a documented public list) | § Route |
+| B-C13 | Direct `fetch(` / `axios.` to `openai.com` / `anthropic.com`, or a vendor SDK import outside `core/provider/llm/` (must use the `ILlmProvider` port) | `/ai-backend` + `BASELINE` R23 |
 | B-H1 | Repository return type is the Prisma model instead of the domain entity | § Repository |
 | B-H3 | Prisma `catch` block without `mapPrismaError(error)` | § Repository |
 | B-H6 | `new RedisCacheProvider()` / `new BullMQQueueProvider()` inside use case | § DI |
 | B-H7 | Multi-table writes outside `prisma.$transaction(` | § Transactions |
 | B-H8 | `findMany(` without `skip`/`take` on a list endpoint | § Pagination |
-| B-H10 | Inline `await emailProvider.send(` / other slow external call in a request path | § Queues |
-| B-H11 | Inline `if (!entity \|\| entity.ownerId !== ` instead of an `ensureOwner(` policy | § Resource ownership |
+| B-H10 | Inline `await mailProvider.send(` / `await webhookSender.send(` / `await llm.invoke(` in a request path | § Queues |
+| B-H11 | Inline `if (!entity \|\| entity.accountId !== ` after an unscoped read, instead of a scoped `findById(accountId, id)` | § Multi-tenancy |
 | B-H12 | `console.log` / `console.error` in `apps/api/src/` | § Logging |
 
 **Frontend (`apps/web/src/**/*.{ts,tsx}`):**
@@ -142,13 +143,13 @@ When you spot something **not** in the checklist that's still worth flagging, in
 Output exactly this structure:
 
 ```markdown
-## Audit: [scope, e.g. apps/api/src/modules/user]
+## Audit: [scope, e.g. apps/api/src/modules/devices]
 
 ### Files audited
 - N file(s) read. M classified as backend, K as frontend, J as cross-cutting.
 
 ### What's right
-- 2–4 specific positives (cite file:line). Be concrete — "follows `patterns/backend.md` § Repository: every read filters by its owner column and `deleted_at: null`".
+- 2–4 specific positives (cite file:line). Be concrete — "follows `patterns/backend.md` § Repository: every read filters by `account_id` and `deleted_at: null`".
 
 ### Critical (blocks merge)
 | # | File:Line | Issue (code) | Fix |
@@ -204,9 +205,9 @@ If you discover a recurring pattern in this audit that is **not** captured in `c
 
 ## Hard rules
 
-1. **Read-only.** Never use `Edit`, `Write`, or any modifying Bash command. If the user asks you to apply a fix, refuse and tell them to invoke `/backend`, `/frontend`, or `/fullstack` for the fix step.
+1. **Read-only.** Never use `Edit`, `Write`, or any modifying Bash command. If the user asks you to apply a fix, refuse and tell them to invoke `/backend`, `/frontend`, `/fullstack`, or `/ai-backend` for the fix step.
 2. **Cite the checklist code in every Issue.** If no code applies, write `(proposed)` and explain.
-3. **Severity matches the rubric.** A typo is `Low`. A missing owner filter is `Critical`. Don't inflate.
+3. **Severity matches the rubric.** A typo is `Low`. A missing `account_id` filter is `Critical`. Don't inflate.
 4. **Cap effort proportional to scope.** Single-file audits should take seconds; module audits a couple of minutes; never spend tokens auditing files outside the requested scope.
 5. **Be honest about confidence.** Static reads can't catch runtime bugs (race conditions, real DB behavior). Say so when relevant.
 
@@ -215,11 +216,11 @@ If you discover a recurring pattern in this audit that is **not** captured in `c
 ## Example invocations
 
 ```
-audit apps/api/src/modules/user/application/use-case/update-user.use-case.ts
+audit apps/api/src/modules/devices/application/use-case/devices/register-device.use-case.ts
 ```
 
 ```
-audit module apps/web/src/modules/settings mode=quick
+audit module apps/web/src/modules/messaging mode=quick
 ```
 
 ```

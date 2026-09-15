@@ -58,7 +58,7 @@ Read `.claude/patterns/BASELINE.md`. Output a one-line activation statement list
 
 > **Baseline activated:** R[id] ([short name]), R[id] ([short name]). Out of scope: R[id], R[id].
 
-This is mandatory for `/backend`, `/frontend`, `/fullstack`, `/test`, `/test-e2e`. Read-only specialists (`/architect`, `/brainstorm`, `/code-review`, `/normalize`, `/triage` subagents) cite BASELINE rules in their output but do not need to "activate" — they are not the ones writing code.
+This is mandatory for `/backend`, `/frontend`, `/fullstack`, `/ai-backend`, `/test`, `/test-e2e`. Read-only specialists (`/architect`, `/brainstorm`, `/code-review`, `/normalize`, `/triage` subagents) cite BASELINE rules in their output but do not need to "activate" — they are not the ones writing code.
 
 The activation statement primes the in-loop self-audit: at delivery time you re-check exactly the IDs you activated, plus any new ones the auditor surfaces.
 
@@ -73,7 +73,7 @@ After delivering the result, reflect and write to `.claude/knowledge/<skill-name
 Use the **same M/L heuristic** as `/duck-debug` (intentional parity — when the task is big enough to deserve a duck, it's big enough to deserve a learning entry):
 
 - **Small (S)** — typo, rename, one-liner, single-file edit, test-only, styling-only, dependency bump. **Write is optional.** Apply the strict quality gate below: if all three "did I learn …?" questions answer "no", do not write. Filler is noise.
-- **Medium/Large (M/L)** — ≥3 files touched, OR new module, OR `domain/` modified, OR Prisma migration, OR auth/permissions/resource-ownership surface, OR cross-layer contract change. **Write is mandatory — minimum 1 line of reflection.** Even if the task was routine, capture something: what was the trickiest part, what would future-you forget, what assumption was load-bearing. A short honest "nothing surprising — this was a straight follow of patterns/backend.md § X" is acceptable.
+- **Medium/Large (M/L)** — ≥3 files touched, OR new module, OR `domain/` modified, OR Prisma migration, OR auth/multi-tenant/PII/WhatsApp-session/webhook surface, OR cross-layer contract change. **Write is mandatory — minimum 1 line of reflection.** Even if the task was routine, capture something: what was the trickiest part, what would future-you forget, what assumption was load-bearing. A short honest "nothing surprising — this was a straight follow of patterns/backend.md § X" is acceptable.
 
 ### The three "did I learn …?" questions
 
@@ -164,7 +164,7 @@ Every Critical or High finding surfaced during the babysit loop (per-specialist 
 |--------|------|
 | Date | When the finding was surfaced |
 | Code | `R<id>` (BASELINE) or `B-C/F-H/X-C/E-/SC-` (checklist) |
-| Fixed-by | Skill that fixed it (`/backend`, `/frontend`, `/fullstack`, `/check`, `/code-review`, `duck-challenger`, a gate name) — or `accepted` if the user accepted it |
+| Fixed-by | Skill that fixed it (`/backend`, `/frontend`, `/fullstack`, `/ai-backend`, `/check`, `/code-review`, `duck-challenger`, a gate name) — or `accepted` if the user accepted it |
 | Context | One terse sentence: what file, what scenario. Never PII. Never paths to real customer data. **Escape any `\|` inside this column** — a raw pipe breaks the markdown table. |
 
 The ledger is append-only. Curation happens in the recurring-violations surfacing pass below — never edit historical entries.
@@ -258,6 +258,8 @@ Create this file after the first execution. Sections are customized per skill.
 | backend | Consolidated Principles, Code Patterns, Query Insights, DI & Wiring Gotchas, Dead Ends |
 | frontend | Consolidated Principles, Component Patterns, Performance Tricks, Styling Gotchas, Dead Ends |
 | fullstack | Consolidated Principles, Integration Patterns, Contract Alignment, Cross-Layer Gotchas, Dead Ends |
+| ai-backend | Consolidated Principles, Prompt Patterns, RAG Insights, LLM Gotchas, Dead Ends |
+| bugsnag | Project → key map, Runbook, Data Access API recipes, Saved searches, Gotchas |
 | brainstorm | Consolidated Principles, Effective Approaches, Question Patterns, Scope Insights, Dead Ends |
 | code-review | Consolidated Principles, Common Violations, Safe Patterns, Module-Specific Rules, False Positives |
 | ui-design | Consolidated Principles, Layout Patterns, Accessibility Fixes, Component Reuse, Dead Ends |

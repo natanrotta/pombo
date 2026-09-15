@@ -13,10 +13,10 @@ Every frontend skill (`/frontend`, `/fullstack`, `/ui-design`, `/code-review`, `
 - **Router:** React Router v6 (config-based, lazy + Suspense)
 - **UI:** Chakra UI 2.8 with custom theme + semantic tokens
 - **State (server):** TanStack Query v5
-- **State (global UI):** React Context only (Auth, Sidebar) — **no Redux, no Zustand**. If a feature needs its own navigation/UI state (never server data — that lives in TanStack Query), use a small feature-scoped Context and document why.
+- **State (global UI):** React Context only (Auth, Sidebar) — **no Redux, no Zustand**. If a feature needs its own navigation/UI state (never server data — that lives in TanStack Query), use a small feature-scoped Context under `presentation/context/` and document why.
 - **Forms (validated):** react-hook-form + Zod (lazy schema builders for i18n)
 - **Forms (simple modals):** `useFormState` hook
-- **HTTP:** Axios with interceptors (session cookie ride-along, refresh, CSRF, language, envelope unwrap). If you ever need a streaming transport (SSE), Axios can't stream in the browser — use native `fetch` and re-attach `credentials: "include"` + the CSRF header manually.
+- **HTTP:** Axios with interceptors (session cookie ride-along, refresh, CSRF, language, envelope unwrap). If you ever need a streaming transport (SSE — e.g. live device/message events), Axios can't stream in the browser — use native `fetch` and re-attach `credentials: "include"` + the CSRF header (`getCsrfToken`) manually.
 - **Animations:** Framer Motion (`motion(Box)` pattern, organic easing)
 - **i18n:** react-i18next (3 locales: pt-BR default, en, es). Only **pt-BR** (the fallback) is bundled in the entry chunk; en/es load on demand as one lazy chunk each (see `shared/i18n/index.ts` + `locales/{en,es}/index.ts`).
 - **Tests:** Vitest (co-located `*.spec.ts(x)` unit/component tests, `jsdom`) + Playwright (e2e in `apps/web/e2e/`)
@@ -43,7 +43,7 @@ core/                             # Cross-cutting infrastructure
   query/queryKeys.ts              # ALL query keys (factory pattern, hierarchical)
   query/entityQueryKeys.ts        # Generic key types
 
-modules/{feature}/                # Feature modules (one per domain — auth, dashboard, settings, ...)
+modules/{feature}/                # Feature modules (one per domain — account, auth, devices, messaging, settings)
   domain/
     entities/{Entity}.ts          # Plain TS interface + Create/Update input types
     repositories/{Entity}Repository.ts  # extends CrudRepository<T, TC, TU> [+ BulkDeletable]
@@ -89,20 +89,20 @@ shared/                           # Cross-module reuse
 
 ## Canonical Data-Fetching → Render Lifecycle
 
-For "user opens the settings/profile page" (illustrative):
+For "user opens device detail" (illustrative — mirrors `modules/devices`):
 
-1. `<Route path="/settings/profile" element={<ProfilePage />} />` matches
-2. `<ProfilePage />` mounts
-3. `useProfile()` is called — wraps `useEntityDetail({ queryKey: queryKeys.profile, repository: repositories.profile })`
-4. TanStack Query checks cache for `queryKeys.profile.detail()`; if stale or missing → `queryFn` runs
-5. `queryFn` → `repositories.profile.get()` → `HttpProfileRepository.get()` → `httpClient.get("/users/me")`
-6. Axios request interceptor: the session rides the httpOnly `pombo_at` cookie automatically (`withCredentials: true`) — JS never holds the JWT; the interceptor attaches `X-CSRF-Token` (from cookie) and `Accept-Language` (from localStorage).
-7. API responds `{ ok: true, data: { id, name, email, ... } }`
+1. `<Route path="/devices/:id" element={<DeviceDetailPage />} />` matches
+2. `<DeviceDetailPage />` mounts; `useParams()` reads `id`
+3. `useDeviceDetail(id)` is called — the module's canonical detail hook (`modules/devices/presentation/hooks/useDevices.ts`); for a CRUD entity it wraps `useEntityDetail({ id, queryKey: queryKeys.devices, repository: repositories.device })`
+4. TanStack Query checks cache for `queryKeys.devices.detail(id)`; if stale or missing → `queryFn` runs
+5. `queryFn` → `repositories.device.getById(id)` → `HttpDeviceRepository.getById(id)` → `httpClient.get("/devices/" + id)`
+6. Axios request interceptor: the session rides the httpOnly `pombo_at` cookie automatically (`withCredentials: true`) — JS never holds the JWT; the interceptor attaches `X-CSRF-Token` (from cookie) and `Accept-Language` (from localStorage). The only Bearer header still built by hand is the short-lived scoped `email:verify` token on the e-mail verification routes.
+7. API responds `{ ok: true, data: { id, name, ... } }`
 8. Axios response interceptor unwraps: returns `data` directly (or throws `AppError` on `{ ok: false }` / network error)
-9. TanStack Query caches under `queryKeys.profile.detail()`; component re-renders with `entity` populated
+9. TanStack Query caches under `queryKeys.devices.detail(id)`; component re-renders with `entity` populated
 10. `<DetailPageGuard isLoading={isLoading} error={error} entity={entity}>` decides: skeleton / error / not-found / children
-11. On success → `ProfileHeader`, `EditableInfoGrid` render the content
-12. On user edit → `useDetailPageController` updates local state, marks `isDirty=true`, debounces 1500ms → `useAutoSave` triggers `onSave(localData)` → `update.mutateAsync()` → repository PATCH → on success: `setQueryData(detail(), updated)` + `showAutoSaved()`
+11. On success → `ProfileHeader`, `EditableInfoGrid`, `AppTabs` render the content
+12. On user edit → `useDetailPageController` updates local state, marks `isDirty=true`, debounces 1500ms → `useAutoSave` triggers `onSave(localData)` → `update.mutateAsync()` → repository PUT → on success: `setQueryData(detail(id), updated)` + `invalidateQueries(search())` + `showAutoSaved()`
 
 ---
 
@@ -111,17 +111,21 @@ For "user opens the settings/profile page" (illustrative):
 ### Entity (Domain)
 
 ```typescript
-// modules/settings/domain/entities/Profile.ts
-export interface Profile {
+// modules/devices/domain/entities/Device.ts
+export type DeviceStatus = "DISCONNECTED" | "QR_PENDING" | "CONNECTED" | /* ... mirror the API enum */ string;
+
+export interface Device {
   id: string;
+  accountId: string;
   name: string;
-  email: string;
-  avatarUrl: string | null;
+  status: DeviceStatus;
+  identifier: string | null;    // paired WhatsApp number once CONNECTED
   createdAt: string;            // ISO string from API; convert to Date only at render boundary
   updatedAt: string;
 }
 
-export interface UpdateProfileInput { name?: string; avatarUrl?: string | null; }
+export interface CreateDeviceInput { name: string; }
+export interface UpdateDeviceWebhooksInput { /* one nullable URL per event */ }
 ```
 
 **Rules:** plain TS interfaces (not classes); dates as ISO strings (matches API DTO exactly); separate `Create*Input` (required) and `Update*Input` (all-optional with `| null` for clearable). Field names mirror backend response DTO 1:1.
@@ -129,36 +133,38 @@ export interface UpdateProfileInput { name?: string; avatarUrl?: string | null; 
 ### Repository Interface (Domain)
 
 ```typescript
-// modules/users/domain/repositories/UserRepository.ts
-import type { CrudRepository, BulkDeletable } from "@/core/domain/CrudRepository";
+// modules/devices/domain/repositories/DeviceRepository.ts
+import type { CrudRepository } from "@/core/domain/CrudRepository";
 
-export interface UserRepository
-  extends CrudRepository<User, CreateUserInput, UpdateUserInput>,
-    BulkDeletable {}
+export interface DeviceRepository
+  extends CrudRepository<Device, CreateDeviceInput, UpdateDeviceWebhooksInput> {
+  getQr(id: string): Promise<DeviceQr>;
+  connect(id: string): Promise<void>;
+  disconnect(id: string): Promise<void>;
+}
 ```
 
-**Rules:** always extend `CrudRepository` (gives `list/listPaginated/getById/create/update/delete` for free); add `BulkDeletable` if `bulkDelete(ids)` exists; only add custom methods for relations (`linkX`, `unlinkX`, etc.).
+**Rules:** always extend `CrudRepository` (gives `list/listPaginated/getById/create/update/delete` for free); add `BulkDeletable` if `bulkDelete(ids)` exists; only add custom methods for actions/relations (`connect`, `getQr`, `linkX`, etc.).
 
 ### HTTP Repository (Infrastructure)
 
 ```typescript
-// modules/users/infrastructure/repositories/HttpUserRepository.ts
-export class HttpUserRepository implements UserRepository {
-  async listPaginated(params: PaginationParams): Promise<PaginatedResponse<User>> {
-    return httpClient.get<never, PaginatedResponse<User>>("/users/search",
-      { params: buildPaginationQuery(params) });
+// modules/devices/infrastructure/repositories/HttpDeviceRepository.ts
+export class HttpDeviceRepository implements DeviceRepository {
+  async list(): Promise<Device[]> {
+    return httpClient.get<never, Device[]>("/devices");
   }
-  async getById(id: string): Promise<User> {
-    return httpClient.get<never, User>(`/users/${id}`);
+  async getById(id: string): Promise<Device> {
+    return httpClient.get<never, Device>(`/devices/${id}`);
   }
-  async create(data: CreateUserInput): Promise<User> {
-    return httpClient.post<never, User>("/users", data);
+  async create(data: CreateDeviceInput): Promise<Device> {
+    return httpClient.post<never, Device>("/devices", data);
   }
-  async update(id: string, data: UpdateUserInput): Promise<User> {
-    return httpClient.put<never, User>(`/users/${id}`, data);
+  async update(id: string, data: UpdateDeviceWebhooksInput): Promise<Device> {
+    return httpClient.patch<never, Device>(`/devices/${id}/webhooks`, data);
   }
-  async delete(id: string): Promise<void> { await httpClient.delete(`/users/${id}`); }
-  async bulkDelete(ids: string[]): Promise<void> { await httpClient.delete("/users/bulk", { data: { ids } }); }
+  async delete(id: string): Promise<void> { await httpClient.delete(`/devices/${id}`); }
+  async connect(id: string): Promise<void> { await httpClient.post(`/devices/${id}/connect`); }
 }
 ```
 
@@ -167,11 +173,11 @@ export class HttpUserRepository implements UserRepository {
 ### DI Registration (`core/di/repositories.ts`)
 
 ```typescript
-import { HttpUserRepository } from "@/modules/users/infrastructure/repositories/HttpUserRepository";
-import type { UserRepository } from "@/modules/users/domain/repositories/UserRepository";
+import { HttpDeviceRepository } from "@/modules/devices/infrastructure/repositories/HttpDeviceRepository";
+import type { DeviceRepository } from "@/modules/devices/domain/repositories/DeviceRepository";
 
 export const repositories = {
-  user: new HttpUserRepository() as UserRepository,
+  device: new HttpDeviceRepository() as DeviceRepository,
   // ... other singletons
 } as const;
 ```
@@ -181,12 +187,14 @@ export const repositories = {
 ### Query Keys (`core/query/queryKeys.ts`)
 
 ```typescript
-users: {
-  all: ["users"] as const,
-  list: () => [...queryKeys.users.all, "list"] as const,
-  search: () => [...queryKeys.users.all, "search"] as const,
-  detail: (id: string) => [...queryKeys.users.all, "detail", id] as const,
+devices: {
+  all: ["devices"] as const,
+  list: () => [...queryKeys.devices.all, "list"] as const,
+  detail: (id: string) => [...queryKeys.devices.all, "detail", id] as const,
+  qr: (id: string) => [...queryKeys.devices.all, "qr", id] as const,
+  groups: (id: string) => [...queryKeys.devices.all, "groups", id] as const,
 },
+// existing namespaces: settings · auth · devices · account · messaging (messageStatus(id)) · health
 ```
 
 **Rules:** factory pattern (functions for parameterized keys); hierarchical (`all` is the root, narrow keys nest under it); **never** invalidate a broader key than necessary; **never** `queryClient.invalidateQueries()` without a `queryKey`.
@@ -210,13 +218,14 @@ users: {
 | Centralized error handling | `useErrorHandler()` → `handleError(error, fallback)` | `core/query/useErrorHandler.ts` |
 
 ```typescript
-// modules/users/presentation/hooks/useUser.ts (canonical)
-export function useUser(id?: string) {
-  const base = useEntityDetail<User, CreateUserInput, UpdateUserInput>({
-    id, repo: repositories.user, keys: queryKeys.users,
-    errorMessages: errorMessages.crud("user"),
+// modules/devices/presentation/hooks/useDevices.ts (canonical — real exports: useDevicesList, useDeviceDetail,
+// useCreateDevice, useDeleteDevice, useConnectDevice, useDisconnectDevice, useDeviceQr, useDeviceGroups, useUpdateDeviceWebhooks)
+export function useDeviceDetail(id?: string) {
+  const base = useEntityDetail<Device, CreateDeviceInput, UpdateDeviceWebhooksInput>({
+    id, repo: repositories.device, keys: queryKeys.devices,
+    errorMessages: errorMessages.crud("device"),
   });
-  // Add custom relation queries/mutations here if needed
+  // Add custom action queries/mutations here if needed (connect, disconnect, qr poll)
   return base;
 }
 ```
@@ -226,13 +235,13 @@ export function useUser(id?: string) {
 Pages own queries, controllers, modal state, and orchestration. Sub-components are dumb and receive `value`, `onChange`, `onClick`.
 
 ```typescript
-export default function UsersListPage() {
-  const { t } = useTranslation("users");
+export default function DevicesListPage() {
+  const { t } = useTranslation("devices");
   const ctrl = useListPageController({
-    queryKey: queryKeys.users.search(),
-    fetchFn: (params) => repositories.user.listPaginated(params),
-    deleteFn: (id) => repositories.user.delete(id),
-    bulkDeleteFn: (ids) => repositories.user.bulkDelete(ids),
+    queryKey: queryKeys.devices.list(),
+    fetchFn: (params) => repositories.device.listPaginated(params),
+    deleteFn: (id) => repositories.device.delete(id),
+    bulkDeleteFn: (ids) => repositories.device.bulkDelete(ids),
     entityLabel: { singular: t("entity"), plural: t("entityPlural") },
   });
   return <ListPageLayout {...ctrl} renderCard={(item) => <EntityCard ... />} />;
@@ -263,13 +272,13 @@ export const EntityRow = memo(function EntityRow({ title, onAction }: EntityRowP
 
 - **Config-based** with `lazy()` + `Suspense` for every route
 - Guards: `ProtectedRoute` (requires auth), `PublicOnlyRoute` (redirects authenticated)
-- All paths in `RoutePaths.ts` — never hardcode `"/users/:id"` in a component; use `ROUTE_PATHS.userDetail.replace(":id", id)`
+- All paths in `RoutePaths.ts` — never hardcode `"/devices/:id"` in a component; use `ROUTE_PATHS.deviceDetail.replace(":id", id)`
 - Wrap protected routes in `withAppShell()` (applies `AppShell` + `ProtectedRoute` + `RouteErrorBoundary`)
 
 ### HTTP Client (`core/http/httpClient.ts`)
 
 - baseURL: `import.meta.env.VITE_API_URL || "/api"`, timeout 30s, `withCredentials: true` (httpOnly `pombo_at` session + refresh cookies)
-- Request interceptor: the session cookie is sent automatically — no `Authorization` header for normal calls. Attaches CSRF header + `Accept-Language`; deletes `Content-Type` for `FormData` (browser sets boundary). `getCsrfToken` is exported for any non-Axios transport you might add (e.g. an SSE `fetch`).
+- Request interceptor: the session cookie is sent automatically — no `Authorization` header for normal calls. Attaches CSRF header + `Accept-Language`; deletes `Content-Type` for `FormData` (browser sets boundary). The scoped `email:verify` Bearer is the sole exception (email-verification routes only). `getCsrfToken` is exported for any non-Axios transport you might add (e.g. an SSE `fetch`).
 - Response interceptor:
   - Success: unwraps `{ ok: true, data }` → returns `data`
   - 401: queues request, calls `/auth/refresh`, retries on success; on refresh failure clears auth + redirects to sign-in
@@ -380,17 +389,17 @@ Use this pattern only when the operation is fast and rollback is cheap; otherwis
 
 1. **Lazy mount via tab boundary.** Toda `<AppTabs>` é lazy por default (`isLazy lazyBehavior="keepMounted"`). Componentes dentro de um painel de aba SÓ disparam queries quando o usuário clica naquela aba pela primeira vez (mantém montado depois — não refetch ao retornar). Opt-out (`isLazy={false}`) só com motivo documentado.
 
-2. **Section-scoped fetch (não kitchen-sink).** Cada section/aba é responsável pelo próprio fetch. NÃO chamar hooks de relação no parent e passar dados por prop — quebra o lazy boundary. Padrão correto: `<RelatedItemsSection ownerId={id} />` chama `useRelatedItems(id)` internamente. Modais auxiliares (`LinkEntityModal`) também devem viver dentro da section que os usa.
+2. **Section-scoped fetch (não kitchen-sink).** Cada section/aba é responsável pelo próprio fetch. NÃO chamar hooks de relação no parent e passar dados por prop — quebra o lazy boundary. Padrão correto: `<DeviceWebhooksSection deviceId={id} />` chama o hook que precisa internamente. Modais auxiliares (`LinkEntityModal`) também devem viver dentro da section que os usa.
 
-3. **Hooks focados (não kitchen-sink).** Hook de feature deve encapsular UMA query principal + suas mutations relacionadas. Se um hook tem >2 `useQuery` distintos, está virando kitchen-sink — quebrar em hooks menores. Aceitar `{ enabled }` opcional para callers fora de tab que precisam suspender manualmente (ex: uma detail page que chama `useUser(id)` só pelo breadcrumb name).
+3. **Hooks focados (não kitchen-sink).** Hook de feature deve encapsular UMA query principal + suas mutations relacionadas. Se um hook tem >2 `useQuery` distintos, está virando kitchen-sink — quebrar em hooks menores. Aceitar `{ enabled }` opcional para callers fora de tab que precisam suspender manualmente (ex: uma página chama `useDeviceDetail(id)` só pelo breadcrumb name).
 
 4. **Prefetch on hover.** Em list pages, usar `usePrefetchEntity({ repo, keys })` para retornar `prefetch(id)`. Passar para `<EntityCard onHover={() => prefetch(item.id)}>`. Pre-aquece o cache no hover/focus — sem custo se o user não clicar (TanStack Query gerencia gc/stale, segundo prefetch dentro do staleTime é no-op).
 
 5. **Stale tiers (`STALE_TIMES` em `core/query/staleTimes.ts`):**
-   - `default: 60_000` — entidades transacionais. Match com o `queryClient` default; passar é opcional.
+   - `default: 60_000` — entidades transacionais (device, api token, perfil). Match com o `queryClient` default; passar é opcional.
    - `reference: 5*60_000` — reference data (lookups, enums, settings). Mudam raramente, evita refetch agressivo.
-   - `volatile: 15_000` — dados muito dinâmicos (dashboards realtime).
-   - `subscription: 30_000` — polling de status (entre default e volatile).
+   - `volatile: 15_000` — dados muito dinâmicos (status de conexão, listas que dependem do socket ao vivo — ex.: grupos do device, `retry: false` + estado de erro próprio).
+   - `subscription: 30_000` — polling de status (entre default e volatile). O poll de status de mensagem e o poll do QR usam `refetchInterval` próprio — e param (`return false`) em erro terminal.
    Hooks compartilhados (`useEntityList`, etc.) aceitam `staleTime?: number` opcional para escolher o tier.
 
 6. **`gcTime` ≥ 3× `staleTime` (`GC_TIMES` em `staleTimes.ts`):** o `queryClient` default define `gcTime: 15min` enquanto o maior `staleTime` (`reference`) é `5min`. Por que importa: `gcTime` controla quando uma query INATIVA sai da memória. Se igualar ao `staleTime`, o cache é evictado no instante que vira stale — navegação away-and-back sempre refetcha. Use `GC_TIMES.x` quando um hook precisar sobrescrever ambos juntos. Anti-pattern `F-H23`.
@@ -399,16 +408,20 @@ Use this pattern only when the operation is fast and rollback is cheap; otherwis
 
 8. **Hooks de ações focados (mutations-only) para callers que não precisam da query.** Padrão definitivo: quando um caller só precisa de mutations (delete em ListPage, create em modal), consumir `useXActions()` / `useCreateX()` em vez de `useX({ enabled: false })`. Backbone compartilhado: `useEntityActions` e `useEntityCreate` em `shared/hooks/` — implementam mesma semântica de optimistic update + cross-key invalidation dos hooks com query. **Elimina observers fantasmas** (`entity.list` Fresh sem fetch, `entity.detail,null`) que poluíam o devtools com o pattern transicional `{ enabled: false }`. `F-M15`.
 
-9. **`queryKey` factory com params na assinatura.** Quando uma query depende de filtros/paginação, os params DEVEM fazer parte da assinatura do factory em `queryKeys.ts`. NUNCA estender o key inline via spread `[...queryKeys.X.Y(), params]` — quebra contrato. Anti-pattern `F-H21`.
+9. **`queryKey` factory com params na assinatura.** Quando uma query depende de filtros/paginação, os params DEVEM fazer parte da assinatura do factory em `queryKeys.ts` (ver `messaging.messageStatus(id)`, `devices.qr(id)`). NUNCA estender o key inline via spread `[...queryKeys.X.Y(), params]` — quebra contrato. Anti-pattern `F-H21`.
+
+10. **Query/mutation definida SEMPRE em hook — nunca inline no componente.** Todo `useQuery`/`useInfiniteQuery`/`useMutation` vive em `modules/<m>/presentation/hooks/` (ou `shared/hooks/` quando genuinamente cross-módulo) — componentes, páginas e contexts CONSOMEM hooks. Coreografia de UI acoplada ao ciclo da mutation (overlay de processamento, redirect, parar um poll) entra por callbacks/opções do hook (`useMessageStatus` em `messaging/presentation/hooks/` é o precedente: o `refetchInterval` para em erro terminal dentro do hook, não na página). Por quê: definição inline esconde a superfície de server-state do módulo, deixa opções (staleTime/enabled/invalidations) divergirem por call site e não é testável isoladamente. Anti-pattern `F-H29`.
+
+11. **Um hook canônico por resource key.** Cada query key tem UM dono — o hook que define `queryFn`/`enabled`/`staleTime` (ex.: `useDevicesList` para `devices.list`, `useDeviceDetail(id)` para `devices.detail`, `useMessageStatus(id)` para `messaging.messageStatus`). Consumidores com necessidades diferentes derivam do dono (via `useMemo`/`select`) ou passam opções sancionadas (`{ enabled }`, tier override). Segunda definição do mesmo key com opções divergentes = drift silencioso de cache (o TanStack deduplica a request, mas cada observer aplica o próprio staleTime/refetch). Exceção documentada: um segundo observer com `refetchInterval` próprio sobre um key de polling compartilhado (ex.: o poll do QR no modal de conexão) — comentar o porquê no hook. Anti-pattern `F-H30`.
 
 **Anti-pattern (não fazer):**
-- Hook que retorna `entity + relationA + relationB + fieldValues` (kitchen sink) — quebrar em hooks focados.
+- Hook que retorna `device + groups + qr + messages` (kitchen sink) — quebrar em hooks focados.
 - Parent page que chama várias queries de relação no mount junto com o `useDetail` — mover para dentro das sections/sub-componentes que efetivamente consomem.
 - `<AppTabs>` com `isLazy={false}` sem justificativa.
 - `<EntityCard>` em list page sem `onHover` para prefetch (perde-se ganho gratuito de UX).
-- Mutation que invalida `queryKeys.X.all` quando dá pra ser cirúrgica (`.detail(id)`, `.list(params)`) — `F-C6`.
+- Mutation que invalida `queryKeys.X.all` quando dá pra ser cirúrgica (`.detail(id)`, `.list()`, `.groups(id)`) — `F-C6`.
 
-**Anchor codes:** `F-C6` (broad invalidation — Critical), `F-C20` (kitchen-sink hook — Critical), `F-H18` (eager AppTabs — High), `F-H19` (hook sem `enabled` opcional — High), `F-H20` (staleTime literal — High), `F-H21` (factory key extension — High), `F-H22` (placeholderData ausente em useInfiniteQuery — High), `F-H23` (gcTime ≤ staleTime — High), `F-M13` (eager section fetch sem `enabled` — Medium), `F-M14` (prefetch sem staleTime matching — Medium), `F-M15` (ListPage duplica list+search — Medium).
+**Anchor codes:** `F-C6` (broad invalidation — Critical), `F-C20` (kitchen-sink hook — Critical), `F-H18` (eager AppTabs — High), `F-H19` (hook sem `enabled` opcional — High), `F-H20` (staleTime literal — High), `F-H21` (factory key extension — High), `F-H22` (placeholderData ausente em useInfiniteQuery — High), `F-H23` (gcTime ≤ staleTime — High), `F-H29` (query/mutation inline em componente — High), `F-H30` (resource key com N definições de query — High), `F-M13` (eager section fetch sem `enabled` — Medium), `F-M14` (prefetch sem staleTime matching — Medium), `F-M15` (ListPage duplica list+search — Medium).
 
 ### Auth
 
@@ -416,14 +429,14 @@ Use this pattern only when the operation is fast and rollback is cheap; otherwis
 - `useAuth()` to read; the session JWT lives in the httpOnly `pombo_at` cookie — JS never sees or stores it (closes XSS→session theft). `AuthSession` carries only `{ user }`.
 - After login, `i18n.changeLanguage(user.language)` is called automatically
 - Token refresh handled transparently by `httpClient` interceptor (cookie-only)
-- **Session-termination hygiene:** every sign-out path — explicit `signOut()` AND the token-expiry handler (`setAuthExpiredHandler`) — must both `queryClient.clear()` and wipe any browser-persisted, session-scoped data (localStorage/sessionStorage). A shared device must never leak one account's data to the next.
+- **Session-termination hygiene:** every sign-out path — explicit `signOut()` AND the token-expiry handler (`setAuthExpiredHandler`) — must both `queryClient.clear()` and wipe any browser-persisted, session-scoped data (localStorage/sessionStorage keys under the `@pombo-web:` prefix, except the language). A shared device must never leak one account's data to the next.
 
 ### i18n
 
-- Namespaces: `common`, `auth`, `dashboard`, `settings`, etc. (defined in `shared/i18n/index.ts` `NAMESPACES`) — add one per feature module
+- Namespaces: `common`, `auth`, `settings`, `devices`, `sandbox` (defined in `shared/i18n/index.ts` `NAMESPACES`) — add one per feature module
 - File per namespace per language: `shared/i18n/locales/{pt-BR,en,es}/{namespace}.json`
 - Keys use **dot notation**: `"list.title"`, `"actions.save"`, `"register.nameRequired"`
-- Interpolation: `t("crud.created", { entity: tc("entities.user") })`
+- Interpolation: `t("crud.created", { entity: tc("entities.device") })`
 - Common keys (always available): `actions.*`, `status.*`, `entities.*`, `crud.*`, `errors.*`, `notify.*`, `list.*`, `forms.*`
 - `useTranslation("{namespace}")` at component level; pass `t` and `tc` as separate consts when both are needed
 
@@ -507,7 +520,7 @@ Global font-size: `sm` (14px). FormLabel: `xs`, `600`, `gray.600`. Section headi
 | Component | Purpose |
 |-----------|---------|
 | `ListPageLayout` | Full list page (search + filter + grid + pagination + empty + delete confirm) |
-| `PageHeader` | Title + description + actions |
+| `PageHeader` | The ONE page header (`title` + `description` + `count`/`countLabel` pill + `primaryAction` + `actions`) — use it on every list/detail/single-page module; never hand-roll a title row |
 | `AppTabs` | Tab nav within detail pages (optional URL sync) |
 | `AppBreadcrumb` | Breadcrumb nav |
 | `ProfileHeader` | Detail page header with avatar + meta + breadcrumbs |
@@ -548,12 +561,12 @@ Global font-size: `sm` (14px). FormLabel: `xs`, `600`, `gray.600`. Section headi
 |------|---------|---------|
 | Component | `PascalCase.tsx` | `EntityCard.tsx` |
 | Props | `{Component}Props` | `EntityCardProps` |
-| Hook | `use{Name}.ts` | `useUser.ts`, `useUsers.ts` |
-| Entity | `{Entity}.ts` | `User.ts` |
-| Repo interface | `{Entity}Repository.ts` | `UserRepository.ts` |
-| Repo impl | `Http{Entity}Repository.ts` | `HttpUserRepository.ts` |
-| Page | `{Feature}{Action}Page.tsx` | `UsersListPage.tsx`, `UserDetailPage.tsx` |
-| i18n namespace | `{feature}.json` | `users.json` |
+| Hook | `use{Name}.ts` | `useDevice.ts`, `useDevices.ts` |
+| Entity | `{Entity}.ts` | `Device.ts` |
+| Repo interface | `{Entity}Repository.ts` | `DeviceRepository.ts` |
+| Repo impl | `Http{Entity}Repository.ts` | `HttpDeviceRepository.ts` |
+| Page | `{Feature}{Action}Page.tsx` | `DevicesListPage.tsx`, `DeviceDetailPage.tsx` |
+| i18n namespace | `{feature}.json` | `devices.json` |
 | Constants | `UPPER_SNAKE_CASE` | `TRANSITION_DEFAULT` |
 
 **Prefixes:** `use` (hooks), `on` (callback props: `onSubmit`, `onChange`), `handle` (internal handlers: `handleSubmit`), `is`/`has` (booleans: `isLoading`, `isDirty`, `hasErrors`).
@@ -572,8 +585,8 @@ Two layers, both live in this project:
 ### E2E (Playwright)
 
 - **Location:** `apps/web/e2e/`
-  - `tests/` — specs by module (`auth/`, `dashboard/`, `settings/`, ...)
-  - `pages/` — Page Objects (`LoginPage.ts`, `DashboardPage.ts`, `components/Sidebar.ts`, ...)
+  - `tests/` — specs by module (`auth/`, `devices/`, `messaging/`, ... — today a single flat `auth.spec.ts` ships as the template; new specs follow the per-module layout in `patterns/e2e.md`)
+  - `pages/` — Page Objects (`LoginPage.ts`, `DevicesListPage.ts`, `components/Sidebar.ts`, ... — create on first use)
   - `fixtures/` — `auth.fixture.ts` (auto-login), `api.fixture.ts` (data setup)
   - `global.setup.ts` — pre-test setup
 - **Selectors priority:** `getByRole` > `getByLabel` > `getByText` > `getByPlaceholder` > `getByTestId` (last resort). **Never** CSS class selectors; **never** XPath.
@@ -602,6 +615,6 @@ See `/test-e2e` skill for the full template.
 13. **i18n** — create `shared/i18n/locales/{pt-BR,en,es}/{feature}.json`; register namespace in `shared/i18n/index.ts`
 14. **Sidebar** — add nav item
 
-**Canonical reference:** the `settings` module (profile page) is the most complete existing example — copy its shape when adding a new CRUD module.
+**Canonical reference:** `modules/devices/` is the most complete module (list + detail + modals + action hooks) — copy its shape.
 
 **Cross-reference:** see `.claude/patterns/code-review-checklist.md` for what gets flagged in review.
