@@ -1,4 +1,7 @@
-import { parsePhoneNumberFromString, type CountryCode } from "libphonenumber-js/min";
+import {
+  parsePhoneNumberFromString,
+  type CountryCode,
+} from "libphonenumber-js/min";
 
 import type { Phone } from "@/shared/types/phone";
 
@@ -7,7 +10,7 @@ import type { Phone } from "@/shared/types/phone";
  * - `formatPhone(Phone)` — display formatter for the structured Phone value
  *   the API returns (libphonenumber, international layout).
  * - `maskPhoneBr(string)` / `unformatPhone` / `formatPhoneDisplay` — the
- *   Brazilian input mask used by `PhoneField` while the user types.
+ *   Brazilian input mask for phone inputs while the user types.
  */
 
 /**
@@ -21,7 +24,10 @@ import type { Phone } from "@/shared/types/phone";
  */
 export function formatPhone(phone: Phone | null | undefined): string {
   if (!phone) return "";
-  const parsed = parsePhoneNumberFromString(phone.e164, phone.countryCode as CountryCode);
+  const parsed = parsePhoneNumberFromString(
+    phone.e164,
+    phone.countryCode as CountryCode,
+  );
   return parsed?.formatInternational() ?? phone.e164;
 }
 
@@ -70,7 +76,9 @@ function formatBrazilianLocal(digits: string): string {
 
   // Parcial — aplica máscara progressiva
   if (digits.length > 6) {
-    return digits.replace(/^(\d{2})(\d)/, "($1) $2").replace(/(\d{4,5})(\d{1,4})$/, "$1-$2");
+    return digits
+      .replace(/^(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{4,5})(\d{1,4})$/, "$1-$2");
   }
 
   if (digits.length > 2) {

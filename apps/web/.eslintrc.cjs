@@ -41,6 +41,16 @@ module.exports = {
   // is the tracked follow-up (proposal § 7, migration step 4).
   overrides: [
     {
+      // Chakra UI v3 snippets — design-system primitives that intentionally
+      // co-locate hook + component + type exports (the upstream shape). Exempt
+      // from the HMR-oriented react-refresh rule; they are vendored building
+      // blocks, not feature components.
+      files: ['src/components/ui/**/*.{ts,tsx}'],
+      rules: {
+        'react-refresh/only-export-components': 'off',
+      },
+    },
+    {
       // domain is pure — no framework, no other layers.
       files: ['src/modules/*/domain/**/*.{ts,tsx}'],
       rules: {

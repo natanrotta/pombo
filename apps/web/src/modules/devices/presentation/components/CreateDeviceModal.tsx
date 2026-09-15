@@ -77,7 +77,9 @@ export function CreateDeviceModal({ isOpen, onClose }: CreateDeviceModalProps) {
             borderRadius="md"
             p={3}
           >
-            <Icon as={FiAlertTriangle} color="status.warning.fg" mt={0.5} />
+            <Icon color="status.warning.fg" mt={0.5}>
+              <FiAlertTriangle />
+            </Icon>
             <Text fontSize="sm" color="text.primary">
               {t("secret.warning")}
             </Text>
@@ -92,7 +94,7 @@ export function CreateDeviceModal({ isOpen, onClose }: CreateDeviceModalProps) {
                 aria-label={t("secret.label")}
                 value={created.webhookSecret}
                 onChange={() => undefined}
-                isReadOnly
+                readOnly
                 fontFamily="mono"
                 fontSize="sm"
               />

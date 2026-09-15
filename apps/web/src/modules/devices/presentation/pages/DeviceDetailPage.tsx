@@ -11,7 +11,12 @@ import {
 } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import { FiArrowLeft, FiLogOut, FiTrash2, FiZap } from "@/shared/components/icons";
+import {
+  FiArrowLeft,
+  FiLogOut,
+  FiTrash2,
+  FiZap,
+} from "@/shared/components/icons";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { SectionCard } from "@/shared/components/ui/SectionCard";
 import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
@@ -73,11 +78,10 @@ function DeviceDetailContent({ device }: { device: Device }) {
         title={device.name}
         description={t("detail.description")}
         actions={
-          <Button
-            variant="ghost"
-            leftIcon={<Icon as={FiArrowLeft} />}
-            onClick={() => navigate(ROUTE_PATHS.devices)}
-          >
+          <Button variant="ghost" onClick={() => navigate(ROUTE_PATHS.devices)}>
+            <Icon>
+              <FiArrowLeft />
+            </Icon>
             {t("detail.back")}
           </Button>
         }
@@ -90,8 +94,8 @@ function DeviceDetailContent({ device }: { device: Device }) {
           align={{ base: "stretch", md: "center" }}
           gap={4}
         >
-          <SimpleGrid columns={{ base: 1, sm: 3 }} spacing={5} flex="1">
-            <Stack spacing={1.5} align="flex-start">
+          <SimpleGrid columns={{ base: 1, sm: 3 }} gap={5} flex="1">
+            <Stack gap={1.5} align="flex-start">
               <Text fontSize="xs" color="text.secondary">
                 {t("detail.statusLabel")}
               </Text>
@@ -121,25 +125,25 @@ function DeviceDetailContent({ device }: { device: Device }) {
             {isConnected ? (
               <Button
                 variant="outline"
-                colorScheme="gray"
-                leftIcon={<Icon as={FiLogOut} />}
+                colorPalette="gray"
                 onClick={() => disconnectConfirm.requestConfirm(device.id)}
               >
+                <Icon>
+                  <FiLogOut />
+                </Icon>
                 {t("detail.disconnect")}
               </Button>
             ) : (
-              <Button
-                colorScheme="brand"
-                leftIcon={<Icon as={FiZap} />}
-                onClick={qrModal.onOpen}
-              >
+              <Button colorPalette="brand" onClick={qrModal.onOpen}>
+                <Icon>
+                  <FiZap />
+                </Icon>
                 {t("detail.connect")}
               </Button>
             )}
             <Button
               variant="outline"
-              colorScheme="red"
-              leftIcon={<Icon as={FiTrash2} />}
+              colorPalette="red"
               _hover={{
                 bg: "status.error.bg",
                 borderColor: "status.error.border",
@@ -147,6 +151,9 @@ function DeviceDetailContent({ device }: { device: Device }) {
               }}
               onClick={() => deleteConfirm.requestConfirm(device.id)}
             >
+              <Icon>
+                <FiTrash2 />
+              </Icon>
               {t("detail.delete")}
             </Button>
           </Flex>
@@ -156,7 +163,7 @@ function DeviceDetailContent({ device }: { device: Device }) {
       <DeviceWebhooksSection device={device} />
 
       <QrConnectModal
-        isOpen={qrModal.isOpen}
+        isOpen={qrModal.open}
         onClose={qrModal.onClose}
         deviceId={device.id}
       />

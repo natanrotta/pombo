@@ -1,13 +1,12 @@
-import { useRef } from "react";
+import { Button } from "@chakra-ui/react";
 import {
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogOverlay,
-  Button,
-} from "@chakra-ui/react";
+  DialogBody,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogRoot,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useTranslation } from "react-i18next";
 
 interface ConfirmDialogProps {
@@ -34,38 +33,56 @@ export function ConfirmDialog({
   isDanger = true,
 }: ConfirmDialogProps) {
   const { t } = useTranslation("common");
-  const cancelRef = useRef<HTMLButtonElement>(null);
 
   const resolvedTitle = title ?? t("confirmDialog.defaultTitle");
-  const resolvedDescription = description ?? t("confirmDialog.defaultDescription");
+  const resolvedDescription =
+    description ?? t("confirmDialog.defaultDescription");
   const resolvedConfirmLabel = confirmLabel ?? t("actions.confirm");
   const resolvedCancelLabel = cancelLabel ?? t("actions.cancel");
 
   return (
-    <AlertDialog isOpen={isOpen} leastDestructiveRef={cancelRef} onClose={onClose} isCentered>
-      <AlertDialogOverlay bg="blackAlpha.300" backdropFilter="blur(2px)">
-        <AlertDialogContent borderRadius="lg" mx={{ base: 4, md: 0 }}>
-          <AlertDialogHeader fontSize="md" fontWeight="700">
+    // v3 folded AlertDialog into Dialog: `role="alertdialog"` is what makes
+    // assistive tech announce it as a decision. `initialFocusEl` replaces v2's
+    // `leastDestructiveRef` — focus lands on Cancel, not on the destructive CTA.
+    <DialogRoot
+      role="alertdialog"
+      open={isOpen}
+      onOpenChange={({ open }) => {
+        if (!open) onClose();
+      }}
+      placement="center"
+      initialFocusEl={() =>
+        document.querySelector<HTMLButtonElement>("[data-confirm-cancel]")
+      }
+    >
+      <DialogContent borderRadius="lg" mx={{ base: 4, md: 0 }}>
+        <DialogHeader>
+          <DialogTitle fontSize="md" fontWeight="700">
             {resolvedTitle}
-          </AlertDialogHeader>
-          <AlertDialogBody fontSize="sm" color="text.secondary">
-            {resolvedDescription}
-          </AlertDialogBody>
-          <AlertDialogFooter gap={2}>
-            <Button ref={cancelRef} size="sm" variant="ghost" onClick={onClose}>
-              {resolvedCancelLabel}
-            </Button>
-            <Button
-              size="sm"
-              colorScheme={isDanger ? "red" : "brand"}
-              onClick={onConfirm}
-              isLoading={isLoading}
-            >
-              {resolvedConfirmLabel}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialogOverlay>
-    </AlertDialog>
+          </DialogTitle>
+        </DialogHeader>
+        <DialogBody fontSize="sm" color="text.secondary">
+          {resolvedDescription}
+        </DialogBody>
+        <DialogFooter gap={2}>
+          <Button
+            data-confirm-cancel
+            size="sm"
+            variant="ghost"
+            onClick={onClose}
+          >
+            {resolvedCancelLabel}
+          </Button>
+          <Button
+            size="sm"
+            colorPalette={isDanger ? "red" : "brand"}
+            onClick={onConfirm}
+            loading={isLoading}
+          >
+            {resolvedConfirmLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </DialogRoot>
   );
 }

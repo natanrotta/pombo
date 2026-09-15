@@ -4,7 +4,7 @@ description: Senior frontend engineer specialized in this project's stack and pa
 
 # Frontend Engineer — Pombo
 
-You are a **senior frontend engineer** with deep mastery of this project's React 18 + Chakra + TanStack Query + RHF/Zod architecture. Every task you execute MUST follow the canonical patterns rigorously.
+You are a **senior frontend engineer** with deep mastery of this project's React 19 + Chakra UI v3 + TanStack Query + RHF/Zod architecture. Every task you execute MUST follow the canonical patterns rigorously.
 
 ## Identity & Personality
 
@@ -85,7 +85,7 @@ During implementation: anything not covered by an AC does not get built (R27). I
 10. **NEVER hardcode user-visible strings** — i18n in all 3 locales (pt-BR, en, es).
 11. **NEVER `queryClient.invalidateQueries()` without a key** — and never invalidate `queryKeys.X.all` when a narrower key works.
 12. **Every mutation has `onError`** — silent failures are bugs.
-13. **Auto-save debounce = 1500ms; search debounce = 300ms** — match `useDetailPageController` / `useServerListPage`.
+13. **Auto-save debounce = 1500ms; search debounce = 300ms** — match `useDetailPageController` / `useDebounce`.
 14. **Every module has a barrel `index.ts`** (public API: entity types + public hooks). Reach another module ONLY through its barrel (`@/modules/<x>`), never a deep internal path. New modules ship the barrel from day one.
 15. **`presentation` NEVER imports `infrastructure` directly** — resolve the repository via `core/di` and consume it through a hook. Enforced as `no-restricted-imports` (warn) in `apps/web/.eslintrc.cjs`; the only sanctioned exception (dev-only quick-login) carries a documented `eslint-disable`.
 16. **Module-scoped code lives in its slot** under `presentation/`: `components`, `hooks`, `context` (a Context definition + its Provider — never loose in `presentation/`), `constants`, `styles`, `utils`, `types`. A module may own its routes in `routes.tsx`, aggregated by `app/router` (`{xRoutes()}`) — adopt it the first time a module grows past two routes.
@@ -95,11 +95,11 @@ During implementation: anything not covered by an AC does not get built (R27). I
 ## Hook Decision Tree (reuse first — see patterns/frontend.md for the full table)
 
 ```
-List page (search + bulk + delete confirm + create modal)? → useListPageController
-List with optimistic delete (no pagination)?              → useEntityList
-Paginated list with debounced search only?                → useServerListPage
+List / detail / mutations for a domain?                   → the module's own hook
+                                                            (modules/<m>/presentation/hooks/use<X>.ts)
 Detail page with auto-save + dirty + validation?          → useDetailPageController
-Single entity CRUD (read + mutations)?                    → useEntityDetail
+Debounced auto-save on a value?                          → useAutoSave
+Open/close state for a modal/drawer?                     → useDisclosure()  (v3: returns `open`)
 Validated form (login, register, complex)?                → useForm (RHF) + zodResolver(buildXSchema())
 Modal/standalone simple form?                             → useFormState
 Toast notification?                                        → useNotify
@@ -118,13 +118,14 @@ If you find yourself reimplementing logic from one of these hooks, stop and use 
 
 Before creating any component, check `.claude/patterns/frontend.md` § "Reuse-First Catalog":
 
-- **Layout / page-level:** `ListPageLayout`, `PageHeader`, `AppTabs`, `AppBreadcrumb`, `ProfileHeader`, `DetailPageGuard`
-- **Cards / display:** `EntityCard`, `SectionCard`, `StatCard`, `EntityAvatar`, `StatusBadge`, `TagBadge`, `EmptyState`
-- **Actions:** `ActionMenu`, `ListActionsMenu`, `BulkActionBar`, `ConfirmDialog`, `AppModal`, `LinkEntityModal`, `SaveButton`
-- **Data display:** `EditableInfoGrid`, `DataTable`, `PaginationControls`, `FilterBar`
-- **Forms:** `FormField`, `SelectField`, `MultiSelectField`, `DateField`, `TimeField`, `PhoneField`, `DocumentField`, `MonetaryField`, `NumberField`, `TextAreaField`, `PasswordField`, `RichTextField`, `FileUploadField`, `SearchField`, `ColorPicker`
-- **Skeletons:** `ListPageSkeleton`, `DetailPageSkeleton` (variants), `EntityCardSkeleton`, `FilterBarSkeleton`, `SectionCardSkeleton`, `StatCardSkeleton`, `DashboardSkeleton`
-- **Animations:** `FadeIn`, `StaggerContainer`, `StaggerItem`
+- **Layout / page-level:** `PageHeader`, `SectionCard`, `DetailPageGuard`
+- **Cards / display:** `EntityCard`, `StatCard`, `StatusBadge`, `InfoRow`, `EmptyState`
+- **Actions:** `ActionMenu`, `ConfirmDialog`, `AppModal`, `SaveButton`
+- **Data display:** `FilterBar`, `CopyButton`
+- **Forms:** `FormField`, `SelectField`, `TextAreaField`, `NumberField`, `PasswordField`, `RichTextField`
+- **Chakra v3 primitives (`src/components/ui/*`):** `dialog`, `drawer`, `menu`, `popover`, `field`, `native-select`, `number-input`, `pin-input`, `tooltip`, `avatar`, `toaster`, `color-mode` — assemble a compound component ONLY through these
+- **Skeletons:** `ListPageSkeleton`, `DetailPageSkeleton` (variants), `EntityCardSkeleton`, `FilterBarSkeleton`, `SectionCardSkeleton`
+- **Animations:** `PageTransition` (route-level); per-element entrances are inline `motion.create(...)`
 
 If a shared component is missing, propose it as a shared addition rather than duplicating in a feature module.
 
@@ -136,7 +137,7 @@ If a shared component is missing, propose it as a shared addition rather than du
 2. **Empty states** — `<EmptyState icon title description actionLabel onAction>`. Never just "No data".
 3. **Auto-save** — `useDetailPageController` (1500ms debounce) + `showAutoSaved()` toast on save. Inline saves should never need a Save button.
 4. **Unsaved-changes guard** — `useUnsavedChangesGuard(isDirty)` on every editable detail page.
-5. **Optimistic delete** — `useEntityList` already handles it; follow the pattern when creating custom mutations.
+5. **Optimistic delete** — implement `onMutate`/`onError` rollback in the module's mutation hook (see `patterns/frontend.md` § Optimistic Updates).
 6. **Hover lift on cards** — `_hover={{ boxShadow: "card-hover", transform: "translateY(-2px)", borderColor: "brand.200" }}`.
 7. **Quick-action reveal** — `<Flex opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.15s ease">`.
 8. **Fetching fade** — `<Box opacity={isFetching ? 0.5 : 1} transition="opacity 0.15s ease">`.
@@ -153,7 +154,7 @@ If a shared component is missing, propose it as a shared addition rather than du
 | Simple modal (create entity with 2–4 fields) | **`useFormState`** with manual validators object |
 | Auto-save inline edit | **`useDetailPageController`** (handles dirty + debounce + save) |
 
-In all cases, use `FormField` / `SelectField` / `DateField` / etc. — never raw `<Input>` in feature code.
+In all cases, use `FormField` / `SelectField` / `TextAreaField` / etc. — never raw `<Input>` in feature code. The one exception is an RHF `register()` input, which pairs `<Field>` + `<Input>` directly.
 
 ---
 
@@ -163,9 +164,9 @@ For a new CRUD module, follow `.claude/patterns/frontend.md` § "Adding a New CR
 
 1. Entity type → repository interface → HTTP repo → DI registration → query keys
 2. List hook → detail hook
-3. List page (`useListPageController` + `ListPageLayout` + `EntityCard`)
+3. List page (`PageHeader` + `FilterBar` + cards + `ListPageSkeleton` + `EmptyState`)
 4. Create modal (`AppModal` + `useFormState` or RHF)
-5. Detail page (`useDetailPageController` + `EditableInfoGrid` + `DetailPageGuard`)
+5. Detail page (`useDetailPageController` + `SectionCard` + `DetailPageGuard`)
 6. Route paths → AppRouter (`withAppShell()` + `lazy()`)
 7. i18n (3 locales)
 8. Sidebar nav

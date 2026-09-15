@@ -9,15 +9,16 @@ Every frontend skill (`/frontend`, `/fullstack`, `/ui-design`, `/code-review`, `
 ## Stack
 
 - **Bundler:** Vite
-- **Framework:** React 18 (functional + hooks, no class components)
+- **Framework:** React 19 (functional + hooks, no class components)
 - **Router:** React Router v6 (config-based, lazy + Suspense)
-- **UI:** Chakra UI 2.8 with custom theme + semantic tokens
+- **UI:** Chakra UI **v3** with a custom system + semantic tokens. The theme is composed in `app/theme/index.ts` via `createSystem(defaultConfig, defineConfig({...}))`; the **snippets** in `src/components/ui/*` (the upstream `chakra snippet` shape) are the ONLY place a v3 compound component (Dialog, Menu, Popover, Field, Drawer, NativeSelect, NumberInput, PinInput, Tooltip, Avatar, Toaster) is assembled — product components consume the snippet, never `Dialog.Root` directly.
+- **Color mode:** `next-themes` (class strategy) behind `components/ui/color-mode`. `useColorMode()` / `useColorModeValue()` come from there, never from `@chakra-ui/react`. Storage key: `pombo-color-mode`; `defaultTheme="system"`.
 - **State (server):** TanStack Query v5
 - **State (global UI):** React Context only (Auth, Sidebar) — **no Redux, no Zustand**. If a feature needs its own navigation/UI state (never server data — that lives in TanStack Query), use a small feature-scoped Context under `presentation/context/` and document why.
 - **Forms (validated):** react-hook-form + Zod (lazy schema builders for i18n)
 - **Forms (simple modals):** `useFormState` hook
 - **HTTP:** Axios with interceptors (session cookie ride-along, refresh, CSRF, language, envelope unwrap). If you ever need a streaming transport (SSE — e.g. live device/message events), Axios can't stream in the browser — use native `fetch` and re-attach `credentials: "include"` + the CSRF header (`getCsrfToken`) manually.
-- **Animations:** Framer Motion (`motion(Box)` pattern, organic easing)
+- **Animations:** Framer Motion 12 (`motion.create(Box)` — `motion(Component)` is deprecated; organic easing)
 - **i18n:** react-i18next (3 locales: pt-BR default, en, es). Only **pt-BR** (the fallback) is bundled in the entry chunk; en/es load on demand as one lazy chunk each (see `shared/i18n/index.ts` + `locales/{en,es}/index.ts`).
 - **Tests:** Vitest (co-located `*.spec.ts(x)` unit/component tests, `jsdom`) + Playwright (e2e in `apps/web/e2e/`)
 - **TypeScript:** strict, no `any` (use `unknown` and narrow)
@@ -30,23 +31,29 @@ Every frontend skill (`/frontend`, `/fullstack`, `/ui-design`, `/code-review`, `
 app/                              # App-level setup (one-time)
   router/AppRouter.tsx            # Lazy + Suspense + guards
   router/RoutePaths.ts            # All paths centralized — no string literals in components
-  theme/foundations/semantic-tokens.ts  # bg.*, text.*, border.*, status.* (with _dark variants)
-  theme/components/               # Chakra component overrides
-  providers/                      # AppProviders (QueryClient, Chakra, i18n, Auth)
+  theme/index.ts                  # createSystem(defaultConfig, config) -> `system` + COLOR_MODE_STORAGE_KEY
+  theme/foundations/semantic-tokens.ts  # bg.*, text.*, border.*, status.* ({ base, _dark } values)
+  theme/foundations/recipes.ts    # button / badge / input / textarea recipes + the shared `fieldBase`
+  providers/                      # AppProviders (Chakra v3 Provider + Toaster, QueryClient, Auth)
+
+components/ui/                    # Chakra v3 snippets — vendored primitives, not product code
+                                  #   provider · color-mode · toaster · dialog · drawer · menu
+                                  #   popover · field · native-select · number-input · pin-input
+                                  #   tooltip · avatar · close-button
 
 core/                             # Cross-cutting infrastructure
   di/repositories.ts              # Singleton repository registry
-  domain/CrudRepository.ts        # Base repository interface (extend in feature repos)
   http/httpClient.ts              # Axios + interceptors (refresh, envelope unwrap, CSRF, language)
   errors/AppError.ts              # message, code, statusCode, details
   query/queryClient.ts            # TanStack QueryClient config
   query/queryKeys.ts              # ALL query keys (factory pattern, hierarchical)
-  query/entityQueryKeys.ts        # Generic key types
+  query/staleTimes.ts             # STALE_TIMES / GC_TIMES tiers
+  query/useErrorHandler.ts        # handleError(error, fallback)
 
 modules/{feature}/                # Feature modules (one per domain — account, auth, devices, messaging, settings)
   domain/
     entities/{Entity}.ts          # Plain TS interface + Create/Update input types
-    repositories/{Entity}Repository.ts  # extends CrudRepository<T, TC, TU> [+ BulkDeletable]
+    repositories/{Entity}Repository.ts  # purpose-built contract for the domain
     services/                     # (optional) pure, reusable domain logic
   application/                    # (OPTIONAL, on demand) framework-agnostic orchestration
     use-case/                     #   headless use-cases when a hook outgrows itself
@@ -67,15 +74,14 @@ modules/{feature}/                # Feature modules (one per domain — account,
 
 shared/                           # Cross-module reuse
   components/
-    ui/                           # AppModal, EntityCard, ListPageLayout, EmptyState, ProfileHeader, ...
-    forms/                        # FormField, SelectField, DateField, RichTextField, PasswordField, ...
-    layout/                       # AppShell, Sidebar, Topbar
+    ui/                           # AppModal, EntityCard, EmptyState, PageHeader, SectionCard, ...
+    forms/                        # FormField, SelectField, TextAreaField, NumberField, PasswordField, RichTextField
+    layout/                       # AppShell, SidebarNav, MobileHeader, MobileBottomNav, AppVersion
     skeletons/                    # ListPageSkeleton, DetailPageSkeleton, ...
-    animations/                   # FadeIn, StaggerContainer, StaggerItem
-  hooks/                          # useEntityList, useEntityDetail, useListPageController,
-                                  #   useDetailPageController, useFormState, useAutoSave,
-                                  #   useNotify, useBulkSelection, useConfirm, useDebounce,
-                                  #   useUnsavedChangesGuard, useInfiniteListPage, useServerSearch
+    animations/                   # PageTransition
+  hooks/                          # useDetailPageController, useFormState, useAutoSave, useNotify,
+                                  #   useBulkSelection, useConfirm, useDebounce,
+                                  #   useUnsavedChangesGuard, useInfiniteScrollSentinel
   contexts/                       # SidebarContext (global UI state)
   i18n/locales/{pt-BR,en,es}/     # One JSON per namespace
   utils/                          # date, phone, document, mergeEdits, pagination
@@ -93,7 +99,7 @@ For "user opens device detail" (illustrative — mirrors `modules/devices`):
 
 1. `<Route path="/devices/:id" element={<DeviceDetailPage />} />` matches
 2. `<DeviceDetailPage />` mounts; `useParams()` reads `id`
-3. `useDeviceDetail(id)` is called — the module's canonical detail hook (`modules/devices/presentation/hooks/useDevices.ts`); for a CRUD entity it wraps `useEntityDetail({ id, queryKey: queryKeys.devices, repository: repositories.device })`
+3. `useDeviceDetail(id)` is called — the module's canonical detail hook (`modules/devices/presentation/hooks/useDevices.ts`); it owns the `useQuery` for `queryKeys.devices.detail(id)` and the mutations that write it
 4. TanStack Query checks cache for `queryKeys.devices.detail(id)`; if stale or missing → `queryFn` runs
 5. `queryFn` → `repositories.device.getById(id)` → `HttpDeviceRepository.getById(id)` → `httpClient.get("/devices/" + id)`
 6. Axios request interceptor: the session rides the httpOnly `pombo_at` cookie automatically (`withCredentials: true`) — JS never holds the JWT; the interceptor attaches `X-CSRF-Token` (from cookie) and `Accept-Language` (from localStorage). The only Bearer header still built by hand is the short-lived scoped `email:verify` token on the e-mail verification routes.
@@ -101,7 +107,7 @@ For "user opens device detail" (illustrative — mirrors `modules/devices`):
 8. Axios response interceptor unwraps: returns `data` directly (or throws `AppError` on `{ ok: false }` / network error)
 9. TanStack Query caches under `queryKeys.devices.detail(id)`; component re-renders with `entity` populated
 10. `<DetailPageGuard isLoading={isLoading} error={error} entity={entity}>` decides: skeleton / error / not-found / children
-11. On success → `ProfileHeader`, `EditableInfoGrid`, `AppTabs` render the content
+11. On success → `PageHeader`, `SectionCard` and `InfoRow` render the content
 12. On user edit → `useDetailPageController` updates local state, marks `isDirty=true`, debounces 1500ms → `useAutoSave` triggers `onSave(localData)` → `update.mutateAsync()` → repository PUT → on success: `setQueryData(detail(id), updated)` + `invalidateQueries(search())` + `showAutoSaved()`
 
 ---
@@ -134,17 +140,19 @@ export interface UpdateDeviceWebhooksInput { /* one nullable URL per event */ }
 
 ```typescript
 // modules/devices/domain/repositories/DeviceRepository.ts
-import type { CrudRepository } from "@/core/domain/CrudRepository";
-
-export interface DeviceRepository
-  extends CrudRepository<Device, CreateDeviceInput, UpdateDeviceWebhooksInput> {
+export interface DeviceRepository {
+  list(): Promise<Device[]>;
+  getById(id: string): Promise<Device | null>;
+  create(input: CreateDeviceInput): Promise<CreatedDevice>;
+  updateWebhooks(id: string, input: UpdateDeviceWebhooksInput): Promise<Device>;
+  delete(id: string): Promise<void>;
   getQr(id: string): Promise<DeviceQr>;
   connect(id: string): Promise<void>;
   disconnect(id: string): Promise<void>;
 }
 ```
 
-**Rules:** always extend `CrudRepository` (gives `list/listPaginated/getById/create/update/delete` for free); add `BulkDeletable` if `bulkDelete(ids)` exists; only add custom methods for actions/relations (`connect`, `getQr`, `linkX`, etc.).
+**Rules:** the interface states exactly what the domain needs — no generic CRUD base class. Pombo's domains are not uniform CRUD (`create` returns a one-time secret, `update` is webhook-only, pairing has `connect`/`getQr`), and a shared base would have to be widened until it said nothing. Name the methods after the domain action, not after the HTTP verb.
 
 ### HTTP Repository (Infrastructure)
 
@@ -203,30 +211,31 @@ devices: {
 
 | Need | Hook | Source |
 |------|------|--------|
-| Full list (no pagination) + optimistic delete | `useEntityList` | `shared/hooks/useEntityList.ts` |
-| Paginated list with debounced search | `useServerListPage` (via `useInfiniteListPage`) | `shared/hooks/useInfiniteListPage.ts` |
-| Full list page (search + bulk + delete confirm + create modal) | `useListPageController` | `shared/hooks/useListPageController.ts` |
-| Single entity CRUD | `useEntityDetail` | `shared/hooks/useEntityDetail.ts` |
+| List / detail / mutations for a domain | the module's own hook (`modules/<m>/presentation/hooks/use<X>.ts`) | e.g. `useDevicesList`, `useDeviceDetail` |
 | Detail page with auto-save (1500ms) + dirty + validation | `useDetailPageController` | `shared/hooks/useDetailPageController.ts` |
+| Debounced auto-save on a value | `useAutoSave` | `shared/hooks/useAutoSave.ts` |
 | Modal/standalone form (simple) | `useFormState` | `shared/hooks/useFormState.ts` |
 | Validated form (login, register, complex) | `useForm` (RHF) + `zodResolver(buildXSchema())` | direct |
-| Toast | `useNotify` (`showSuccess`, `showError`, `showInfo`, `showAutoSaved`) | `shared/hooks/useNotify.tsx` |
+| Toast | `useNotify` (`showSuccess`, `showError`, `showInfo`, `showWarning`, `showAutoSaved`) | `shared/hooks/useNotify.ts` |
 | Bulk selection state | `useBulkSelection` | `shared/hooks/useBulkSelection.ts` |
 | Confirm dialog state | `useConfirm` | `shared/hooks/useConfirm.ts` |
 | Unsaved-changes nav guard | `useUnsavedChangesGuard(isDirty)` | `shared/hooks/useUnsavedChangesGuard.ts` |
 | Debounce a value | `useDebounce(value, 300)` | `shared/hooks/useDebounce.ts` |
+| Infinite-scroll sentinel | `useInfiniteScrollSentinel` | `shared/hooks/useInfiniteScrollSentinel.ts` |
+| Open/close state for a modal or drawer | `useDisclosure()` from `@chakra-ui/react` — **v3 returns `open`, not `isOpen`** | direct |
 | Centralized error handling | `useErrorHandler()` → `handleError(error, fallback)` | `core/query/useErrorHandler.ts` |
+
+There is deliberately **no** generic `useEntityList` / `useEntityDetail` / `useListPageController` layer: no Pombo module was using it, and a shared CRUD controller only pays for itself once several modules genuinely share the same shape. Build the module hook directly on TanStack Query (see `useDevices.ts`); extract a shared hook the day a second module needs the same one.
 
 ```typescript
 // modules/devices/presentation/hooks/useDevices.ts (canonical — real exports: useDevicesList, useDeviceDetail,
 // useCreateDevice, useDeleteDevice, useConnectDevice, useDisconnectDevice, useDeviceQr, useDeviceGroups, useUpdateDeviceWebhooks)
 export function useDeviceDetail(id?: string) {
-  const base = useEntityDetail<Device, CreateDeviceInput, UpdateDeviceWebhooksInput>({
-    id, repo: repositories.device, keys: queryKeys.devices,
-    errorMessages: errorMessages.crud("device"),
+  return useQuery({
+    queryKey: queryKeys.devices.detail(id!),
+    queryFn: () => repositories.devices.getById(id!),
+    enabled: Boolean(id),
   });
-  // Add custom action queries/mutations here if needed (connect, disconnect, qr poll)
-  return base;
 }
 ```
 
@@ -237,14 +246,20 @@ Pages own queries, controllers, modal state, and orchestration. Sub-components a
 ```typescript
 export default function DevicesListPage() {
   const { t } = useTranslation("devices");
-  const ctrl = useListPageController({
-    queryKey: queryKeys.devices.list(),
-    fetchFn: (params) => repositories.device.listPaginated(params),
-    deleteFn: (id) => repositories.device.delete(id),
-    bulkDeleteFn: (ids) => repositories.device.bulkDelete(ids),
-    entityLabel: { singular: t("entity"), plural: t("entityPlural") },
-  });
-  return <ListPageLayout {...ctrl} renderCard={(item) => <EntityCard ... />} />;
+  const { data: devices = [], isLoading } = useDevicesList();
+  const deleteConfirm = useConfirm();
+
+  if (isLoading) return <ListPageSkeleton />;
+  if (devices.length === 0) return <EmptyState ... />;
+
+  return (
+    <>
+      <PageHeader title={t("list.title")} count={devices.length} primaryAction={...} />
+      <FilterBar searchValue={search} onSearchChange={setSearch} />
+      {devices.map((device) => <DeviceCard key={device.id} device={device} ... />)}
+      <ConfirmDialog isOpen={deleteConfirm.isOpen} ... />
+    </>
+  );
 }
 ```
 
@@ -319,11 +334,11 @@ const { formData, setField, errors, validate, reset } = useFormState(
 );
 ```
 
-**Form primitives (`shared/components/forms/`):** Always reuse `FormField`, `SelectField`, `DateField`, `MultiSelectField`, `PasswordField`, `RichTextField`, `DocumentField`, `PhoneField`, `MonetaryField`, `NumberField`, `TextAreaField`, `ColorPicker`, `FileUploadField`, `SearchField`, `TimeField` — **do not** wrap raw Chakra `<Input>` in feature code.
+**Form primitives (`shared/components/forms/`):** Always reuse `FormField`, `SelectField`, `TextAreaField`, `NumberField`, `PasswordField`, `RichTextField` — **do not** wrap raw Chakra `<Input>` in feature code. Each one composes the `Field` snippet (`components/ui/field`), so label/error/invalid wiring is identical everywhere. The one sanctioned exception is an RHF `register()` input, which needs a ref-spread and therefore uses `<Field>` + `<Input>` directly (see `SignInPage`).
 
 ### Modals
 
-- Controlled by parent state via `useDisclosure()` from Chakra
+- Controlled by parent state via `useDisclosure()` from Chakra — **v3 returns `open`**, so destructure `{ open: isOpen, onOpen, onClose }` to keep call sites reading `isOpen`
 - Wrap in `<AppModal isOpen onClose title primaryActionLabel onPrimaryAction isPrimaryLoading>` — gives standard footer (cancel + primary)
 - **No** global modal store; **no** URL sync for modals (modals are ephemeral, not bookmarkable)
 - Sticky headers on long modals; `size="md"` default, `"lg"` for forms with many fields
@@ -333,8 +348,8 @@ const { formData, setField, errors, validate, reset } = useFormState(
 | Surface | Use |
 |---------|-----|
 | Detail page | `<DetailPageGuard isLoading error entity skeletonVariant="profile" notFoundMessage>{children}</DetailPageGuard>` |
-| List page | `<ListPageLayout isEmpty emptyTitle emptyDescription emptyActionLabel onEmptyAction />` |
-| Section / card | `<SectionCardSkeleton />`, `<StatCardSkeleton />`, `<EntityCardSkeleton />` |
+| List page | `<ListPageSkeleton />` while loading, then the cards; `<EmptyState>` when the list is empty |
+| Section / card | `<SectionCardSkeleton />`, `<EntityCardSkeleton />` |
 | Manual empty | `<EmptyState icon title description actionLabel onAction />` |
 | Manual error | `useNotify().showError(error, fallback)` toast |
 | Render error | `<RouteErrorBoundary>` (per route via `withAppShell`); `<GlobalErrorBoundary>` (root) |
@@ -369,7 +384,7 @@ const { formData, setField, errors, validate, reset } = useFormState(
 
 ### Optimistic Updates
 
-`useEntityList` already implements optimistic delete:
+The module hook owns the optimistic path; the canonical shape is:
 
 ```typescript
 onMutate: async (deletedId) => {
@@ -387,26 +402,26 @@ Use this pattern only when the operation is fast and rollback is cheap; otherwis
 
 **Princípio:** o usuário só paga por dados que está prestes a ver.
 
-1. **Lazy mount via tab boundary.** Toda `<AppTabs>` é lazy por default (`isLazy lazyBehavior="keepMounted"`). Componentes dentro de um painel de aba SÓ disparam queries quando o usuário clica naquela aba pela primeira vez (mantém montado depois — não refetch ao retornar). Opt-out (`isLazy={false}`) só com motivo documentado.
+1. **Lazy mount por boundary.** Um painel/seção que só aparece depois de uma interação (aba, accordion, drawer) deve montar de forma preguiçosa — na v3 isso é `lazyMount` (+ `unmountOnExit` quando o estado não deve sobreviver ao fechamento). Componentes dentro desse boundary SÓ disparam queries quando o usuário chega lá. Opt-out só com motivo documentado. **Hoje o app não tem nenhuma `Tabs`** — quando a primeira voltar, ela nasce com `lazyMount`.
 
-2. **Section-scoped fetch (não kitchen-sink).** Cada section/aba é responsável pelo próprio fetch. NÃO chamar hooks de relação no parent e passar dados por prop — quebra o lazy boundary. Padrão correto: `<DeviceWebhooksSection deviceId={id} />` chama o hook que precisa internamente. Modais auxiliares (`LinkEntityModal`) também devem viver dentro da section que os usa.
+2. **Section-scoped fetch (não kitchen-sink).** Cada section/aba é responsável pelo próprio fetch. NÃO chamar hooks de relação no parent e passar dados por prop — quebra o lazy boundary. Padrão correto: `<DeviceWebhooksSection deviceId={id} />` chama o hook que precisa internamente. Modais auxiliares também devem viver dentro da section que os usa.
 
 3. **Hooks focados (não kitchen-sink).** Hook de feature deve encapsular UMA query principal + suas mutations relacionadas. Se um hook tem >2 `useQuery` distintos, está virando kitchen-sink — quebrar em hooks menores. Aceitar `{ enabled }` opcional para callers fora de tab que precisam suspender manualmente (ex: uma página chama `useDeviceDetail(id)` só pelo breadcrumb name).
 
-4. **Prefetch on hover.** Em list pages, usar `usePrefetchEntity({ repo, keys })` para retornar `prefetch(id)`. Passar para `<EntityCard onHover={() => prefetch(item.id)}>`. Pre-aquece o cache no hover/focus — sem custo se o user não clicar (TanStack Query gerencia gc/stale, segundo prefetch dentro do staleTime é no-op).
+4. **Prefetch on hover.** `<EntityCard>` expõe `onHover` para isso: ligue um `queryClient.prefetchQuery` do hook do módulo e passe `onHover={() => prefetch(item.id)}`. Pre-aquece o cache no hover/focus — sem custo se o user não clicar (TanStack Query gerencia gc/stale, segundo prefetch dentro do staleTime é no-op).
 
 5. **Stale tiers (`STALE_TIMES` em `core/query/staleTimes.ts`):**
    - `default: 60_000` — entidades transacionais (device, api token, perfil). Match com o `queryClient` default; passar é opcional.
    - `reference: 5*60_000` — reference data (lookups, enums, settings). Mudam raramente, evita refetch agressivo.
    - `volatile: 15_000` — dados muito dinâmicos (status de conexão, listas que dependem do socket ao vivo — ex.: grupos do device, `retry: false` + estado de erro próprio).
    - `subscription: 30_000` — polling de status (entre default e volatile). O poll de status de mensagem e o poll do QR usam `refetchInterval` próprio — e param (`return false`) em erro terminal.
-   Hooks compartilhados (`useEntityList`, etc.) aceitam `staleTime?: number` opcional para escolher o tier.
+   O hook do módulo escolhe o tier explicitamente via `staleTime`.
 
 6. **`gcTime` ≥ 3× `staleTime` (`GC_TIMES` em `staleTimes.ts`):** o `queryClient` default define `gcTime: 15min` enquanto o maior `staleTime` (`reference`) é `5min`. Por que importa: `gcTime` controla quando uma query INATIVA sai da memória. Se igualar ao `staleTime`, o cache é evictado no instante que vira stale — navegação away-and-back sempre refetcha. Use `GC_TIMES.x` quando um hook precisar sobrescrever ambos juntos. Anti-pattern `F-H23`.
 
-7. **`useInfiniteQuery` com filtros: `placeholderData: keepPreviousData`.** Hooks que constroem `useInfiniteQuery` direto (sem passar pelo `useInfiniteListPage`) DEVEM declarar `placeholderData: keepPreviousData` quando o `queryKey` inclui filtros/search — caso contrário o grid colapsa pra skeleton em cada keystroke. `useInfiniteListPage` já cobre — hooks custom precisam adicionar manualmente. Anti-pattern `F-H22`.
+7. **`useInfiniteQuery` com filtros: `placeholderData: keepPreviousData`.** Hooks que constroem `useInfiniteQuery` DEVEM declarar `placeholderData: keepPreviousData` quando o `queryKey` inclui filtros/search — caso contrário o grid colapsa pra skeleton em cada keystroke. Todo hook que monta `useInfiniteQuery` precisa declarar isso explicitamente. Anti-pattern `F-H22`.
 
-8. **Hooks de ações focados (mutations-only) para callers que não precisam da query.** Padrão definitivo: quando um caller só precisa de mutations (delete em ListPage, create em modal), consumir `useXActions()` / `useCreateX()` em vez de `useX({ enabled: false })`. Backbone compartilhado: `useEntityActions` e `useEntityCreate` em `shared/hooks/` — implementam mesma semântica de optimistic update + cross-key invalidation dos hooks com query. **Elimina observers fantasmas** (`entity.list` Fresh sem fetch, `entity.detail,null`) que poluíam o devtools com o pattern transicional `{ enabled: false }`. `F-M15`.
+8. **Hooks de ações focados (mutations-only) para callers que não precisam da query.** Quando um caller só precisa de mutations (delete em ListPage, create em modal), exporte um `useXActions()` / `useCreateX()` do próprio módulo em vez de chamar `useX({ enabled: false })`. **Elimina observers fantasmas** (`entity.list` Fresh sem fetch, `entity.detail,null`) que poluíam o devtools com o pattern transicional `{ enabled: false }`. Não existe backbone compartilhado em `shared/hooks/` para isso — cada módulo escreve o seu (ver § Hooks — Decision Tree). `F-M15`.
 
 9. **`queryKey` factory com params na assinatura.** Quando uma query depende de filtros/paginação, os params DEVEM fazer parte da assinatura do factory em `queryKeys.ts` (ver `messaging.messageStatus(id)`, `devices.qr(id)`). NUNCA estender o key inline via spread `[...queryKeys.X.Y(), params]` — quebra contrato. Anti-pattern `F-H21`.
 
@@ -417,11 +432,11 @@ Use this pattern only when the operation is fast and rollback is cheap; otherwis
 **Anti-pattern (não fazer):**
 - Hook que retorna `device + groups + qr + messages` (kitchen sink) — quebrar em hooks focados.
 - Parent page que chama várias queries de relação no mount junto com o `useDetail` — mover para dentro das sections/sub-componentes que efetivamente consomem.
-- `<AppTabs>` com `isLazy={false}` sem justificativa.
+- Painel/aba montando eagerly (sem `lazyMount`) sem justificativa.
 - `<EntityCard>` em list page sem `onHover` para prefetch (perde-se ganho gratuito de UX).
 - Mutation que invalida `queryKeys.X.all` quando dá pra ser cirúrgica (`.detail(id)`, `.list()`, `.groups(id)`) — `F-C6`.
 
-**Anchor codes:** `F-C6` (broad invalidation — Critical), `F-C20` (kitchen-sink hook — Critical), `F-H18` (eager AppTabs — High), `F-H19` (hook sem `enabled` opcional — High), `F-H20` (staleTime literal — High), `F-H21` (factory key extension — High), `F-H22` (placeholderData ausente em useInfiniteQuery — High), `F-H23` (gcTime ≤ staleTime — High), `F-H29` (query/mutation inline em componente — High), `F-H30` (resource key com N definições de query — High), `F-M13` (eager section fetch sem `enabled` — Medium), `F-M14` (prefetch sem staleTime matching — Medium), `F-M15` (ListPage duplica list+search — Medium).
+**Anchor codes:** `F-C6` (broad invalidation — Critical), `F-C20` (kitchen-sink hook — Critical), `F-H18` (painel lazy montado eagerly — High), `F-H19` (hook sem `enabled` opcional — High), `F-H20` (staleTime literal — High), `F-H21` (factory key extension — High), `F-H22` (placeholderData ausente em useInfiniteQuery — High), `F-H23` (gcTime ≤ staleTime — High), `F-H29` (query/mutation inline em componente — High), `F-H30` (resource key com N definições de query — High), `F-M13` (eager section fetch sem `enabled` — Medium), `F-M14` (prefetch sem staleTime matching — Medium), `F-M15` (ListPage duplica list+search — Medium).
 
 ### Auth
 
@@ -465,14 +480,21 @@ Use this pattern only when the operation is fast and rollback is cheap; otherwis
 | Status | `status.success.fg` | `green.600` → `green.300` |
 | Status | `status.error.fg` | `red.600` → `red.300` |
 
-Dark mode is automatic via `_dark` keys in the token definitions — **never** write color-mode conditionals (`useColorMode().colorMode === "dark" ? ... : ...`) in components.
+Dark mode is automatic via the `_dark` half of each token's value — **never** write color-mode conditionals (`useColorMode().colorMode === "dark" ? ... : ...`) in components.
+
+Tokens are authored in the v3 shape (`defineSemanticTokens`, nested, `{ value: { base, _dark } }`):
+
+```ts
+bg: { canvas: { value: { base: "#fafbfb", _dark: "#0b0f0e" } } },
+text: { link: { value: { base: "{colors.brand.700}", _dark: "{colors.brand.300}" } } },
+```
 
 ### Color Palettes
 
 | Palette | Usage |
 |---------|-------|
-| `brand` | Primary actions, links, focus rings (`colorScheme="brand"`) |
-| `accent` | Success states, secondary actions (`colorScheme="accent"`) |
+| `brand` | Primary actions, links, focus rings (`colorPalette="brand"` — v3 renamed `colorScheme`) |
+| `accent` | Success states, secondary actions (`colorPalette="accent"`) |
 | `neutral` | Text, borders, backgrounds (slate scale) |
 | `purple` | Warnings / attention states |
 
@@ -505,8 +527,15 @@ Global font-size: `sm` (14px). FormLabel: `xs`, `600`, `gray.600`. Section headi
 
 - `EASE_ORGANIC = [0.22, 1, 0.36, 1]`
 - `TRANSITION_FAST` (200ms), `TRANSITION_DEFAULT` (250ms), `TRANSITION_SLOW` (300ms)
-- Components: `<FadeIn delay y>`, `<StaggerContainer staggerDelay>`, `<StaggerItem>`
-- MotionBox pattern: `const MotionBox = motion(Box)`
+- Components: `<PageTransition>` (route-level). Per-element entrances are inline `motion.create(...)`.
+- MotionBox pattern: `const MotionBox = motion.create(Box)`. When the component also takes Chakra style props, re-type it — framer's `transition`/`style` and Chakra's collide:
+  ```ts
+  type MotionBoxProps = PropsWithChildren<
+    Omit<BoxProps, keyof MotionProps> &
+      Pick<MotionProps, "initial" | "animate" | "exit" | "transition" | "style">
+  >;
+  const MotionBox = motion.create(Box) as unknown as ComponentType<MotionBoxProps>;
+  ```
 - Card hover: `_hover={{ boxShadow: "card-hover", transform: "translateY(-2px)", borderColor: "brand.200" }}`
 - Quick actions reveal: `<Flex opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.15s ease">`
 - Fetching state: `<Box opacity={isFetching ? 0.5 : 1} transition="opacity 0.15s ease">`
@@ -519,39 +548,33 @@ Global font-size: `sm` (14px). FormLabel: `xs`, `600`, `gray.600`. Section headi
 
 | Component | Purpose |
 |-----------|---------|
-| `ListPageLayout` | Full list page (search + filter + grid + pagination + empty + delete confirm) |
-| `PageHeader` | The ONE page header (`title` + `description` + `count`/`countLabel` pill + `primaryAction` + `actions`) — use it on every list/detail/single-page module; never hand-roll a title row |
-| `AppTabs` | Tab nav within detail pages (optional URL sync) |
-| `AppBreadcrumb` | Breadcrumb nav |
-| `ProfileHeader` | Detail page header with avatar + meta + breadcrumbs |
-| `EntityCard` | List card (avatar + title + badges + meta + actions + quick actions on hover) |
+| `PageHeader` | The ONE page header (`title` + `description` + `count`/`countLabel` pill + `primaryAction` + `actions`) — use it on every list/detail page; never hand-roll a title row |
 | `SectionCard` | Content section (variants: `default` / `glass` / `sunken`) |
-| `StatCard` | Statistic display |
-| `EntityAvatar` | Avatar with initials fallback |
+| `StatCard` | Statistic display (label + value + hint + icon, tone-coloured) |
+| `EntityCard` | List card (avatar + title + badges + meta + actions + quick actions on hover) |
 | `StatusBadge` | Colored status badge |
-| `TagBadge` | Tag display |
+| `InfoRow` | Label/value row inside a section |
 | `EmptyState` | Empty state with icon + title + description + CTA |
 | `ActionMenu` | Dropdown 3-dot menu |
-| `BulkActionBar` | Floating bar during bulk select |
-| `ConfirmDialog` | Confirmation before destructive action |
-| `AppModal` | Standard modal wrapper |
-| `LinkEntityModal` | Generic link/search modal |
+| `ConfirmDialog` | Confirmation before a destructive action (`role="alertdialog"`) |
+| `AppModal` | Standard modal wrapper (header + body + cancel/primary footer) |
 | `SaveButton` | Save with isDirty/isSaving |
-| `EditableInfoGrid` | Grid of editable fields (text, date, select, textarea, readonly, document, phone) |
-| `DataTable` | Generic table |
-| `PaginationControls` | Pagination footer |
-| `FilterBar` | Search + tag filter + actions |
+| `CopyButton` | Copy-to-clipboard with a success toast |
+| `FilterBar` | Search input with clear affordance |
 | `DetailPageGuard` | Loading/error/not-found wrapper for detail pages |
+| `ColorModeToggle` | Light/dark switch |
+| `LanguageSelector` | Locale switch (pt-BR / en / es) |
+| `GlobalErrorBoundary` / `RouteErrorBoundary` | Root and per-route render-error boundaries |
 
 **Rule:** check this catalog **before** creating any new shared UI. Duplication is a defect.
 
 ### Skeletons (`shared/components/skeletons/`)
 
-`ListPageSkeleton`, `DetailPageSkeleton` (`profile` / `two-column` / `single`), `EntityCardSkeleton`, `FilterBarSkeleton`, `SectionCardSkeleton`, `StatCardSkeleton`, `DashboardSkeleton`.
+`ListPageSkeleton`, `DetailPageSkeleton` (`profile` / `two-column` / `single`), `EntityCardSkeleton`, `FilterBarSkeleton`, `SectionCardSkeleton`.
 
 ### Animations (`shared/components/animations/`)
 
-`FadeIn`, `StaggerContainer`, `StaggerItem`.
+`PageTransition`. Per-element entrance animation is done inline with `motion.create(Box)` + the `TRANSITION_*` constants.
 
 ---
 
@@ -601,19 +624,19 @@ See `/test-e2e` skill for the full template.
 ## Adding a New CRUD Module — Order of Operations
 
 1. **Entity type** — `modules/{feature}/domain/entities/{Entity}.ts`
-2. **Repository interface** — `modules/{feature}/domain/repositories/{Entity}Repository.ts` (extends `CrudRepository`)
+2. **Repository interface** — `modules/{feature}/domain/repositories/{Entity}Repository.ts` (name the methods after the domain action)
 3. **HTTP repository** — `modules/{feature}/infrastructure/repositories/Http{Entity}Repository.ts`
 4. **DI registration** — add to `core/di/repositories.ts`
 5. **Query keys** — add namespace to `core/query/queryKeys.ts`
-6. **List hook** — `modules/{feature}/presentation/hooks/use{Entities}.ts` (uses `useEntityList` or custom)
-7. **Detail hook** — `modules/{feature}/presentation/hooks/use{Entity}.ts` (uses `useEntityDetail` + custom relations)
-8. **List page** — `pages/{Feature}ListPage.tsx` (`useListPageController` + `ListPageLayout` + `EntityCard`)
-9. **Create modal** — `components/{Entity}CreateModal.tsx` (`AppModal` + `useFormState` or RHF)
-10. **Detail page** — `pages/{Feature}DetailPage.tsx` (`useDetailPageController` + `EditableInfoGrid` + `DetailPageGuard`)
-11. **Route paths** — add to `app/router/RoutePaths.ts`
-12. **Router** — add to `AppRouter.tsx` with `withAppShell()` + `lazy()`
-13. **i18n** — create `shared/i18n/locales/{pt-BR,en,es}/{feature}.json`; register namespace in `shared/i18n/index.ts`
-14. **Sidebar** — add nav item
+6. **Module hooks** — `modules/{feature}/presentation/hooks/use{Entities}.ts`: one `useQuery` per resource key plus its mutations. Every `useQuery`/`useMutation` lives here, never inline in a page (`F-H29`)
+7. **List page** — `pages/{Feature}ListPage.tsx` (`PageHeader` + `FilterBar` + cards + `ListPageSkeleton` + `EmptyState`)
+8. **Create modal** — `components/{Entity}CreateModal.tsx` (`AppModal` + `useFormState` or RHF)
+9. **Detail page** — `pages/{Feature}DetailPage.tsx` (`useDetailPageController` + `SectionCard` + `DetailPageGuard`)
+10. **Route paths** — add to `app/router/RoutePaths.ts`
+11. **Router** — add to `AppRouter.tsx` with `withAppShell()` + `lazy()`
+12. **i18n** — create `shared/i18n/locales/{pt-BR,en,es}/{feature}.json`; register namespace in `shared/i18n/index.ts`
+13. **Sidebar** — add nav item
+14. **Barrel** — `modules/{feature}/index.ts` exporting the entity types + public hooks + pages (MANDATORY)
 
 **Canonical reference:** `modules/devices/` is the most complete module (list + detail + modals + action hooks) — copy its shape.
 

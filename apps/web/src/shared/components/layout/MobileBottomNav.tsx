@@ -2,7 +2,12 @@ import { memo } from "react";
 import { Box, Flex, Icon, Text } from "@chakra-ui/react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { FiCode, FiSend, FiSmartphone, FiUser } from "@/shared/components/icons";
+import {
+  FiCode,
+  FiSend,
+  FiSmartphone,
+  FiUser,
+} from "@/shared/components/icons";
 import type { IconType } from "@/shared/components/icons";
 import { ROUTE_PATHS } from "@/app/router/RoutePaths";
 
@@ -69,9 +74,16 @@ const NavItem = memo(function NavItem({
           bg={isActive ? "bg.brand.subtle" : "transparent"}
           transition="background 0.2s ease"
         >
-          <Icon as={item.icon} boxSize={5} />
+          <Icon boxSize={5}>
+            <item.icon />
+          </Icon>
         </Flex>
-        <Text fontSize="2xs" fontWeight={isActive ? "700" : "500"} lineHeight="1" letterSpacing="0.01em">
+        <Text
+          fontSize="2xs"
+          fontWeight={isActive ? "700" : "500"}
+          lineHeight="1"
+          letterSpacing="0.01em"
+        >
           {t(item.labelKey)}
         </Text>
       </Flex>
@@ -102,7 +114,8 @@ export const MobileBottomNav = memo(function MobileBottomNav() {
         {bottomNavItems.map((item) => {
           const isActive =
             location.pathname === item.to ||
-            (item.matchPaths?.some((p) => location.pathname.startsWith(p)) ?? false);
+            (item.matchPaths?.some((p) => location.pathname.startsWith(p)) ??
+              false);
 
           return <NavItem key={item.to} item={item} isActive={isActive} />;
         })}

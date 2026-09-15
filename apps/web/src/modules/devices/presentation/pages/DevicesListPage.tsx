@@ -116,11 +116,10 @@ export function DevicesListPage() {
         title={t("list.title")}
         description={t("list.description")}
         actions={
-          <Button
-            colorScheme="brand"
-            leftIcon={<Icon as={FiPlus} />}
-            onClick={createModal.onOpen}
-          >
+          <Button colorPalette="brand" onClick={createModal.onOpen}>
+            <Icon>
+              <FiPlus />
+            </Icon>
             {t("list.add")}
           </Button>
         }
@@ -130,7 +129,7 @@ export function DevicesListPage() {
         <ListPageSkeleton />
       ) : (
         <Flex direction="column" gap={5}>
-          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+          <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
             <StatCard
               label={t("list.stats.total")}
               value={String(stats.total)}
@@ -168,12 +167,12 @@ export function DevicesListPage() {
                   searchPlaceholder={t("list.searchPlaceholder")}
                 />
               </Box>
-              <ButtonGroup size="sm" isAttached variant="outline">
+              <ButtonGroup size="sm" attached variant="outline">
                 {(["all", "connected", "disconnected"] as StatusFilter[]).map(
                   (value) => (
                     <Button
                       key={value}
-                      colorScheme={statusFilter === value ? "brand" : "gray"}
+                      colorPalette={statusFilter === value ? "brand" : "gray"}
                       variant={statusFilter === value ? "solid" : "outline"}
                       onClick={() => setStatusFilter(value)}
                     >
@@ -201,11 +200,8 @@ export function DevicesListPage() {
               size="sm"
             />
           ) : (
-            <Box
-              opacity={isFetching ? 0.6 : 1}
-              transition="opacity 0.15s ease"
-            >
-              <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={4}>
+            <Box opacity={isFetching ? 0.6 : 1} transition="opacity 0.15s ease">
+              <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} gap={4}>
                 {filtered.map((device) => (
                   <DeviceCard
                     key={device.id}
@@ -222,7 +218,7 @@ export function DevicesListPage() {
       )}
 
       <CreateDeviceModal
-        isOpen={createModal.isOpen}
+        isOpen={createModal.open}
         onClose={createModal.onClose}
       />
       <ConfirmDialog

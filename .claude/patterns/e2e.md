@@ -11,7 +11,7 @@ Authoritative source for Playwright end-to-end tests in this project. Specialist
 | Layer | Tool | Where |
 |---|---|---|
 | Runner | `@playwright/test` v1.58+ | `apps/web/playwright.config.ts` |
-| App under test | React 18 + Chakra UI 2.8 + React Router v6 + TanStack Query v5 | `apps/web/src/` |
+| App under test | React 19 + Chakra UI v3 + React Router v6 + TanStack Query v5 | `apps/web/src/` |
 | Web dev server | Vite on `:4000` (proxies `/api` → `:4444`) | `apps/web/vite.config.ts` |
 | API | Express + Prisma on `:4444` (real backend, no mocks) | `apps/api/src/main.ts` |
 | Database | Postgres seeded with the demo user (`demo@example.com` / `Demo1234!` — `e2e/fixtures/constants.ts` mirrors it) | `apps/api/prisma/seed.ts` |

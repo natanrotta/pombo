@@ -1,13 +1,44 @@
 import { memo } from "react";
-import { Button, Divider, Flex, Heading, Icon, Text, type StackProps } from "@chakra-ui/react";
-import { AnimatePresence, motion } from "framer-motion";
-import type { PropsWithChildren, ReactNode } from "react";
+import {
+  Button,
+  Separator,
+  Flex,
+  Heading,
+  Icon,
+  Text,
+  type FlexProps,
+  type StackProps,
+  type TextProps,
+} from "@chakra-ui/react";
+import {
+  AnimatePresence,
+  motion,
+  type MotionProps,
+  type Transition,
+} from "framer-motion";
+import type { ComponentType, PropsWithChildren, ReactNode } from "react";
 import { FiPlus } from "@/shared/components/icons";
 import type { IconType } from "@/shared/components/icons";
-import { TRANSITION_DEFAULT, TRANSITION_FAST } from "@/shared/constants/animation";
+import {
+  TRANSITION_DEFAULT,
+  TRANSITION_FAST,
+} from "@/shared/constants/animation";
 
-const MotionFlex = motion(Flex);
-const MotionText = motion(Text);
+// framer-motion 12's motion factory and Chakra v3's polymorphic props collide on
+// `transition` (a Chakra token union vs a framer object) and on the drag
+// handlers. Re-typing the wrapper as the Chakra props plus only the framer
+// animation props we actually use sidesteps both clashes without `any`.
+type MotionOf<P> = PropsWithChildren<
+  Omit<P, keyof MotionProps> &
+    Pick<MotionProps, "initial" | "animate" | "exit" | "transition">
+>;
+
+const MotionFlex = motion.create(Flex) as unknown as ComponentType<
+  MotionOf<FlexProps>
+>;
+const MotionText = motion.create(Text) as unknown as ComponentType<
+  MotionOf<TextProps>
+>;
 
 interface PageHeaderAction {
   label: string;
@@ -15,7 +46,7 @@ interface PageHeaderAction {
   icon?: IconType;
 }
 
-interface PageHeaderProps extends StackProps {
+interface PageHeaderProps extends Omit<StackProps, keyof MotionProps> {
   title: string;
   description?: string;
   count?: number;
@@ -43,7 +74,7 @@ function PageHeaderComponent({
       mb={5}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={TRANSITION_DEFAULT}
+      transition={TRANSITION_DEFAULT as Transition}
       {...stackProps}
     >
       <Flex
@@ -74,7 +105,7 @@ function PageHeaderComponent({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={TRANSITION_FAST}
+                  transition={TRANSITION_FAST as Transition}
                 >
                   {count} {countLabel}
                 </MotionText>
@@ -90,34 +121,51 @@ function PageHeaderComponent({
         </Flex>
 
         {hasActions && (
-          <Flex align="center" gap={2} flexShrink={0} w={{ base: "full", md: "auto" }}>
-            {primaryAction && (
-              <Button
-                size="xs"
-                colorScheme="brand"
-                leftIcon={<Icon as={primaryAction.icon ?? FiPlus} boxSize={3.5} />}
-                onClick={primaryAction.onClick}
-                borderRadius="md"
-                fontWeight="500"
-                fontSize={{ base: "sm", md: "xs" }}
-                h={{ base: "44px", md: "30px" }}
-                px={3}
-                flex={{ base: 1, md: "initial" }}
-                _active={{
-                  transform: "scale(0.98)",
-                }}
-                transition="all 0.15s ease"
-                data-testid="page-header-primary-action"
-              >
-                {primaryAction.label}
-              </Button>
-            )}
+          <Flex
+            align="center"
+            gap={2}
+            flexShrink={0}
+            w={{ base: "full", md: "auto" }}
+          >
+            {primaryAction && <PrimaryAction action={primaryAction} />}
             {actions}
           </Flex>
         )}
       </Flex>
-      <Divider borderColor="border.subtle" />
+      <Separator borderColor="border.subtle" />
     </MotionFlex>
+  );
+}
+
+/**
+ * Split out so the icon component (which may come from the caller as
+ * `action.icon`) can be bound to a capitalized local — JSX resolves a
+ * lowercase tag to an intrinsic element.
+ */
+function PrimaryAction({ action }: { action: PageHeaderAction }) {
+  const ActionIcon = action.icon ?? FiPlus;
+  return (
+    <Button
+      size="xs"
+      colorPalette="brand"
+      onClick={action.onClick}
+      borderRadius="md"
+      fontWeight="500"
+      fontSize={{ base: "sm", md: "xs" }}
+      h={{ base: "44px", md: "30px" }}
+      px={3}
+      flex={{ base: 1, md: "initial" }}
+      _active={{
+        transform: "scale(0.98)",
+      }}
+      transition="all 0.15s ease"
+      data-testid="page-header-primary-action"
+    >
+      <Icon boxSize={3.5}>
+        <ActionIcon />
+      </Icon>
+      {action.label}
+    </Button>
   );
 }
 

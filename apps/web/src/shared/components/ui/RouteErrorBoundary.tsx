@@ -40,7 +40,10 @@ export class RouteErrorBoundary extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.locationKey !== this.props.locationKey && this.state.hasError) {
+    if (
+      prevProps.locationKey !== this.props.locationKey &&
+      this.state.hasError
+    ) {
       this.setState({ hasError: false, error: null });
     }
   }
@@ -71,7 +74,9 @@ export class RouteErrorBoundary extends Component<Props, State> {
             maxW="md"
             w="full"
           >
-            <Icon as={FiAlertTriangle} boxSize={10} color="purple.500" mb={4} />
+            <Icon boxSize={10} color="purple.500" mb={4}>
+              <FiAlertTriangle />
+            </Icon>
             <Text fontSize="lg" fontWeight="600" color="text.primary" mb={2}>
               {i18n.t("common:errors.pageLoadError")}
             </Text>
@@ -79,15 +84,17 @@ export class RouteErrorBoundary extends Component<Props, State> {
               {i18n.t("common:errors.pageLoadDescription")}
             </Text>
             <Flex gap={3} justify="center">
-              <Button size="sm" variant="outline" onClick={() => window.history.back()}>
-                {i18n.t("common:actions.back")}
-              </Button>
               <Button
                 size="sm"
-                colorScheme="brand"
-                leftIcon={<Icon as={FiRefreshCw} />}
-                onClick={this.handleRetry}
+                variant="outline"
+                onClick={() => window.history.back()}
               >
+                {i18n.t("common:actions.back")}
+              </Button>
+              <Button size="sm" colorPalette="brand" onClick={this.handleRetry}>
+                <Icon>
+                  <FiRefreshCw />
+                </Icon>
                 {i18n.t("common:actions.retry")}
               </Button>
             </Flex>

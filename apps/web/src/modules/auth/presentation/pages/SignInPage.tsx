@@ -1,11 +1,8 @@
 import {
   Box,
   Button,
-  Divider,
+  Separator,
   Flex,
-  FormControl,
-  FormErrorMessage,
-  FormLabel,
   Heading,
   Icon,
   Image,
@@ -15,6 +12,7 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react";
+import { Field } from "@/components/ui/field";
 import { motion } from "framer-motion";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,7 +20,7 @@ import { useTranslation } from "react-i18next";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import { FiArrowRight } from "@/shared/components/icons";
 import { ROUTE_PATHS } from "@/app/router/RoutePaths";
-import { useAuth } from "@/modules/auth/presentation/hooks/useAuth";
+import { useAuth } from "@/modules/auth/presentation/context/useAuth";
 import { getPostAuthDestination } from "@/modules/auth/presentation/utils/postAuthDestination";
 import type { AuthUser } from "@/modules/auth/domain/entities/AuthUser";
 
@@ -46,12 +44,18 @@ import { PasswordField } from "@/shared/components/forms/PasswordField";
 import { GoogleSignInButton } from "@/modules/auth/presentation/components/GoogleSignInButton";
 import { LanguageSelector } from "@/shared/components/ui/LanguageSelector";
 import { ColorModeToggle } from "@/shared/components/ui/ColorModeToggle";
-import { buildSignInSchema, type SignInFormValues } from "@/modules/auth/domain/schemas";
-import { TRANSITION_PAGE_SWAP, TRANSITION_SLOW } from "@/shared/constants/animation";
+import {
+  buildSignInSchema,
+  type SignInFormValues,
+} from "@/modules/auth/domain/schemas";
+import {
+  TRANSITION_PAGE_SWAP,
+  TRANSITION_SLOW,
+} from "@/shared/constants/animation";
 import pomboIcon from "@assets/pombo-icon.svg";
 
-const MotionBox = motion(Box);
-const MotionImage = motion(Image);
+const MotionBox = motion.create(Box);
+const MotionImage = motion.create(Image);
 
 export function SignInPage() {
   const { t, i18n } = useTranslation("auth");
@@ -62,7 +66,8 @@ export function SignInPage() {
   const { signIn, signInWithGoogle, isSubmitting } = useAuth();
 
   // Slide horizontally on directional entry; fall back to y-fade for direct visits.
-  const fromRegister = (location.state as { from?: string } | null)?.from === "register";
+  const fromRegister =
+    (location.state as { from?: string } | null)?.from === "register";
 
   const {
     register,
@@ -79,8 +84,13 @@ export function SignInPage() {
     try {
       // Forward UI locale so brand-new accounts reaching here via Google
       // get user.language seeded correctly. Existing accounts ignore it.
-      const session = await signInWithGoogle({ credential, language: i18n.language });
-      navigate(resolveSignInRedirect(location.state, session.user), { replace: true });
+      const session = await signInWithGoogle({
+        credential,
+        language: i18n.language,
+      });
+      navigate(resolveSignInRedirect(location.state, session.user), {
+        replace: true,
+      });
     } catch {
       showError(undefined, t("signIn.googleError"));
     }
@@ -88,8 +98,13 @@ export function SignInPage() {
 
   const onSubmit = handleSubmit(async (values) => {
     try {
-      const session = await signIn({ email: values.email, password: values.password });
-      navigate(resolveSignInRedirect(location.state, session.user), { replace: true });
+      const session = await signIn({
+        email: values.email,
+        password: values.password,
+      });
+      navigate(resolveSignInRedirect(location.state, session.user), {
+        replace: true,
+      });
     } catch {
       showError(undefined, t("signIn.authError"));
     }
@@ -106,7 +121,7 @@ export function SignInPage() {
       minH={{ lg: "100vh" }}
       display={{ base: "none", lg: "flex" }}
     >
-      <Stack spacing={7} position="relative" maxW="440px" w="full">
+      <Stack gap={7} position="relative" maxW="440px" w="full">
         <MotionImage
           src={pomboIcon}
           alt={tc("platform.name")}
@@ -120,7 +135,7 @@ export function SignInPage() {
           transition={{ duration: 0.45, ease: "easeOut" }}
         />
 
-        <Stack spacing={3}>
+        <Stack gap={3}>
           <Text
             fontSize="xs"
             fontWeight="700"
@@ -149,7 +164,7 @@ export function SignInPage() {
 
   const mobileBrand = (
     <Stack
-      spacing={3}
+      gap={3}
       align="center"
       mb={6}
       display={{ base: "flex", lg: "none" }}
@@ -189,7 +204,7 @@ export function SignInPage() {
       transition={fromRegister ? TRANSITION_PAGE_SWAP : TRANSITION_SLOW}
       w="full"
     >
-      <Stack spacing={1.5} mb={7}>
+      <Stack gap={1.5} mb={7}>
         <Heading size="lg" letterSpacing="-0.01em">
           {t("signIn.title")}
         </Heading>
@@ -204,78 +219,80 @@ export function SignInPage() {
       />
 
       <Flex align="center" my={4}>
-        <Divider />
+        <Separator flex="1" />
         <Text px={3} color="text.secondary" fontSize="sm" whiteSpace="nowrap">
           {t("signIn.or")}
         </Text>
-        <Divider />
+        <Separator flex="1" />
       </Flex>
 
-      <Stack as="form" spacing={4} onSubmit={onSubmit} noValidate>
-        <FormControl isInvalid={Boolean(errors.email)}>
-          <FormLabel>{t("signIn.emailLabel")}</FormLabel>
-          {/* F-H6 exception: RHF register() needs a ref-spread input; FormField is controlled-only. */}
-          <Input
-            type="email"
-            placeholder={t("signIn.emailPlaceholder")}
-            autoComplete="email"
-            {...register("email")}
-          />
-          {errors.email ? <FormErrorMessage>{errors.email.message}</FormErrorMessage> : null}
-        </FormControl>
-
-        <Controller
-          control={control}
-          name="password"
-          render={({ field }) => (
-            <PasswordField
-              label={t("signIn.passwordLabel")}
-              value={field.value}
-              error={errors.password?.message}
-              onChange={field.onChange}
-              placeholder={t("signIn.passwordPlaceholder")}
-              autoComplete="current-password"
-            />
-          )}
-        />
-
-        <Flex justify="flex-end" mt={-1}>
-          <Link
-            as={RouterLink}
-            to={ROUTE_PATHS.forgotPassword}
-            color="text.brand"
-            fontSize="sm"
-            fontWeight="500"
+      <Stack asChild gap={4}>
+        <form onSubmit={onSubmit} noValidate>
+          <Field
+            invalid={Boolean(errors.email)}
+            label={t("signIn.emailLabel")}
+            errorText={errors.email?.message}
           >
-            {t("signIn.forgotPassword")}
-          </Link>
-        </Flex>
+            {/* F-H6 exception: RHF register() needs a ref-spread input; FormField is controlled-only. */}
+            <Input
+              type="email"
+              placeholder={t("signIn.emailPlaceholder")}
+              autoComplete="email"
+              {...register("email")}
+            />
+          </Field>
 
-        <Button
-          type="submit"
-          size="lg"
-          isLoading={isSubmitting}
-          loadingText={t("signIn.loading")}
-          mt={2}
-        >
-          {t("signIn.button")}
-        </Button>
+          <Controller
+            control={control}
+            name="password"
+            render={({ field }) => (
+              <PasswordField
+                label={t("signIn.passwordLabel")}
+                value={field.value}
+                error={errors.password?.message}
+                onChange={field.onChange}
+                placeholder={t("signIn.passwordPlaceholder")}
+                autoComplete="current-password"
+              />
+            )}
+          />
+
+          <Flex justify="flex-end" mt={-1}>
+            <Link asChild color="text.brand" fontSize="sm" fontWeight="500">
+              <RouterLink to={ROUTE_PATHS.forgotPassword}>
+                {t("signIn.forgotPassword")}
+              </RouterLink>
+            </Link>
+          </Flex>
+
+          <Button
+            type="submit"
+            size="lg"
+            loading={isSubmitting}
+            loadingText={t("signIn.loading")}
+            mt={2}
+          >
+            {t("signIn.button")}
+          </Button>
+        </form>
       </Stack>
 
       <Text color="text.secondary" fontSize="sm" mt={6} textAlign="center">
         {t("signIn.noAccount")}{" "}
         <Link
-          as={RouterLink}
-          to={ROUTE_PATHS.register}
-          state={{ from: "signIn" }}
+          asChild
           color="text.brand"
           fontWeight="600"
           display="inline-flex"
           alignItems="center"
           gap={1}
         >
-          {t("signIn.createAccount")}
-          <Icon as={FiArrowRight} aria-hidden boxSize={3.5} />
+          <RouterLink to={ROUTE_PATHS.register} state={{ from: "signIn" }}>
+            {t("signIn.createAccount")}
+            <Icon aria-hidden boxSize={3.5}>
+              <FiArrowRight />
+            </Icon>
+          </RouterLink>
         </Link>
       </Text>
     </MotionBox>
@@ -292,7 +309,7 @@ export function SignInPage() {
         w="780px"
         h="780px"
         borderRadius="full"
-        bgGradient="radial(circle, rgba(47, 128, 237, 0.22), transparent 70%)"
+        backgroundImage="radial-gradient(circle, rgba(47, 128, 237, 0.22), transparent 70%)"
         pointerEvents="none"
         zIndex={0}
       />
@@ -304,7 +321,7 @@ export function SignInPage() {
         w="720px"
         h="720px"
         borderRadius="full"
-        bgGradient="radial(circle, rgba(30, 178, 138, 0.20), transparent 70%)"
+        backgroundImage="radial-gradient(circle, rgba(30, 178, 138, 0.20), transparent 70%)"
         pointerEvents="none"
         zIndex={0}
       />
@@ -316,7 +333,7 @@ export function SignInPage() {
         w="520px"
         h="520px"
         borderRadius="full"
-        bgGradient="radial(circle, rgba(95, 161, 255, 0.12), transparent 70%)"
+        backgroundImage="radial-gradient(circle, rgba(95, 161, 255, 0.12), transparent 70%)"
         pointerEvents="none"
         zIndex={0}
       />

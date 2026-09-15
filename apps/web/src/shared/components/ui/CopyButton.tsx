@@ -4,7 +4,10 @@ import { useTranslation } from "react-i18next";
 import { FiCopy } from "@/shared/components/icons";
 import { useNotify } from "@/shared/hooks/useNotify";
 
-interface CopyButtonProps extends Omit<IconButtonProps, "aria-label" | "onClick"> {
+interface CopyButtonProps extends Omit<
+  IconButtonProps,
+  "aria-label" | "onClick"
+> {
   value: string;
   ariaLabel: string;
 }
@@ -31,11 +34,14 @@ export const CopyButton = memo(function CopyButton({
   return (
     <IconButton
       aria-label={ariaLabel}
-      icon={<Icon as={FiCopy} />}
       size="sm"
       variant="ghost"
       onClick={handleCopy}
       {...props}
-    />
+    >
+      <Icon>
+        <FiCopy />
+      </Icon>
+    </IconButton>
   );
 });

@@ -114,11 +114,13 @@ export function QrConnectModal({
       <Flex direction="column" align="center" gap={4} py={2}>
         {connectFailed ? (
           <Flex direction="column" align="center" gap={3} py={4}>
-            <Icon as={FiAlertTriangle} color="status.error.fg" boxSize={8} />
+            <Icon color="status.error.fg" boxSize={8}>
+              <FiAlertTriangle />
+            </Icon>
             <Text fontSize="sm" color="text.secondary" textAlign="center">
               {t("qr.error")}
             </Text>
-            <Button colorScheme="brand" onClick={startConnect}>
+            <Button colorPalette="brand" onClick={startConnect}>
               {t("qr.retry")}
             </Button>
           </Flex>

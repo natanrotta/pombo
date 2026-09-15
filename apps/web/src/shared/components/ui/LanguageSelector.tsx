@@ -1,4 +1,6 @@
-import { Box, Flex, Text, Tooltip, useToast } from "@chakra-ui/react";
+import { Box, Flex, Text } from "@chakra-ui/react";
+import { useNotify } from "@/shared/hooks/useNotify";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/modules/auth";
 import { useErrorHandler } from "@/core/query/useErrorHandler";
@@ -25,7 +27,7 @@ export function LanguageSelector() {
   const { i18n, t } = useTranslation("common");
   const { user, updateProfile } = useAuth();
   const { handleError } = useErrorHandler();
-  const toast = useToast();
+  const { showInfo } = useNotify();
   const currentLanguage = i18n.language;
 
   async function handleChange(language: string) {
@@ -34,32 +36,11 @@ export function LanguageSelector() {
     const selectedLabel = selected ? getNativeName(selected.value) : language;
     await i18n.changeLanguage(language);
 
-    toast({
-      position: "bottom",
-      duration: 2000,
-      render: () => (
-        <Flex
-          align="center"
-          gap={2.5}
-          px={4}
-          py={2.5}
-          bg="bg.surface"
-          borderRadius="full"
-          shadow="lg"
-          border="1px solid"
-          borderColor="border.subtle"
-          mx="auto"
-          w="fit-content"
-        >
-          <Text fontSize="lg" lineHeight="1">
-            {selected?.flag}
-          </Text>
-          <Text fontSize="sm" fontWeight="500" color="text.primary">
-            {t("language.changed", { language: selectedLabel })}
-          </Text>
-        </Flex>
-      ),
-    });
+    // One toast entry point app-wide: the flag rides the title so the cue
+    // survives without a bespoke renderer (v3 moved rendering to <Toaster/>).
+    showInfo(
+      `${selected?.flag ?? ""} ${t("language.changed", { language: selectedLabel })}`.trim(),
+    );
 
     if (user) {
       try {
@@ -86,15 +67,17 @@ export function LanguageSelector() {
         return (
           <Tooltip
             key={lang.value}
-            label={label}
-            fontSize="xs"
-            fontWeight="500"
-            bg="neutral.800"
-            color="#ffffff"
-            borderRadius="md"
-            px={2.5}
-            py={1}
-            hasArrow
+            content={label}
+            contentProps={{
+              fontSize: "xs",
+              fontWeight: "500",
+              bg: "neutral.800",
+              color: "white",
+              borderRadius: "md",
+              px: 2.5,
+              py: 1,
+            }}
+            showArrow
             openDelay={300}
           >
             <Flex
@@ -121,7 +104,12 @@ export function LanguageSelector() {
               </Text>
               {isActive && (
                 <Box overflow="hidden">
-                  <Text fontSize="xs" fontWeight="600" color="text.primary" whiteSpace="nowrap">
+                  <Text
+                    fontSize="xs"
+                    fontWeight="600"
+                    color="text.primary"
+                    whiteSpace="nowrap"
+                  >
                     {label}
                   </Text>
                 </Box>

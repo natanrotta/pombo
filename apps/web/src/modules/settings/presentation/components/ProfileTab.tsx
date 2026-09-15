@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Avatar, Box, Button, Flex, Grid, Icon, Spinner, Text } from "@chakra-ui/react";
+import { Box, Button, Flex, Grid, Icon, Spinner, Text } from "@chakra-ui/react";
+import { Avatar } from "@/components/ui/avatar";
 import { FiCamera, FiLock } from "@/shared/components/icons";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/shared/components/ui/SectionCard";
@@ -32,7 +33,8 @@ export function ProfileTab() {
   const { handleError } = useErrorHandler();
 
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [isRequestingPasswordReset, setIsRequestingPasswordReset] = useState(false);
+  const [isRequestingPasswordReset, setIsRequestingPasswordReset] =
+    useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -49,18 +51,24 @@ export function ProfileTab() {
         throw error;
       }
     },
-    [updateProfile, handleError, t]
+    [updateProfile, handleError, t],
   );
 
-  const { localData, isDirty, isSaving, handleFieldChange, handleManualSave, reset } =
-    useDetailPageController<LocalProfileData>({
-      onSave: handleSave,
-      delay: 1500,
-      flushOnUnmount: true,
-      validationSchema: {
-        name: (value) => (value.trim() === "" ? "name_empty" : null),
-      },
-    });
+  const {
+    localData,
+    isDirty,
+    isSaving,
+    handleFieldChange,
+    handleManualSave,
+    reset,
+  } = useDetailPageController<LocalProfileData>({
+    onSave: handleSave,
+    delay: 1500,
+    flushOnUnmount: true,
+    validationSchema: {
+      name: (value) => (value.trim() === "" ? "name_empty" : null),
+    },
+  });
   useUnsavedChangesGuard(isDirty);
 
   // Seed the controller from the persisted user exactly once.
@@ -110,7 +118,7 @@ export function ProfileTab() {
         }
       }
     },
-    [uploadAvatar, showSuccess, handleError, t]
+    [uploadAvatar, showSuccess, handleError, t],
   );
 
   return (
@@ -150,7 +158,9 @@ export function ProfileTab() {
               {isUploadingAvatar ? (
                 <Spinner size="sm" color="white" />
               ) : (
-                <Icon as={FiCamera} color="white" boxSize={5} />
+                <Icon color="white" boxSize={5}>
+                  <FiCamera />
+                </Icon>
               )}
             </Flex>
             <input
@@ -169,10 +179,15 @@ export function ProfileTab() {
             align={{ base: "center", md: "flex-start" }}
             textAlign={{ base: "center", md: "left" }}
           >
-            <Text fontSize="lg" fontWeight="700" color="text.primary" noOfLines={1}>
+            <Text
+              fontSize="lg"
+              fontWeight="700"
+              color="text.primary"
+              lineClamp={1}
+            >
               {user?.name}
             </Text>
-            <Text fontSize="sm" color="text.secondary" noOfLines={1}>
+            <Text fontSize="sm" color="text.secondary" lineClamp={1}>
               {user?.email}
             </Text>
           </Flex>
@@ -193,13 +208,15 @@ export function ProfileTab() {
           <Button
             size="sm"
             variant="outline"
-            colorScheme="brand"
-            leftIcon={<Icon as={FiLock} boxSize={3.5} />}
+            colorPalette="brand"
             onClick={handleRequestPasswordReset}
-            isLoading={isRequestingPasswordReset}
+            loading={isRequestingPasswordReset}
             loadingText={t("profile.security.sending")}
             alignSelf={{ base: "flex-start", md: "auto" }}
           >
+            <Icon boxSize={3.5}>
+              <FiLock />
+            </Icon>
             {t("profile.security.changePassword")}
           </Button>
         </Flex>
@@ -218,7 +235,11 @@ export function ProfileTab() {
       </SectionCard>
 
       <Flex justify="flex-end">
-        <SaveButton isDirty={isDirty} isSaving={isSaving} onClick={handleManualSave} />
+        <SaveButton
+          isDirty={isDirty}
+          isSaving={isSaving}
+          onClick={handleManualSave}
+        />
       </Flex>
     </Flex>
   );

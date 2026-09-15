@@ -33,7 +33,8 @@ function seed(webhooks: DeviceWebhooks): WebhooksForm {
   };
 }
 
-const isHttpUrl = (value: string): boolean => /^https?:\/\//i.test(value.trim());
+const isHttpUrl = (value: string): boolean =>
+  /^https?:\/\//i.test(value.trim());
 
 // Empty string clears the hook (→ null); otherwise send the trimmed URL.
 const toPayloadValue = (value: string): string | null =>
@@ -66,20 +67,27 @@ export function DeviceWebhooksSection({ device }: DeviceWebhooksSectionProps) {
     [updateWebhooks],
   );
 
-  const { localData, isDirty, isSaving, errors, handleFieldChange, handleManualSave, reset } =
-    useDetailPageController<WebhooksForm>({
-      onSave: handleSave,
-      delay: 1500,
-      flushOnUnmount: true,
-      autoSaveMessage: t("webhooks.saved"),
-      validationSchema: {
-        onConnect: (v) => (v === "" || isHttpUrl(v) ? null : "invalid_url"),
-        onDisconnect: (v) => (v === "" || isHttpUrl(v) ? null : "invalid_url"),
-        onReceive: (v) => (v === "" || isHttpUrl(v) ? null : "invalid_url"),
-        onMessageStatus: (v) => (v === "" || isHttpUrl(v) ? null : "invalid_url"),
-        onSend: (v) => (v === "" || isHttpUrl(v) ? null : "invalid_url"),
-      },
-    });
+  const {
+    localData,
+    isDirty,
+    isSaving,
+    errors,
+    handleFieldChange,
+    handleManualSave,
+    reset,
+  } = useDetailPageController<WebhooksForm>({
+    onSave: handleSave,
+    delay: 1500,
+    flushOnUnmount: true,
+    autoSaveMessage: t("webhooks.saved"),
+    validationSchema: {
+      onConnect: (v) => (v === "" || isHttpUrl(v) ? null : "invalid_url"),
+      onDisconnect: (v) => (v === "" || isHttpUrl(v) ? null : "invalid_url"),
+      onReceive: (v) => (v === "" || isHttpUrl(v) ? null : "invalid_url"),
+      onMessageStatus: (v) => (v === "" || isHttpUrl(v) ? null : "invalid_url"),
+      onSend: (v) => (v === "" || isHttpUrl(v) ? null : "invalid_url"),
+    },
+  });
   useUnsavedChangesGuard(isDirty);
 
   // Seed from the device exactly once (autosave owns the state afterwards).
@@ -99,7 +107,7 @@ export function DeviceWebhooksSection({ device }: DeviceWebhooksSectionProps) {
         {t("webhooks.description")}
       </Text>
 
-      <Stack spacing={4}>
+      <Stack gap={4}>
         {FIELDS.map((field) => (
           <FormField
             key={field}

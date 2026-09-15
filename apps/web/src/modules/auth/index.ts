@@ -5,7 +5,7 @@ export type {
   SignUpInput,
   GoogleSignInInput,
   UpdateProfileInput,
-} from "./domain/entities/AuthUser";
+} from "@/modules/auth/domain/entities/AuthUser";
 
-export { useAuth } from "./presentation/hooks/useAuth";
-export { getPostAuthDestination } from "./presentation/utils/postAuthDestination";
+export { useAuth } from "@/modules/auth/presentation/context/useAuth";
+export { getPostAuthDestination } from "@/modules/auth/presentation/utils/postAuthDestination";
