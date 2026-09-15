@@ -17,7 +17,7 @@ export const InfoRow = memo(function InfoRow({
   action,
 }: InfoRowProps) {
   return (
-    <Stack spacing={0.5}>
+    <Stack gap={0.5}>
       <Text fontSize="xs" color="text.secondary">
         {label}
       </Text>

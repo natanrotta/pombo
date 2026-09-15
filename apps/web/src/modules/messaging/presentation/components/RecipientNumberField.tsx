@@ -1,25 +1,28 @@
 import { memo, useMemo } from "react";
 import {
   Flex,
-  FormControl,
-  FormErrorMessage,
-  FormLabel,
   Icon,
   IconButton,
   Input,
-  Popover,
-  PopoverAnchor,
-  PopoverBody,
-  PopoverContent,
   Text,
   useDisclosure,
   type InputProps,
 } from "@chakra-ui/react";
+import { Field } from "@/components/ui/field";
+import {
+  PopoverAnchor,
+  PopoverBody,
+  PopoverContent,
+  PopoverRoot,
+} from "@/components/ui/popover";
 import { useTranslation } from "react-i18next";
 import { FiClock, FiX } from "@/shared/components/icons";
 import { formatPhoneDisplay, unformatPhone } from "@/shared/utils/phone";
 
-interface RecipientNumberFieldProps extends Omit<InputProps, "onChange" | "value"> {
+interface RecipientNumberFieldProps extends Omit<
+  InputProps,
+  "onChange" | "value"
+> {
   label?: string;
   error?: string;
   value: string;
@@ -51,7 +54,7 @@ function RecipientNumberFieldComponent({
   ...inputProps
 }: RecipientNumberFieldProps) {
   const { t } = useTranslation("sandbox");
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { open: isOpen, onOpen, onClose } = useDisclosure();
 
   const typedDigits = unformatPhone(value);
   const suggestions = useMemo(
@@ -59,7 +62,9 @@ function RecipientNumberFieldComponent({
       recents.filter((digits) =>
         // While typing, keep only recents that contain the typed digits (and
         // aren't already an exact match); empty input shows all recents.
-        typedDigits ? digits.includes(typedDigits) && digits !== typedDigits : true,
+        typedDigits
+          ? digits.includes(typedDigits) && digits !== typedDigits
+          : true,
       ),
     [recents, typedDigits],
   );
@@ -67,15 +72,16 @@ function RecipientNumberFieldComponent({
   const showSuggestions = isOpen && suggestions.length > 0;
 
   return (
-    <FormControl isInvalid={Boolean(error)}>
-      {label && <FormLabel>{label}</FormLabel>}
-      <Popover
-        isOpen={showSuggestions}
-        onClose={onClose}
-        placement="bottom-start"
-        matchWidth
+    <Field invalid={Boolean(error)} label={label} errorText={error}>
+      <PopoverRoot
+        open={showSuggestions}
+        onOpenChange={({ open }) => {
+          if (!open) onClose();
+        }}
+        positioning={{ placement: "bottom-start", sameWidth: true }}
         autoFocus={false}
-        isLazy
+        lazyMount
+        unmountOnExit
       >
         <PopoverAnchor>
           <Input
@@ -128,13 +134,14 @@ function RecipientNumberFieldComponent({
                     onClose();
                   }}
                 >
-                  <Icon as={FiClock} boxSize={3.5} color="text.muted" flexShrink={0} />
+                  <Icon boxSize={3.5} color="text.muted" flexShrink={0}>
+                    <FiClock />
+                  </Icon>
                   <Text fontSize="sm" color="text.primary" flex={1}>
                     {formatPhoneDisplay(digits)}
                   </Text>
                   <IconButton
                     aria-label={t("recent.remove")}
-                    icon={<Icon as={FiX} boxSize={3.5} />}
                     size="xs"
                     variant="ghost"
                     color="text.muted"
@@ -143,15 +150,18 @@ function RecipientNumberFieldComponent({
                       event.stopPropagation();
                       onRemoveRecent(digits);
                     }}
-                  />
+                  >
+                    <Icon boxSize={3.5}>
+                      <FiX />
+                    </Icon>
+                  </IconButton>
                 </Flex>
               ))}
             </Flex>
           </PopoverBody>
         </PopoverContent>
-      </Popover>
-      {error ? <FormErrorMessage>{error}</FormErrorMessage> : null}
-    </FormControl>
+      </PopoverRoot>
+    </Field>
   );
 }
 

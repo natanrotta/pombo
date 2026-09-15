@@ -1,20 +1,14 @@
+import { Box, Flex, Icon, IconButton, Image, Text } from "@chakra-ui/react";
+import { Avatar } from "@/components/ui/avatar";
 import {
-  Avatar,
-  Box,
-  Flex,
-  Icon,
-  IconButton,
-  Image,
-  Menu,
-  MenuButton,
-  MenuDivider,
+  MenuContent,
   MenuItem,
-  MenuList,
-  Portal,
-  Text,
-  Tooltip,
-  useColorMode,
-} from "@chakra-ui/react";
+  MenuRoot,
+  MenuSeparator,
+  MenuTrigger,
+} from "@/components/ui/menu";
+import { Tooltip } from "@/components/ui/tooltip";
+import { useColorMode } from "@/components/ui/color-mode";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -62,7 +56,12 @@ export function SidebarNav({ forceExpanded, onNavigate }: SidebarNavProps) {
       transition="padding 0.2s ease"
     >
       {/* Logo */}
-      <Flex align="center" gap={3} px={1} justify={isCollapsed ? "center" : "flex-start"}>
+      <Flex
+        align="center"
+        gap={3}
+        px={1}
+        justify={isCollapsed ? "center" : "flex-start"}
+      >
         <Image
           src={pomboIcon}
           alt={t("platform.name", "Pombo")}
@@ -104,13 +103,16 @@ export function SidebarNav({ forceExpanded, onNavigate }: SidebarNavProps) {
                 ? t("sidebar.expand", "Expandir menu")
                 : t("sidebar.collapse", "Recolher menu")
             }
-            icon={<Icon as={isCollapsed ? FiChevronsRight : FiChevronsLeft} />}
             size="xs"
             variant="ghost"
             color="text.muted"
             _hover={{ color: "text.primary", bg: "bg.hover" }}
             onClick={toggleSidebar}
-          />
+          >
+            <Icon>
+              {isCollapsed ? <FiChevronsRight /> : <FiChevronsLeft />}
+            </Icon>
+          </IconButton>
         </Flex>
       )}
 
@@ -121,7 +123,10 @@ export function SidebarNav({ forceExpanded, onNavigate }: SidebarNavProps) {
         flex={1}
         minH={0}
         overflowY="auto"
-        sx={{ scrollbarWidth: "none", "&::-webkit-scrollbar": { display: "none" } }}
+        css={{
+          scrollbarWidth: "none",
+          "&::-webkit-scrollbar": { display: "none" },
+        }}
       >
         {navigationSections.map((section, index) => (
           <Box key={index}>
@@ -145,11 +150,14 @@ export function SidebarNav({ forceExpanded, onNavigate }: SidebarNavProps) {
                       cursor="pointer"
                       _hover={{
                         bg: isActive ? "bg.brand.subtle" : "bg.hover",
-                        transform: isActive || isCollapsed ? "none" : "translateX(2px)",
+                        transform:
+                          isActive || isCollapsed ? "none" : "translateX(2px)",
                       }}
                       transition="all 0.18s cubic-bezier(0.22, 1, 0.36, 1)"
                     >
-                      <Icon as={ItemIcon} boxSize="18px" flexShrink={0} />
+                      <Icon boxSize="18px" flexShrink={0}>
+                        <ItemIcon />
+                      </Icon>
                       <Text
                         fontWeight={isActive ? "700" : "500"}
                         fontSize="sm"
@@ -166,7 +174,12 @@ export function SidebarNav({ forceExpanded, onNavigate }: SidebarNavProps) {
 
                   if (isCollapsed) {
                     return (
-                      <Tooltip label={t(item.labelKey)} placement="right" hasArrow openDelay={200}>
+                      <Tooltip
+                        content={t(item.labelKey)}
+                        positioning={{ placement: "right" }}
+                        showArrow
+                        openDelay={200}
+                      >
                         {navItem}
                       </Tooltip>
                     );
@@ -197,15 +210,15 @@ export function SidebarNav({ forceExpanded, onNavigate }: SidebarNavProps) {
           py={2}
           mx={isCollapsed ? 0 : -1}
         >
-          <Menu placement="top-start">
+          <MenuRoot positioning={{ placement: "top-start" }}>
             <Tooltip
-              label={isCollapsed ? user.name : ""}
-              placement="right"
-              hasArrow
-              isDisabled={!isCollapsed}
+              content={isCollapsed ? user.name : ""}
+              positioning={{ placement: "right" }}
+              showArrow
+              disabled={!isCollapsed}
             >
-              <MenuButton
-                as={Box}
+              <MenuTrigger
+                asChild
                 cursor="pointer"
                 borderRadius="lg"
                 _hover={{ bg: "bg.hover" }}
@@ -215,77 +228,99 @@ export function SidebarNav({ forceExpanded, onNavigate }: SidebarNavProps) {
                 px={isCollapsed ? 0 : 1}
                 py={1}
               >
-                <Flex align="center" gap={3} justify={isCollapsed ? "center" : "flex-start"}>
-                  <Avatar
-                    size="sm"
-                    name={user.name}
-                    src={user.avatarUrl || undefined}
-                    bg="brand.500"
-                    color="text.onBrand"
-                    fontSize="xs"
-                    fontWeight="700"
-                    flexShrink={0}
-                  />
-                  <Box
-                    flex={1}
-                    minW={0}
-                    opacity={isCollapsed ? 0 : 1}
-                    display={isCollapsed ? "none" : "block"}
-                    transition="opacity 0.15s ease"
+                <Box>
+                  <Flex
+                    align="center"
+                    gap={3}
+                    justify={isCollapsed ? "center" : "flex-start"}
                   >
-                    <Text
-                      fontSize="sm"
-                      fontWeight="600"
-                      color="text.primary"
-                      noOfLines={1}
-                      lineHeight="short"
-                      whiteSpace="nowrap"
-                    >
-                      {user.name}
-                    </Text>
-                    <Text
+                    <Avatar
+                      size="sm"
+                      name={user.name}
+                      src={user.avatarUrl || undefined}
+                      bg="brand.500"
+                      color="text.onBrand"
                       fontSize="xs"
-                      color="text.muted"
-                      noOfLines={1}
-                      lineHeight="short"
-                      whiteSpace="nowrap"
+                      fontWeight="700"
+                      flexShrink={0}
+                    />
+                    <Box
+                      flex={1}
+                      minW={0}
+                      opacity={isCollapsed ? 0 : 1}
+                      display={isCollapsed ? "none" : "block"}
+                      transition="opacity 0.15s ease"
                     >
-                      {user.email}
-                    </Text>
-                  </Box>
-                  {!isCollapsed && (
-                    <Icon as={FiChevronUp} boxSize={4} color="text.muted" flexShrink={0} aria-hidden />
-                  )}
-                </Flex>
-              </MenuButton>
+                      <Text
+                        fontSize="sm"
+                        fontWeight="600"
+                        color="text.primary"
+                        lineClamp={1}
+                        lineHeight="short"
+                        whiteSpace="nowrap"
+                      >
+                        {user.name}
+                      </Text>
+                      <Text
+                        fontSize="xs"
+                        color="text.muted"
+                        lineClamp={1}
+                        lineHeight="short"
+                        whiteSpace="nowrap"
+                      >
+                        {user.email}
+                      </Text>
+                    </Box>
+                    {!isCollapsed && (
+                      <Icon
+                        boxSize={4}
+                        color="text.muted"
+                        flexShrink={0}
+                        aria-hidden
+                      >
+                        <FiChevronUp />
+                      </Icon>
+                    )}
+                  </Flex>
+                </Box>
+              </MenuTrigger>
             </Tooltip>
-            <Portal>
-              <MenuList fontSize="sm">
-                <MenuItem
-                  icon={<Icon as={FiUser} boxSize={4} />}
-                  onClick={() => navigate(ROUTE_PATHS.profile)}
-                >
-                  {t("nav.profile")}
-                </MenuItem>
-                <MenuItem
-                  icon={<Icon as={isDark ? FiSun : FiMoon} boxSize={4} />}
-                  onClick={toggleColorMode}
-                  closeOnSelect={false}
-                >
-                  {isDark ? t("theme.switchToLight") : t("theme.switchToDark")}
-                </MenuItem>
-                <MenuDivider />
-                {/* Icon rendered as a child (not the `icon` prop) so the row's
-                 *  children are direct flex items — lets <AppVersion ml="auto">
-                 *  push the version to the far right. */}
-                <MenuItem color="status.error.fg" onClick={signOut} isDisabled={isSubmitting}>
-                  <Icon as={FiLogOut} boxSize={4} me={3} aria-hidden />
-                  {t("actions.signOut")}
-                  <AppVersion ml="auto" pl={3} />
-                </MenuItem>
-              </MenuList>
-            </Portal>
-          </Menu>
+            <MenuContent fontSize="sm">
+              <MenuItem
+                value="profile"
+                onClick={() => navigate(ROUTE_PATHS.profile)}
+              >
+                <Icon boxSize={4}>
+                  <FiUser />
+                </Icon>
+                {t("nav.profile")}
+              </MenuItem>
+              <MenuItem
+                value="color-mode"
+                onClick={toggleColorMode}
+                closeOnSelect={false}
+              >
+                <Icon boxSize={4}>{isDark ? <FiSun /> : <FiMoon />}</Icon>
+                {isDark ? t("theme.switchToLight") : t("theme.switchToDark")}
+              </MenuItem>
+              <MenuSeparator />
+              {/* Icon rendered as a child (not the `icon` prop) so the row's
+               *  children are direct flex items — lets <AppVersion ml="auto">
+               *  push the version to the far right. */}
+              <MenuItem
+                value="sign-out"
+                color="status.error.fg"
+                onClick={signOut}
+                disabled={isSubmitting}
+              >
+                <Icon boxSize={4} me={3} aria-hidden>
+                  <FiLogOut />
+                </Icon>
+                {t("actions.signOut")}
+                <AppVersion ml="auto" pl={3} />
+              </MenuItem>
+            </MenuContent>
+          </MenuRoot>
         </Flex>
       )}
     </Flex>

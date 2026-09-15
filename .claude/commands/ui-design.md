@@ -44,21 +44,16 @@ Before suggesting any component, consult what already exists:
 |-----------|-------|
 | `EntityCard` | Entity card in lists (with avatar, badges, actions) |
 | `PageHeader` | Page header with title, description, actions |
-| `DataTable` | Paginated table with sort and selection |
-| `EditableInfoGrid` | Inline-editable information grid |
 | `StatCard` | Metric/statistic card |
 | `FilterBar` | Filter bar with chips |
 | `EmptyState` | Empty state with illustration and CTA |
 | `ConfirmDialog` | Confirmation dialog with destructive action |
-| `AppTabs` | Tabs with counters and badges |
-| `ProfileHeader` | Profile header with avatar and actions |
 
 ### Forms (`shared/components/forms/`)
 | Component | Usage |
 |-----------|-------|
 | `FormField` | Text input with label and error |
 | `SelectField` | Select with options |
-| `DateField` | Date picker |
 | `PhoneField` | Phone input with mask |
 | `DocumentField` | CPF/CNPJ input with mask |
 | `MonetaryField` | Formatted monetary input |
@@ -68,7 +63,6 @@ Before suggesting any component, consult what already exists:
 | Component | Usage |
 |-----------|-------|
 | `AppShell` | Main layout (sidebar + content) |
-| `ListPageLayout` | Standard list page layout |
 | `Sidebar` | Side navigation |
 | `Topbar` | Top bar |
 
@@ -172,7 +166,7 @@ Present suggestions in this format:
 Follow this order:
 
 1. **Information Architecture** — What information appears? In what priority order?
-2. **Layout Structure** — Which shared layout to use? (`ListPageLayout`, `AppShell`, etc.)
+2. **Layout Structure** — Which shared pieces to use? (`AppShell`, `PageHeader`, `SectionCard`, etc.)
 3. **Component Mapping** — Which shared component for each information block?
 4. **States** — Loading (skeleton), Empty (EmptyState), Error (message + retry), Success
 5. **Interactions** — Hover, click, drag, swipe, keyboard shortcuts

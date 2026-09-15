@@ -4,7 +4,7 @@ import type { SVGProps } from "react";
  * Brand / fill marks with no Lucide equivalent, inlined so the app doesn't
  * carry the whole `react-icons` package for two glyphs. Same render contract
  * as react-icons: 1em box, `currentColor` fill, props spread onto the svg —
- * works with `<Icon as={...}>`, `icon={<... />}` and `<Box as={...}>` alike.
+ * works as an `<Icon>` child and as a standalone `<Foo />` element alike.
  */
 
 /** WhatsApp brand mark (Font Awesome `faWhatsapp` path, CC BY 4.0). */

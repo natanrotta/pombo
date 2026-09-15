@@ -1,14 +1,13 @@
+import { Button, Flex } from "@chakra-ui/react";
 import {
-  Button,
-  Flex,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
-} from "@chakra-ui/react";
+  DialogBody,
+  DialogCloseTrigger,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogRoot,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { PropsWithChildren, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -16,7 +15,10 @@ interface AppModalProps extends PropsWithChildren {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  size?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
+  /** v3 dialog sizes. The v2 union also listed "2xl"/"3xl", which v3 has no
+   *  recipe for — no call site passed either, so they are dropped rather than
+   *  kept as props that silently render at the default size. */
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | "cover" | "full";
   borderRadius?: string;
   primaryActionLabel?: string;
   onPrimaryAction?: () => void;
@@ -60,35 +62,49 @@ export function AppModal({
   const { t } = useTranslation("common");
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size={size} scrollBehavior={scrollBehavior} isCentered>
-      <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(2px)" />
-      <ModalContent borderRadius={borderRadius} mx={{ base: 3, md: 0 }}>
-        <ModalHeader fontSize={{ base: "md", md: "lg" }}>{title}</ModalHeader>
-        <ModalCloseButton />
-        <ModalBody>{children}</ModalBody>
-        <ModalFooter flexDirection={{ base: "column-reverse", sm: "row" }} gap={2}>
+    // `onOpenChange` fires for every dismissal route (X, overlay, Esc); routing
+    // only the close transition to `onClose` keeps the v2 contract exactly.
+    <DialogRoot
+      open={isOpen}
+      onOpenChange={({ open }) => {
+        if (!open) onClose();
+      }}
+      size={size}
+      scrollBehavior={scrollBehavior}
+      placement="center"
+    >
+      <DialogContent borderRadius={borderRadius} mx={{ base: 3, md: 0 }}>
+        <DialogHeader>
+          <DialogTitle fontSize={{ base: "md", md: "lg" }}>{title}</DialogTitle>
+        </DialogHeader>
+        <DialogCloseTrigger aria-label={t("actions.close")} />
+        <DialogBody>{children}</DialogBody>
+        <DialogFooter
+          flexDirection={{ base: "column-reverse", sm: "row" }}
+          gap={2}
+        >
           {footerLeft && <Flex mr="auto">{footerLeft}</Flex>}
           <Button
             variant="ghost"
             onClick={onCancelAction ?? onClose}
-            isLoading={isCancelLoading}
+            loading={isCancelLoading}
             w={{ base: "full", sm: "auto" }}
           >
             {cancelActionLabel ?? t("actions.cancel")}
           </Button>
           {primaryActionLabel && onPrimaryAction ? (
             <Button
-              colorScheme={primaryColorScheme}
+              colorPalette={primaryColorScheme}
               onClick={onPrimaryAction}
-              isLoading={isPrimaryLoading}
-              isDisabled={isPrimaryDisabled}
+              loading={isPrimaryLoading}
+              disabled={isPrimaryDisabled}
               w={{ base: "full", sm: "auto" }}
             >
               {primaryActionLabel}
             </Button>
           ) : null}
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </DialogRoot>
   );
 }

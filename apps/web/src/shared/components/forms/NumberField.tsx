@@ -1,40 +1,43 @@
 import { memo } from "react";
+import { Field } from "@/components/ui/field";
 import {
-  FormControl,
-  FormErrorMessage,
-  FormLabel,
-  NumberDecrementStepper,
-  NumberIncrementStepper,
-  NumberInput,
   NumberInputField,
-  NumberInputStepper,
+  NumberInputRoot,
   type NumberInputProps,
-} from "@chakra-ui/react";
+} from "@/components/ui/number-input";
 
-interface NumberFieldProps extends Omit<NumberInputProps, "onChange" | "value"> {
+interface NumberFieldProps extends Omit<
+  NumberInputProps,
+  "onChange" | "onValueChange" | "value"
+> {
   label?: string;
   value: number;
   error?: string;
   onChange: (value: number) => void;
 }
 
-function NumberFieldComponent({ label, value, error, onChange, ...props }: NumberFieldProps) {
+function NumberFieldComponent({
+  label,
+  value,
+  error,
+  onChange,
+  ...props
+}: NumberFieldProps) {
   return (
-    <FormControl isInvalid={Boolean(error)}>
-      {label && <FormLabel>{label}</FormLabel>}
-      <NumberInput
-        value={value}
-        onChange={(_, valueAsNumber) => onChange(Number.isNaN(valueAsNumber) ? 0 : valueAsNumber)}
+    <Field invalid={Boolean(error)} label={label} errorText={error}>
+      {/* v3 keeps the committed value as a string and reports both forms on
+          change; the public `number` contract is preserved by converting at the
+          boundary. An empty/partial entry yields NaN — coerced to 0, as before. */}
+      <NumberInputRoot
+        value={String(value)}
+        onValueChange={({ valueAsNumber }) =>
+          onChange(Number.isNaN(valueAsNumber) ? 0 : valueAsNumber)
+        }
         {...props}
       >
         <NumberInputField />
-        <NumberInputStepper>
-          <NumberIncrementStepper />
-          <NumberDecrementStepper />
-        </NumberInputStepper>
-      </NumberInput>
-      {error ? <FormErrorMessage>{error}</FormErrorMessage> : null}
-    </FormControl>
+      </NumberInputRoot>
+    </Field>
   );
 }
 

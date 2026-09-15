@@ -1,17 +1,12 @@
 import { memo } from "react";
-import { Box, Flex, Icon, Stat, StatHelpText, StatLabel, StatNumber, Text } from "@chakra-ui/react";
+import { Box, Flex, Icon, Stat, Text } from "@chakra-ui/react";
 import type { IconType } from "@/shared/components/icons";
 import { SectionCard } from "@/shared/components/ui/SectionCard";
 
 /** Accent palette for the icon chip + value. `brand` is the default; the
  *  others pull from the shared semantic status tokens (never raw hex). */
 export type StatCardTone =
-  | "brand"
-  | "success"
-  | "info"
-  | "neutral"
-  | "error"
-  | "blue";
+  "brand" | "success" | "info" | "neutral" | "error" | "blue";
 
 interface StatCardProps {
   label: string;
@@ -61,7 +56,7 @@ export const StatCard = memo(function StatCard({
   label,
   value,
   hint,
-  icon,
+  icon: IconComponent,
   trend = "neutral",
   tone = "brand",
 }: StatCardProps) {
@@ -69,19 +64,23 @@ export const StatCard = memo(function StatCard({
   return (
     <SectionCard>
       <Flex justify="space-between" align="flex-start">
-        <Stat>
-          <StatLabel color="text.secondary" fontWeight="500">
+        <Stat.Root>
+          <Stat.Label color="text.secondary" fontWeight="500">
             {label}
-          </StatLabel>
-          <StatNumber mt={2} fontSize={{ base: "2xl", md: "3xl" }} color={accent.fg}>
+          </Stat.Label>
+          <Stat.ValueText
+            mt={2}
+            fontSize={{ base: "2xl", md: "3xl" }}
+            color={accent.fg}
+          >
             {value}
-          </StatNumber>
-          <StatHelpText mb={0} mt={2}>
+          </Stat.ValueText>
+          <Stat.HelpText mb={0} mt={2}>
             <Text color={trendColors[trend]} fontWeight="600" as="span">
               {hint}
             </Text>
-          </StatHelpText>
-        </Stat>
+          </Stat.HelpText>
+        </Stat.Root>
 
         <Box
           p={2.5}
@@ -91,7 +90,9 @@ export const StatCard = memo(function StatCard({
           borderWidth="1px"
           borderColor={accent.border}
         >
-          <Icon as={icon} boxSize={5} />
+          <Icon boxSize={5}>
+            <IconComponent />
+          </Icon>
         </Box>
       </Flex>
     </SectionCard>

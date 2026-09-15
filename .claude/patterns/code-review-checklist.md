@@ -73,7 +73,7 @@ For full architectural context, see `.claude/patterns/backend.md` and `.claude/p
 | B-M7 | Tests assert on entity (`.id`) instead of `expect.objectContaining({ ... })` for partial match | Use `expect.objectContaining` for resilience |
 | B-M8 | New entity created without a factory (`makeXxx`) | Add factory in `modules/<domain>/test/`; reuse across tests |
 | B-M9 | New repository created without a `mockXxxRepository()` | Add in `src/test/mocks/repositories.mock.ts` |
-| B-M10 | `LinkEntityModal` / generic shared utility duplicated for new entity | Reuse the existing one |
+| B-M10 | A generic shared utility duplicated for a new entity | Reuse the existing one |
 | B-M11 | Hard-coded magic string used as queue name / job name | Add to `shared/constant/queue-jobs.ts` |
 
 ### Low / Nitpick
@@ -104,6 +104,7 @@ For full architectural context, see `.claude/patterns/backend.md` and `.claude/p
 | F-C8 | **User-visible string not in i18n** | Untranslated; breaks pt-BR/en/es flow |
 | F-C9 | **Hardcoded route string** (`navigate("/devices/" + id)`) instead of `ROUTE_PATHS.deviceDetail.replace(":id", id)` | Refactor-hostile |
 | F-C20 | **Kitchen-sink hook** — hook em `modules/*/presentation/hooks/` com >2 `useQuery` distintos | Quebra em hooks focados (uma query principal + mutations). Quebra o lazy boundary do tab e força fetch de dados não consumidos. Exceção: hooks compartilhados em `shared/hooks/` que compõem (`useDetailPageController`, etc.) |
+| F-C21 | **Chakra v2 prop that silently survives into v3** — chiefly `colorScheme`, which v3 remaps to the native CSS `color-scheme` property (typed as a free string). It type-checks AND lints clean while the component quietly loses its palette. Same family: `spacing`, `isLoading`, `isOpen`, `bgGradient="linear(...)"` | Rename to the v3 prop (`colorPalette`, `gap`, `loading`, `open`, `bgGradient` + `gradientFrom`/`gradientTo`). `tsc` cannot catch this class — `.claude/hooks/post-edit-frontend.sh` greps for it |
 
 ### High (should fix)
 
@@ -111,10 +112,10 @@ For full architectural context, see `.claude/patterns/backend.md` and `.claude/p
 |---|--------------|-----|
 | F-H1 | New repository not registered in `core/di/repositories.ts` | Add singleton; use the type-cast pattern |
 | F-H2 | New query key not added to `core/query/queryKeys.ts` factory | Add hierarchical key (`all`, `list`, `search`, `detail`, ...) |
-| F-H3 | List page reimplements `useListPageController` logic inline | Use the shared hook |
+| F-H3 | Page reimplements a shared hook's logic inline (debounced search, auto-save, confirm state) | Use the shared hook from `patterns/frontend.md` § Hooks — Decision Tree |
 | F-H4 | Detail page reimplements auto-save + dirty + validation | Use `useDetailPageController` + `useUnsavedChangesGuard` |
 | F-H5 | Validated form built without RHF + Zod (manual `useState` everywhere) | Use RHF + `zodResolver(buildXSchema())` with lazy schema for i18n |
-| F-H6 | Form built with raw `<Input>` instead of `FormField` / `SelectField` / `DateField` / etc. | Use the shared form primitive |
+| F-H6 | Form built with raw `<Input>` instead of `FormField` / `SelectField` / `TextAreaField` / etc. | Use the shared form primitive (the RHF `register()` case pairs `<Field>` + `<Input>`) |
 | F-H7 | Modal owned by global state / URL instead of `useDisclosure` in parent | Lift to parent; ephemeral state belongs there |
 | F-H8 | Loading state shows bare `<Spinner />` instead of skeleton | Use `DetailPageSkeleton` / `ListPageSkeleton` / dedicated skeleton |
 | F-H9 | Empty state shows "No data" with no CTA | Use `<EmptyState icon title description actionLabel onAction>` |
@@ -126,11 +127,11 @@ For full architectural context, see `.claude/patterns/backend.md` and `.claude/p
 | F-H15 | i18n key added to one locale only | Add to all 3 (pt-BR, en, es) |
 | F-H16 | Color-mode conditional in component (`useColorMode().colorMode === "dark" ? ... : ...`) | Use semantic token with `_dark` variant |
 | F-H17 | Test selectors using CSS classes (`.chakra-button`, `.css-xyz`) | Use `getByRole` / `getByLabel` / `getByText` |
-| F-H18 | `<AppTabs>` com `isLazy={false}` sem justificativa documentada | Default global é lazy; opt-out apenas se a aba precisa pré-montar (raro, documentar no código) — ver `patterns/frontend.md` § Data-fetching scope |
+| F-H18 | Painel/aba que só aparece após interação montado eagerly (sem `lazyMount`) sem justificativa documentada | Default é lazy; opt-out apenas se o painel precisa pré-montar (raro, documentar no código) — ver `patterns/frontend.md` § Data-fetching scope |
 | F-H19 | Hook de feature com `useQuery` que não aceita `{ enabled }` opcional | Callers fora de tab boundary (ex: `useDeviceDetail` chamado só pelo nome no breadcrumb) precisam poder suspender — `useDeviceQr(id, enabled)` / `useDeviceGroups(id, enabled)` são o precedente |
 | F-H20 | `staleTime` como literal numérico (ex: `5 * 60_000`) em vez de `STALE_TIMES.x` | Importar de `core/query/staleTimes.ts` (`default` / `reference` / `volatile` / `subscription`). Exceção: `staleTime: 0` (refetch sempre, intencional em polling) |
 | F-H21 | `queryKey` montado via spread inline (`[...queryKeys.X.Y(), params]`) em vez de chamar `queryKeys.X.Y(params)` | Factory deve aceitar params na assinatura (ver `messaging.messageStatus(id)`, `devices.qr(id)`). Spread inline quebra o contrato e esconde a forma da key de tooling/DevTools |
-| F-H22 | `useInfiniteQuery` com filtros/search no queryKey sem `placeholderData: keepPreviousData` | Sem isso, o grid colapsa para skeleton em cada keystroke/troca de filtro. `useInfiniteListPage` já cobre — hooks que constroem `useInfiniteQuery` direto precisam adicionar manualmente |
+| F-H22 | `useInfiniteQuery` com filtros/search no queryKey sem `placeholderData: keepPreviousData` | Sem isso, o grid colapsa para skeleton em cada keystroke/troca de filtro. Todo hook que monta `useInfiniteQuery` precisa declarar explicitamente |
 | F-H23 | `gcTime ≤ staleTime` no `queryClient` (ou em hook que sobrescreva ambos) | Quando bate, cache evictado no instante que vira stale — navegação away-and-back sempre refetch. Regra: `gcTime ≥ 3× staleTime.reference` (ver `GC_TIMES` em `staleTimes.ts`) |
 | F-H24 | Módulo em `apps/web/src/modules/<m>` sem barrel `index.ts` (API pública ausente) | Adicionar `index.ts` exportando entity types + hooks públicos — ver `modules/devices/index.ts` como referência |
 | F-H25 | Import cross-módulo alcançando internals (`@/modules/<outro>/(domain\|infrastructure\|presentation)/**`) em vez do barrel `@/modules/<outro>` | Importar pelo barrel; um módulo é caixa-preta para os outros (§ regra de fronteira) |
@@ -152,12 +153,12 @@ For full architectural context, see `.claude/patterns/backend.md` and `.claude/p
 | F-M7 | Icon-only button without `aria-label` | Add `aria-label` |
 | F-M8 | Form submit without `isLoading` on the primary button | Bind `isLoading` to mutation pending state |
 | F-M9 | Mutation success without `useNotify().showSuccess(...)` | Always confirm user actions |
-| F-M10 | Search input not debounced (or debounce > 300ms) | Use `useDebounce(value, 300)` or `useServerListPage` (built-in) |
+| F-M10 | Search input not debounced (or debounce > 300ms) | Use `useDebounce(value, 300)` |
 | F-M11 | Auto-save debounce ≠ 1500ms | Match the project default (`useDetailPageController`) |
 | F-M12 | Heavy component imported eagerly (rich text editor, chart lib) | `React.lazy()` |
 | F-M13 | Section consome um hook de relação eager (ex.: `useDeviceGroups(id)`) quando o dado só é usado condicionalmente (modal fechado, lista vazia) | Adicionar `enabled` derivado da condição (`enabled: items.length > 0 \|\| modal.isOpen`). Variante section-scoped do F-C20 |
-| F-M14 | `usePrefetchEntity` / `prefetchQuery` chamado com `staleTime` diferente do consumidor que vai ler o cache | Quebra deduplicação — prefetch dispara fetch duplo. Mesmo `STALE_TIMES.x` em ambos |
-| F-M15 | ListPage / modal de create chama `useEntity()` (entity hook completo) só para consumir mutations | Padrão definitivo: hook focado em ações (`useXActions()` / `useCreateX()`) construído com `useEntityActions` / `useEntityCreate` de `shared/hooks/`. Pattern transicional `useEntity({ enabled: false })` registra observer fantasma — não usar em código novo |
+| F-M14 | `prefetchQuery` chamado com `staleTime` diferente do consumidor que vai ler o cache | Quebra deduplicação — prefetch dispara fetch duplo. Mesmo `STALE_TIMES.x` em ambos |
+| F-M15 | ListPage / modal de create chama `useEntity()` (entity hook completo) só para consumir mutations | Padrão definitivo: hook focado em ações (`useXActions()` / `useCreateX()`) construído com um `useXActions()` do próprio módulo / um `useCreateX()` de `shared/hooks/`. Pattern transicional `useEntity({ enabled: false })` registra observer fantasma — não usar em código novo |
 | F-M16 | `useDeviceDetail(undefined)` etc — chamar entity-hook sem id para pegar só `createX` | Usar `useCreateX()` focado (`useCreateDevice` é o precedente). O entity-hook deveria exigir id (callers de create-only não precisam do detail useQuery) |
 
 ### Low / Nitpick

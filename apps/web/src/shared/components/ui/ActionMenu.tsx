@@ -1,14 +1,12 @@
 import { memo } from "react";
+import { Icon, IconButton } from "@chakra-ui/react";
 import {
-  Icon,
-  IconButton,
-  Menu,
-  MenuButton,
-  MenuDivider,
+  MenuContent,
   MenuItem,
-  MenuList,
-  Portal,
-} from "@chakra-ui/react";
+  MenuRoot,
+  MenuSeparator,
+  MenuTrigger,
+} from "@/components/ui/menu";
 import { FiMoreVertical } from "@/shared/components/icons";
 import type { IconType } from "@/shared/components/icons";
 import { useTranslation } from "react-i18next";
@@ -31,45 +29,55 @@ function ActionMenuComponent({ items }: ActionMenuProps) {
   const dangerItems = items.filter((item) => item.isDanger);
 
   return (
-    <Menu>
-      <MenuButton
-        as={IconButton}
-        aria-label={t("actions.actions")}
-        icon={<FiMoreVertical />}
-        variant="ghost"
-        size="sm"
-        borderRadius="md"
-      />
-      <Portal>
-        <MenuList>
-          {normalItems.map((item) => (
-            <MenuItem
-              key={item.label}
-              icon={item.icon ? <Icon as={item.icon} boxSize={4} /> : undefined}
-              onClick={item.onClick}
-              isDisabled={item.isDisabled}
-            >
-              {item.label}
-            </MenuItem>
-          ))}
-          {dangerItems.length > 0 && normalItems.length > 0 && <MenuDivider />}
-          {dangerItems.map((item) => (
-            <MenuItem
-              key={item.label}
-              icon={
-                item.icon ? <Icon as={item.icon} boxSize={4} color="status.error.fg" /> : undefined
-              }
-              onClick={item.onClick}
-              isDisabled={item.isDisabled}
-              color="status.error.fg"
-              _hover={{ bg: "status.error.bg", color: "status.error.fg" }}
-            >
-              {item.label}
-            </MenuItem>
-          ))}
-        </MenuList>
-      </Portal>
-    </Menu>
+    <MenuRoot>
+      {/* v3 drives the trigger with `asChild` instead of v2's `as={IconButton}`,
+          and every item needs a stable `value` (it is the selection key). */}
+      <MenuTrigger asChild>
+        <IconButton
+          aria-label={t("actions.actions")}
+          variant="ghost"
+          size="sm"
+          borderRadius="md"
+        >
+          <FiMoreVertical />
+        </IconButton>
+      </MenuTrigger>
+      <MenuContent>
+        {normalItems.map((item) => (
+          <MenuItem
+            key={item.label}
+            value={item.label}
+            onClick={item.onClick}
+            disabled={item.isDisabled}
+          >
+            {item.icon ? (
+              <Icon boxSize={4}>
+                <item.icon />
+              </Icon>
+            ) : null}
+            {item.label}
+          </MenuItem>
+        ))}
+        {dangerItems.length > 0 && normalItems.length > 0 && <MenuSeparator />}
+        {dangerItems.map((item) => (
+          <MenuItem
+            key={item.label}
+            value={item.label}
+            onClick={item.onClick}
+            disabled={item.isDisabled}
+            color="status.error.fg"
+            _highlighted={{ bg: "status.error.bg", color: "status.error.fg" }}
+          >
+            {item.icon ? (
+              <Icon boxSize={4} color="status.error.fg">
+                <item.icon />
+              </Icon>
+            ) : null}
+            {item.label}
+          </MenuItem>
+        ))}
+      </MenuContent>
+    </MenuRoot>
   );
 }
 

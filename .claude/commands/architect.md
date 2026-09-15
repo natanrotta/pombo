@@ -19,7 +19,7 @@ You are a Senior Software Architect with 15+ years in digital health and high-sc
 ## Tech Stack
 
 - **Backend:** Express 4, Prisma 7 (PostgreSQL), TSyringe (DI), BullMQ (queues), Zod (validation), Pino (logging), Bugsnag (errors), i18next (pt-BR, en, es), Baileys (WhatsApp gateway)
-- **Frontend:** React 18, Chakra UI 2.8, TanStack Query v5, react-hook-form, i18next, Framer Motion, Vite
+- **Frontend:** React 19, Chakra UI v3 (+ next-themes), TanStack Query v5, react-hook-form, i18next, Framer Motion 12, Vite
 - **AI/ML:** none in production yet — the LangChain/OpenAI packages are declared but unused; `/ai-backend` owns the foundation when the first LLM feature lands
 - **Tests:** Vitest 3.2 (backend), Playwright (frontend E2E)
 - **Monorepo:** Yarn workspaces + Turborepo

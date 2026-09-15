@@ -11,7 +11,7 @@ Everything you need to build and ship — clone it, rename it, start shipping.
 | App | Path | Stack | Dev port |
 |---|---|---|---|
 | **API** | `apps/api` | Node.js · Express 4 · Prisma 7 (Postgres) · tsyringe DI · Zod · Vitest | `4444` |
-| **Web** | `apps/web` | React 18 · Vite 5 · Chakra UI 2 · TanStack Query 5 · react-i18next · Vitest + Playwright | `4000` |
+| **Web** | `apps/web` | React 19 · Vite 5 · Chakra UI 3 · TanStack Query 5 · react-i18next · Vitest + Playwright | `4000` |
 | **Shared types** | `packages/shared-types` | `@pombo/shared-types` — DTOs shared by API + web | — |
 
 `apps/api` and `apps/web` are Turborepo/yarn workspaces.

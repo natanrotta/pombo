@@ -9,7 +9,7 @@ export function NotFoundPage() {
 
   return (
     <Center minH="60vh">
-      <Stack spacing={4} align="center" textAlign="center" maxW="md" px={6}>
+      <Stack gap={4} align="center" textAlign="center" maxW="md" px={6}>
         <Heading size="2xl" color="text.brand">
           404
         </Heading>
@@ -17,9 +17,15 @@ export function NotFoundPage() {
           {t("notFound.title", "Página não encontrada")}
         </Heading>
         <Text color="text.secondary">
-          {t("notFound.description", "A página que você procura não existe ou foi movida.")}
+          {t(
+            "notFound.description",
+            "A página que você procura não existe ou foi movida.",
+          )}
         </Text>
-        <Button data-cy="not-found-home" onClick={() => navigate(ROUTE_PATHS.devices)}>
+        <Button
+          data-cy="not-found-home"
+          onClick={() => navigate(ROUTE_PATHS.devices)}
+        >
           {t("notFound.backHome", "Voltar ao início")}
         </Button>
       </Stack>

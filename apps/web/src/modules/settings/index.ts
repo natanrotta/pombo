@@ -1,2 +1,2 @@
-export { ProfileTab } from "./presentation/components/ProfileTab";
-export { ProfilePage } from "./presentation/pages/ProfilePage";
+export { ProfileTab } from "@/modules/settings/presentation/components/ProfileTab";
+export { ProfilePage } from "@/modules/settings/presentation/pages/ProfilePage";

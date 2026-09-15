@@ -30,7 +30,7 @@ Before creating ANYTHING new, walk this 5-question gate:
 
 1. **Does a shared component / hook / utility already cover this?**
    - Backend: `.claude/patterns/backend.md` § Reuse-First Catalog (entities, repos, providers, helpers).
-   - Frontend: `.claude/patterns/frontend.md` § Reuse-First Catalog (`ListPageLayout`, `EntityCard`, `EmptyState`, `useListPageController`, `useDetailPageController`, `FormField`, ...).
+   - Frontend: `.claude/patterns/frontend.md` § Reuse-First Catalog (`PageHeader`, `EntityCard`, `SectionCard`, `EmptyState`, `AppModal`, `useDetailPageController`, `FormField`, ...) **and** the Chakra v3 snippets in `src/components/ui/*`.
 2. **Can the existing thing be extended (one extra prop, one extra method) instead of cloned?** Extension wins.
 3. **If extension is impossible, is the new thing reusable?** Place it in `shared/` (FE) or `modules/<domain>/application/service/` (domain-scoped) / `shared/util/` (generic, no domain) (BE) — never inside a feature module if any other module could need it.
 4. **Did you grep for the same string / behavior in the codebase?** If 2+ files implement the same logic, consolidate before adding the third.
@@ -60,15 +60,15 @@ A new file that fails questions 1–3 is a code smell. Stop and reconsider.
 
 | ID | Rule | Anchor |
 |----|------|--------|
-| R10 | Semantic tokens only (`bg.*`, `text.*`, `border.*`, `status.*`). **No hardcoded hex.** | `F-C2` |
+| R10 | Semantic tokens only (`bg.*`, `text.*`, `border.*`, `status.*`). **No hardcoded hex.** Chakra **v3**: `colorPalette` (not `colorScheme`); compound components come from the snippets in `src/components/ui/*`. | `F-C2` |
 | R11 | **No yellow / orange / amber.** Purple for warnings, red for errors, accent (green) for success. | `F-C3` (hard project rule) |
 | R12 | Components never call `httpClient` directly. Always: hook → repository → httpClient. | `F-C1`, `F-C7` |
 | R13 | New repository → registered in `core/di/repositories.ts`. New query key → added to `core/query/queryKeys.ts` (factory: `all` / `list` / `search` / `detail` / `linked*`). | `F-H1`, `F-H2` |
 | R14 | Every mutation has `onError`. `invalidateQueries` is selective — never `queryKeys.X.all` unless every sub-key is genuinely affected. | `F-C5`, `F-C6` |
 | R15 | Routes via `ROUTE_PATHS` constants. UI strings via i18n in all 3 locales (pt-BR, en, es). | `F-C8`, `F-C9`, `F-H15` |
-| R16 | Forms use `FormField` / `SelectField` / `DateField` / etc. (RHF + Zod for validated forms; `useFormState` for simple modals). Never raw `<Input>` in feature code. | `F-H5`, `F-H6` |
+| R16 | Forms use `FormField` / `SelectField` / `TextAreaField` / `NumberField` / `PasswordField` / `RichTextField` (RHF + Zod for validated forms; `useFormState` for simple modals). Never raw `<Input>` in feature code — the one exception is an RHF `register()` input, which pairs `<Field>` + `<Input>` directly. | `F-H5`, `F-H6` |
 | R17 | Loading = skeleton (never bare `<Spinner />` for primary content). Empty = `<EmptyState>` with CTA. | `F-H8`, `F-H9` |
-| R18 | Use the right shared hook from the decision tree (`useListPageController`, `useDetailPageController`, `useEntityDetail`, ...). Never re-implement their logic inline. | `F-H3`, `F-H4` |
+| R18 | Use the right shared hook from the decision tree (`useDetailPageController`, `useFormState`, `useAutoSave`, `useConfirm`, `useNotify`, ...). Every `useQuery`/`useMutation` lives in a module hook, never inline in a page. | `F-H3`, `F-H4`, `F-H29` |
 | R19 | List items / mapped components are `memo()`. Handlers passed to memoized children are `useCallback`. | `F-H10`, `F-H11` |
 
 ### Cross-cutting
