@@ -9,16 +9,21 @@ interface SaveButtonProps {
   label?: string;
 }
 
-function SaveButtonComponent({ isDirty, isSaving, onClick, label }: SaveButtonProps) {
+function SaveButtonComponent({
+  isDirty,
+  isSaving,
+  onClick,
+  label,
+}: SaveButtonProps) {
   const { t } = useTranslation("common");
   const resolvedLabel = label ?? t("actions.save");
   return (
     <Button
       size="sm"
-      colorScheme="brand"
-      isLoading={isSaving}
+      colorPalette="brand"
+      loading={isSaving}
       onClick={onClick}
-      isDisabled={!isDirty}
+      disabled={!isDirty}
     >
       {resolvedLabel}
     </Button>

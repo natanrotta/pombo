@@ -83,7 +83,7 @@ export function ApiTokenTab() {
             align={{ base: "stretch", md: "center" }}
             gap={4}
           >
-            <SimpleGrid columns={{ base: 1, sm: 3 }} spacing={5} flex="1">
+            <SimpleGrid columns={{ base: 1, sm: 3 }} gap={5} flex="1">
               <InfoRow
                 label={t("apiToken.prefix")}
                 value={token.prefix}
@@ -109,10 +109,12 @@ export function ApiTokenTab() {
             </SimpleGrid>
             <Button
               variant="outline"
-              colorScheme="brand"
-              leftIcon={<Icon as={FiRefreshCw} />}
+              colorPalette="brand"
               onClick={regenerateConfirm.onOpen}
             >
+              <Icon>
+                <FiRefreshCw />
+              </Icon>
               {t("apiToken.regenerate")}
             </Button>
           </Flex>
@@ -166,12 +168,14 @@ export function ApiTokenTab() {
           </Text>
           <Button
             variant="outline"
-            colorScheme="brand"
+            colorPalette="brand"
             size="sm"
-            leftIcon={<Icon as={FiDownload} />}
             onClick={handleDownloadCollection}
             flexShrink={0}
           >
+            <Icon>
+              <FiDownload />
+            </Icon>
             {t("apiToken.collection.button")}
           </Button>
         </Flex>
@@ -192,7 +196,9 @@ export function ApiTokenTab() {
             borderRadius="md"
             p={3}
           >
-            <Icon as={FiAlertTriangle} color="status.warning.fg" mt={0.5} />
+            <Icon color="status.warning.fg" mt={0.5}>
+              <FiAlertTriangle />
+            </Icon>
             <Text fontSize="sm" color="text.primary">
               {t("apiToken.reveal.warning")}
             </Text>
@@ -206,7 +212,7 @@ export function ApiTokenTab() {
                 aria-label={t("apiToken.reveal.label")}
                 value={clearToken ?? ""}
                 onChange={() => undefined}
-                isReadOnly
+                readOnly
                 fontFamily="mono"
                 fontSize="sm"
               />
@@ -220,7 +226,7 @@ export function ApiTokenTab() {
       </AppModal>
 
       <ConfirmDialog
-        isOpen={regenerateConfirm.isOpen}
+        isOpen={regenerateConfirm.open}
         onClose={regenerateConfirm.onClose}
         onConfirm={handleGenerate}
         title={t("apiToken.regenerateConfirm.title")}

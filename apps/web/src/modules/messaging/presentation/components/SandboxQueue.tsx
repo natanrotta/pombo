@@ -2,10 +2,7 @@ import { Flex, Icon, Text } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
 import { FiActivity } from "@/shared/components/icons";
 import { SectionCard } from "@/shared/components/ui/SectionCard";
-import {
-  SandboxQueueItem,
-  type SandboxQueueEntry,
-} from "./SandboxQueueItem";
+import { SandboxQueueItem, type SandboxQueueEntry } from "./SandboxQueueItem";
 
 interface SandboxQueueProps {
   items: SandboxQueueEntry[];
@@ -31,7 +28,9 @@ export function SandboxQueue({ items }: SandboxQueueProps) {
           minH="240px"
           py={8}
         >
-          <Icon as={FiActivity} boxSize={8} color="text.muted" />
+          <Icon boxSize={8} color="text.muted">
+            <FiActivity />
+          </Icon>
           <Text fontSize="sm" fontWeight="600" color="text.primary">
             {t("queue.empty.title")}
           </Text>

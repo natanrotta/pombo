@@ -4,9 +4,9 @@ import { motion } from "framer-motion";
 import { FiInbox } from "@/shared/components/icons";
 import type { IconType } from "@/shared/components/icons";
 
-const MotionVStack = motion(VStack);
-const MotionBox = motion(Box);
-const MotionText = motion(Text);
+const MotionVStack = motion.create(VStack);
+const MotionBox = motion.create(Box);
+const MotionText = motion.create(Text);
 
 import { EASE_ORGANIC as ease } from "@/shared/constants/animation";
 
@@ -23,7 +23,13 @@ interface EmptyStateProps {
 }
 
 const sizeStyles = {
-  sm: { py: { base: 6, md: 8 }, iconBox: 10, iconSize: 5, titleSize: "sm" as const, ringSize: 14 },
+  sm: {
+    py: { base: 6, md: 8 },
+    iconBox: 10,
+    iconSize: 5,
+    titleSize: "sm" as const,
+    ringSize: 14,
+  },
   md: {
     py: { base: 10, md: 14 },
     iconBox: 14,
@@ -47,14 +53,14 @@ function EmptyStateComponent({
   onAction,
   secondaryActionLabel,
   onSecondaryAction,
-  icon = FiInbox,
+  icon: IconComponent = FiInbox,
   size = "md",
 }: EmptyStateProps) {
   const s = sizeStyles[size];
 
   return (
     <MotionVStack
-      spacing={4}
+      gap={4}
       textAlign="center"
       py={s.py}
       px={4}
@@ -80,12 +86,20 @@ function EmptyStateComponent({
           w={s.ringSize}
           h={s.ringSize}
           borderRadius="full"
-          bgGradient="linear(135deg, brand.50, accent.50)"
+          bgGradient="to-br"
+          gradientFrom="brand.50"
+          gradientTo="accent.50"
           animation="emptyStatePulse 3s ease-in-out infinite"
-          sx={{
+          css={{
             "@keyframes emptyStatePulse": {
-              "0%, 100%": { opacity: 0.6, transform: "translate(-50%, -50%) scale(1)" },
-              "50%": { opacity: 0, transform: "translate(-50%, -50%) scale(1.4)" },
+              "0%, 100%": {
+                opacity: 0.6,
+                transform: "translate(-50%, -50%) scale(1)",
+              },
+              "50%": {
+                opacity: 0,
+                transform: "translate(-50%, -50%) scale(1.4)",
+              },
             },
           }}
         />
@@ -99,7 +113,9 @@ function EmptyStateComponent({
           display="flex"
           alignItems="center"
           justifyContent="center"
-          bgGradient="linear(135deg, brand.50, accent.50)"
+          bgGradient="to-br"
+          gradientFrom="brand.50"
+          gradientTo="accent.50"
           color="brand.500"
           position="relative"
           animate={{ y: [0, -4, 0] }}
@@ -111,7 +127,9 @@ function EmptyStateComponent({
             },
           }}
         >
-          <Icon as={icon} boxSize={s.iconSize} />
+          <Icon boxSize={s.iconSize}>
+            <IconComponent />
+          </Icon>
         </MotionBox>
       </MotionBox>
 

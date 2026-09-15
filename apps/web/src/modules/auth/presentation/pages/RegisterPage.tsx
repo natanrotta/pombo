@@ -1,11 +1,8 @@
 import {
   Box,
   Button,
-  Divider,
+  Separator,
   Flex,
-  FormControl,
-  FormErrorMessage,
-  FormLabel,
   Heading,
   Icon,
   Image,
@@ -15,6 +12,7 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react";
+import { Field } from "@/components/ui/field";
 import { motion } from "framer-motion";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,19 +20,25 @@ import { useTranslation } from "react-i18next";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import { FiArrowLeft } from "@/shared/components/icons";
 import { ROUTE_PATHS } from "@/app/router/RoutePaths";
-import { useAuth } from "@/modules/auth/presentation/hooks/useAuth";
+import { useAuth } from "@/modules/auth/presentation/context/useAuth";
 import { getPostAuthDestination } from "@/modules/auth/presentation/utils/postAuthDestination";
 import { useNotify } from "@/shared/hooks/useNotify";
 import { PasswordField } from "@/shared/components/forms/PasswordField";
 import { PasswordStrengthIndicator } from "@/shared/components/forms/PasswordStrengthIndicator";
 import { GoogleSignInButton } from "@/modules/auth/presentation/components/GoogleSignInButton";
 import { LanguageSelector } from "@/shared/components/ui/LanguageSelector";
-import { buildRegisterSchema, type RegisterFormValues } from "@/modules/auth/domain/schemas";
-import { TRANSITION_PAGE_SWAP, TRANSITION_SLOW } from "@/shared/constants/animation";
+import {
+  buildRegisterSchema,
+  type RegisterFormValues,
+} from "@/modules/auth/domain/schemas";
+import {
+  TRANSITION_PAGE_SWAP,
+  TRANSITION_SLOW,
+} from "@/shared/constants/animation";
 import pomboIcon from "@assets/pombo-icon.svg";
 
-const MotionBox = motion(Box);
-const MotionImage = motion(Image);
+const MotionBox = motion.create(Box);
+const MotionImage = motion.create(Image);
 
 export function RegisterPage() {
   const { t, i18n } = useTranslation("auth");
@@ -44,7 +48,8 @@ export function RegisterPage() {
   const { showError } = useNotify();
 
   // Slide horizontally on directional entry; fall back to y-fade for direct visits.
-  const fromSignIn = (location.state as { from?: string } | null)?.from === "signIn";
+  const fromSignIn =
+    (location.state as { from?: string } | null)?.from === "signIn";
   const { signUp, signInWithGoogle, isSubmitting } = useAuth();
 
   const {
@@ -66,7 +71,10 @@ export function RegisterPage() {
       // Pass the current UI locale so the backend persists it on user.language
       // for new accounts (no-op on existing accounts — they keep their saved
       // preference).
-      const session = await signInWithGoogle({ credential, language: i18n.language });
+      const session = await signInWithGoogle({
+        credential,
+        language: i18n.language,
+      });
       navigate(getPostAuthDestination(session.user), { replace: true });
     } catch {
       showError(undefined, t("register.googleError"));
@@ -105,7 +113,7 @@ export function RegisterPage() {
       minH={{ lg: "100vh" }}
       display={{ base: "none", lg: "flex" }}
     >
-      <Stack spacing={7} position="relative" maxW="440px" w="full">
+      <Stack gap={7} position="relative" maxW="440px" w="full">
         <MotionImage
           src={pomboIcon}
           alt={tc("platform.name")}
@@ -119,7 +127,7 @@ export function RegisterPage() {
           transition={{ duration: 0.45, ease: "easeOut" }}
         />
 
-        <Stack spacing={3}>
+        <Stack gap={3}>
           <Text
             fontSize="xs"
             fontWeight="700"
@@ -148,7 +156,7 @@ export function RegisterPage() {
 
   const mobileBrand = (
     <Stack
-      spacing={3}
+      gap={3}
       align="center"
       mb={6}
       display={{ base: "flex", lg: "none" }}
@@ -188,7 +196,7 @@ export function RegisterPage() {
       transition={fromSignIn ? TRANSITION_PAGE_SWAP : TRANSITION_SLOW}
       w="full"
     >
-      <Stack spacing={1.5} mb={7}>
+      <Stack gap={1.5} mb={7}>
         <Heading size="lg" letterSpacing="-0.01em">
           {t("register.title")}
         </Heading>
@@ -202,76 +210,88 @@ export function RegisterPage() {
         onError={() => showError(undefined, t("register.googleError"))}
       />
       <Flex align="center" my={4}>
-        <Divider />
+        <Separator flex="1" />
         <Text px={3} color="text.secondary" fontSize="sm" whiteSpace="nowrap">
           {t("register.or")}
         </Text>
-        <Divider />
+        <Separator flex="1" />
       </Flex>
 
-      <Stack as="form" spacing={4} onSubmit={onSubmit} noValidate>
-        <FormControl isInvalid={Boolean(errors.name)}>
-          <FormLabel>{t("register.nameLabel")}</FormLabel>
-          {/* F-H6 exception: RHF register() needs a ref-spread input; FormField is controlled-only. */}
-          <Input placeholder={t("register.namePlaceholder")} autoComplete="name" {...register("name")} />
-          {errors.name ? <FormErrorMessage>{errors.name.message}</FormErrorMessage> : null}
-        </FormControl>
+      <Stack asChild gap={4}>
+        <form onSubmit={onSubmit} noValidate>
+          <Field
+            invalid={Boolean(errors.name)}
+            label={t("register.nameLabel")}
+            errorText={errors.name?.message}
+          >
+            {/* F-H6 exception: RHF register() needs a ref-spread input; FormField is controlled-only. */}
+            <Input
+              placeholder={t("register.namePlaceholder")}
+              autoComplete="name"
+              {...register("name")}
+            />
+          </Field>
 
-        <FormControl isInvalid={Boolean(errors.email)}>
-          <FormLabel>{t("register.emailLabel")}</FormLabel>
-          {/* F-H6 exception: RHF register() needs a ref-spread input; FormField is controlled-only. */}
-          <Input
-            type="email"
-            placeholder={t("register.emailPlaceholder")}
-            autoComplete="email"
-            {...register("email")}
-          />
-          {errors.email ? <FormErrorMessage>{errors.email.message}</FormErrorMessage> : null}
-        </FormControl>
+          <Field
+            invalid={Boolean(errors.email)}
+            label={t("register.emailLabel")}
+            errorText={errors.email?.message}
+          >
+            {/* F-H6 exception: RHF register() needs a ref-spread input; FormField is controlled-only. */}
+            <Input
+              type="email"
+              placeholder={t("register.emailPlaceholder")}
+              autoComplete="email"
+              {...register("email")}
+            />
+          </Field>
 
-        <Box>
-          <Controller
-            control={control}
-            name="password"
-            render={({ field }) => (
-              <PasswordField
-                label={t("register.passwordLabel")}
-                value={field.value}
-                error={errors.password?.message}
-                onChange={field.onChange}
-                placeholder={t("register.passwordPlaceholder")}
-                autoComplete="new-password"
-              />
-            )}
-          />
-          <PasswordStrengthIndicator password={password ?? ""} />
-        </Box>
+          <Box>
+            <Controller
+              control={control}
+              name="password"
+              render={({ field }) => (
+                <PasswordField
+                  label={t("register.passwordLabel")}
+                  value={field.value}
+                  error={errors.password?.message}
+                  onChange={field.onChange}
+                  placeholder={t("register.passwordPlaceholder")}
+                  autoComplete="new-password"
+                />
+              )}
+            />
+            <PasswordStrengthIndicator password={password ?? ""} />
+          </Box>
 
-        <Button
-          type="submit"
-          size="lg"
-          isLoading={isSubmitting}
-          loadingText={t("register.loading")}
-          mt={2}
-        >
-          {t("register.button")}
-        </Button>
+          <Button
+            type="submit"
+            size="lg"
+            loading={isSubmitting}
+            loadingText={t("register.loading")}
+            mt={2}
+          >
+            {t("register.button")}
+          </Button>
+        </form>
       </Stack>
 
       <Text color="text.secondary" fontSize="sm" mt={6} textAlign="center">
         {t("register.hasAccount")}{" "}
         <Link
-          as={RouterLink}
-          to={ROUTE_PATHS.signIn}
-          state={{ from: "register" }}
+          asChild
           color="text.brand"
           fontWeight="600"
           display="inline-flex"
           alignItems="center"
           gap={1}
         >
-          <Icon as={FiArrowLeft} aria-hidden boxSize={3.5} />
-          {t("register.signIn")}
+          <RouterLink to={ROUTE_PATHS.signIn} state={{ from: "register" }}>
+            <Icon aria-hidden boxSize={3.5}>
+              <FiArrowLeft />
+            </Icon>
+            {t("register.signIn")}
+          </RouterLink>
         </Link>
       </Text>
     </MotionBox>
@@ -288,7 +308,7 @@ export function RegisterPage() {
         w="780px"
         h="780px"
         borderRadius="full"
-        bgGradient="radial(circle, rgba(47, 128, 237, 0.22), transparent 70%)"
+        backgroundImage="radial-gradient(circle, rgba(47, 128, 237, 0.22), transparent 70%)"
         pointerEvents="none"
         zIndex={0}
       />
@@ -300,7 +320,7 @@ export function RegisterPage() {
         w="720px"
         h="720px"
         borderRadius="full"
-        bgGradient="radial(circle, rgba(30, 178, 138, 0.20), transparent 70%)"
+        backgroundImage="radial-gradient(circle, rgba(30, 178, 138, 0.20), transparent 70%)"
         pointerEvents="none"
         zIndex={0}
       />
@@ -312,12 +332,17 @@ export function RegisterPage() {
         w="520px"
         h="520px"
         borderRadius="full"
-        bgGradient="radial(circle, rgba(95, 161, 255, 0.12), transparent 70%)"
+        backgroundImage="radial-gradient(circle, rgba(95, 161, 255, 0.12), transparent 70%)"
         pointerEvents="none"
         zIndex={0}
       />
 
-      <Flex position="absolute" top={{ base: 4, md: 6 }} right={{ base: 4, md: 6 }} zIndex={2}>
+      <Flex
+        position="absolute"
+        top={{ base: 4, md: 6 }}
+        right={{ base: 4, md: 6 }}
+        zIndex={2}
+      >
         <LanguageSelector />
       </Flex>
 

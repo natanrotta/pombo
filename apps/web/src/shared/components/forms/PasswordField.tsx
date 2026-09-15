@@ -1,15 +1,8 @@
 import { memo } from "react";
-import {
-  FormControl,
-  FormErrorMessage,
-  FormLabel,
-  IconButton,
-  Input,
-  InputGroup,
-  InputRightElement,
-} from "@chakra-ui/react";
+import { IconButton, Input, InputGroup } from "@chakra-ui/react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Field } from "@/components/ui/field";
 import { FiEye, FiEyeOff } from "@/shared/components/icons";
 
 interface PasswordFieldProps {
@@ -33,9 +26,21 @@ function PasswordFieldComponent({
   const [isVisible, setIsVisible] = useState(false);
 
   return (
-    <FormControl isInvalid={Boolean(error)}>
-      <FormLabel>{label}</FormLabel>
-      <InputGroup>
+    <Field invalid={Boolean(error)} label={label} errorText={error}>
+      <InputGroup
+        endElement={
+          <IconButton
+            aria-label={
+              isVisible ? t("forms.hidePassword") : t("forms.showPassword")
+            }
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsVisible((state) => !state)}
+          >
+            {isVisible ? <FiEyeOff /> : <FiEye />}
+          </IconButton>
+        }
+      >
         <Input
           type={isVisible ? "text" : "password"}
           value={value}
@@ -43,18 +48,8 @@ function PasswordFieldComponent({
           placeholder={placeholder}
           autoComplete={autoComplete}
         />
-        <InputRightElement>
-          <IconButton
-            aria-label={isVisible ? t("forms.hidePassword") : t("forms.showPassword")}
-            icon={isVisible ? <FiEyeOff /> : <FiEye />}
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsVisible((state) => !state)}
-          />
-        </InputRightElement>
       </InputGroup>
-      {error ? <FormErrorMessage>{error}</FormErrorMessage> : null}
-    </FormControl>
+    </Field>
   );
 }
 

@@ -49,7 +49,13 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <Flex minH="100vh" align="center" justify="center" bg="bg.canvas" px={4}>
+        <Flex
+          minH="100vh"
+          align="center"
+          justify="center"
+          bg="bg.canvas"
+          px={4}
+        >
           <Container maxW="md">
             <Box
               bg="bg.surface"
@@ -64,7 +70,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
               <Text color="text.secondary" mb={6}>
                 {i18n.t("common:errors.reloadDescription")}
               </Text>
-              <Button colorScheme="brand" onClick={this.handleReload}>
+              <Button colorPalette="brand" onClick={this.handleReload}>
                 {i18n.t("common:actions.reload")}
               </Button>
             </Box>

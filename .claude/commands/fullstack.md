@@ -72,7 +72,7 @@ Phase 1 below (Contract Design) fills the spec's §4 (Contracts & interfaces) �
 5. **ALWAYS i18n in 3 languages** for both backend ErrorCodes and frontend UI strings
 6. **ALWAYS handle errors end-to-end** — every backend ErrorCode must propagate to a user-visible toast via `AppError`
 7. **ALWAYS paginate list endpoints** — never unbounded
-8. **ALWAYS soft-delete + owner-scoped** — `deleted_at` filter + owner-column filter on every query on an owned table
+8. **ALWAYS soft-delete + multi-tenant** — `deleted_at` filter + `account_id` filter on every query
 
 ---
 
@@ -82,10 +82,10 @@ Classify before coding.
 
 | Feature Type | Backend Pattern | Frontend Hooks | Key Components |
 |---|---|---|---|
-| Simple CRUD | Standard 5 use cases + search endpoint | `useListPageController` + `useDetailPageController` + `useEntityDetail` | `ListPageLayout`, `EntityCard`, `ProfileHeader`, `EditableInfoGrid` |
-| With relations | Sub-resource routes + link/unlink use cases | Above + relation queries + link/unlink mutations | `LinkEntityModal`, `AppTabs` with relation sections |
+| Simple CRUD | Standard 5 use cases + search endpoint | module hooks (`useXList`, `useXDetail`) + `useDetailPageController` | `PageHeader`, `FilterBar`, `EntityCard`, `SectionCard` |
+| With relations | Sub-resource routes + link/unlink use cases | Above + relation queries + link/unlink mutations | `AppModal` + a relation `SectionCard` per resource |
 | With dynamic fields | Field-values endpoints on parent entity | Above + `useAutoSave` for field values | `DynamicFieldRenderer`, field section grid |
-| Read-only dashboard | Aggregation use cases, no writes | `useQuery` directly | `StatCard`, `DataTable`, charts |
+| Read-only dashboard | Aggregation use cases, no writes | a module hook wrapping `useQuery` | `StatCard`, `SectionCard`, charts |
 | Background job / async | BullMQ queue + processor + status endpoint | Polling via `refetchInterval` or SSE | Progress indicators, status badges |
 | Nested sub-entity | Scoped under parent | Parent context + child CRUD hooks | Nested routes, breadcrumbs |
 
@@ -154,10 +154,9 @@ Follow `.claude/patterns/frontend.md` § "Adding a New CRUD Module — Order of 
 **Hook decision (cross-reference `patterns/frontend.md` for the full table):**
 
 ```
-LIST page (bulk + delete confirm + create modal)?  → useListPageController
-LIST page (paginated only)?                         → useServerListPage
-DETAIL page editable (auto-save)?                   → useDetailPageController + useEntityDetail
-DETAIL page read-only?                              → useEntityDetail
+LIST page?                                          → the module's useXList() hook
+DETAIL page editable (auto-save)?                   → useDetailPageController + useXDetail()
+DETAIL page read-only?                              → the module's useXDetail() hook
 CREATE modal (simple)?                              → AppModal + useFormState + useMutation
 CREATE full page (complex)?                         → useDetailPageController createMode
 RELATIONS?                                          → useQuery for linked + useMutation for link/unlink
@@ -186,7 +185,7 @@ Walk these checks **before** invoking `/finish-task`:
 ### Write (auto-save edit)
 
 ```
-User edits field in EditableInfoGrid
+User edits a field in the detail page
   → handleFieldChange(key, value)
   → useDetailPageController updates localData, isDirty=true
   → after 1500ms inactivity, useAutoSave triggers onSave(localData)
@@ -197,7 +196,7 @@ User edits field in EditableInfoGrid
   → Express: authMiddleware → validateRequest(body) → controller
   → controller: container.resolve(UpdateEntityUseCase).execute(id, accountId, dto)
   → use case validates → repository.update(id, accountId, data)
-  → PrismaRepository: prisma.entity.update({ where: { id, owner_id, deleted_at: null }, data })
+  → PrismaRepository: prisma.entity.update({ where: { id, account_id, deleted_at: null }, data })
   → returns Entity (mapped via toEntity)
   → controller: res.status(200).json({ ok: true, data: entity.toJSON() })
   → Axios interceptor unwraps → returns data
@@ -209,7 +208,7 @@ User edits field in EditableInfoGrid
 
 ```
 User types in SearchField (FilterBar)
-  → setSearch(value) in useListPageController
+  → setSearch(value) in the page's search state
   → useDebounce(300ms)
   → page resets to 1
   → query key: [...search(), { page: 1, limit: 12, search: "term", tagIds }]
@@ -222,7 +221,7 @@ User types in SearchField (FilterBar)
   → returns { data: Entity[], meta: { total, totalPages } }
   → res.status(200).json({ ok: true, data: result })
   → Axios unwraps → TanStack Query caches (with keepPreviousData → no flash)
-  → ListPageLayout renders EntityCard grid
+  → the page renders the EntityCard grid
 ```
 
 ---
@@ -272,8 +271,8 @@ Frontend mutation
 
 ### Relations (EntityA ↔ EntityB)
 
-- **Backend:** link/unlink use cases that validate both entities exist + same owner
-- **Frontend:** `queryKeys.entityA.linkedEntityB(id)`, link/unlink mutations invalidate that key only, `LinkEntityModal` + `AppTabs` section
+- **Backend:** link/unlink use cases that validate both entities exist + same `accountId`
+- **Frontend:** `queryKeys.entityA.linkedEntityB(id)`, link/unlink mutations invalidate that key only, `AppModal` + a relation `SectionCard`
 
 ### Dynamic Fields
 
@@ -283,7 +282,7 @@ Frontend mutation
 ### Bulk Operations
 
 - **Backend:** `DELETE /entities/bulk` with `{ ids: string[] }`; processor handles partial failures
-- **Frontend:** `useListPageController` already exposes `bulk` selection + `handleBulkDelete`; `BulkActionBar` + `ConfirmDialog`
+- **Frontend:** `useBulkSelection` for the selection state + `ConfirmDialog` for the destructive step
 
 ### File Uploads
 
@@ -320,7 +319,7 @@ Frontend mutation
 
 ```
 - [ ] modules/{feature}/domain/entities/{Entity}.ts
-- [ ] modules/{feature}/domain/repositories/{Entity}Repository.ts (extends CrudRepository)
+- [ ] modules/{feature}/domain/repositories/{Entity}Repository.ts (purpose-built contract)
 - [ ] modules/{feature}/infrastructure/repositories/Http{Entity}Repository.ts
 - [ ] modules/{feature}/presentation/hooks/use{Entity}.ts        (detail)
 - [ ] modules/{feature}/presentation/hooks/use{Entities}.ts      (list, if custom)
@@ -417,7 +416,7 @@ A delivered feature meets ALL:
 
 - **Functional:** full CRUD + paginated search + detail with auto-save (if editable) + translated errors + empty states
 - **Type-safe:** zero `any`; entities are exact mirrors of API DTOs
-- **Performant:** `@@index([owner_id])`; `keepPreviousData`; debounced search (300ms) + auto-save (1500ms); `memo()` on mapped components; selective invalidation (never `all`)
+- **Performant:** `@@index([account_id])`; `keepPreviousData`; debounced search (300ms) + auto-save (1500ms); `memo()` on mapped components; selective invalidation (never `all`)
 - **UX:** responsive, skeletons, auto-save toast, bulk + confirm, 3 locales
 - **Architecture:** Clean Arch respected on backend; module structure on frontend; DI registered; ErrorCodes + i18n complete
 - **Anti-patterns:** zero Critical / High items from `patterns/code-review-checklist.md`

@@ -1,17 +1,30 @@
-import { Box, Button, Container, Flex, Heading, Link, Stack, Text } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  Container,
+  Flex,
+  Heading,
+  Link,
+  Stack,
+  Text,
+} from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import { FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link as RouterLink, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Link as RouterLink,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import { ROUTE_PATHS } from "@/app/router/RoutePaths";
-import { useAuth } from "@/modules/auth/presentation/hooks/useAuth";
+import { useAuth } from "@/modules/auth/presentation/context/useAuth";
 import { useNotify } from "@/shared/hooks/useNotify";
 import { PasswordField } from "@/shared/components/forms/PasswordField";
 import { PasswordStrengthIndicator } from "@/shared/components/forms/PasswordStrengthIndicator";
 import { isPasswordStrong } from "@/shared/utils/passwordValidation";
 import { LanguageSelector } from "@/shared/components/ui/LanguageSelector";
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 interface ResetFormErrors {
   password?: string;
@@ -78,8 +91,13 @@ export function ResetPasswordPage() {
       transition={{ duration: 0.3, ease: "easeOut" }}
       w="full"
     >
-      <Stack spacing={2} mb={6}>
-        <Text fontWeight="700" color="brand.600" letterSpacing="wide" fontSize="sm">
+      <Stack gap={2} mb={6}>
+        <Text
+          fontWeight="700"
+          color="brand.600"
+          letterSpacing="wide"
+          fontSize="sm"
+        >
           {tc("platform.name")}
         </Text>
         <Heading size="lg">{t("resetPassword.title")}</Heading>
@@ -87,16 +105,18 @@ export function ResetPasswordPage() {
       </Stack>
 
       {invalidToken ? (
-        <Stack spacing={4}>
+        <Stack gap={4}>
           <Text color="text.secondary" fontSize="sm">
             {t("resetPassword.missingToken")}
           </Text>
-          <Button as={RouterLink} to={ROUTE_PATHS.forgotPassword} size="lg">
-            {t("resetPassword.requestNew")}
+          <Button asChild size="lg">
+            <RouterLink to={ROUTE_PATHS.forgotPassword}>
+              {t("resetPassword.requestNew")}
+            </RouterLink>
           </Button>
         </Stack>
       ) : (
-        <Stack as="form" spacing={4} onSubmit={handleSubmit}>
+        <Stack as="form" gap={4} onSubmit={handleSubmit}>
           <PasswordField
             label={t("resetPassword.passwordLabel")}
             value={password}
@@ -115,15 +135,17 @@ export function ResetPasswordPage() {
           <Button
             type="submit"
             size="lg"
-            isLoading={isSubmitting}
+            loading={isSubmitting}
             loadingText={t("resetPassword.submitting")}
             mt={2}
           >
             {t("resetPassword.submit")}
           </Button>
           <Text color="text.secondary" fontSize="sm" textAlign="center">
-            <Link as={RouterLink} to={ROUTE_PATHS.signIn} color="brand.600" fontWeight="600">
-              {t("resetPassword.backToSignIn")}
+            <Link asChild color="brand.600" fontWeight="600">
+              <RouterLink to={ROUTE_PATHS.signIn}>
+                {t("resetPassword.backToSignIn")}
+              </RouterLink>
             </Link>
           </Text>
         </Stack>

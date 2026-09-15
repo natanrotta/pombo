@@ -1,5 +1,6 @@
 import { GoogleLogin } from "@react-oauth/google";
-import { Box, useColorMode } from "@chakra-ui/react";
+import { Box } from "@chakra-ui/react";
+import { useColorMode } from "@/components/ui/color-mode";
 import { useEffect, useRef, useState } from "react";
 
 interface GoogleSignInButtonProps {
@@ -27,7 +28,10 @@ const GSI_MAX_WIDTH = 400;
  * re-inits the GSI button — that re-init is expected; it's how the button
  * tracks the theme.
  */
-export function GoogleSignInButton({ onSuccess, onError }: GoogleSignInButtonProps) {
+export function GoogleSignInButton({
+  onSuccess,
+  onError,
+}: GoogleSignInButtonProps) {
   const { colorMode } = useColorMode();
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -35,7 +39,8 @@ export function GoogleSignInButton({ onSuccess, onError }: GoogleSignInButtonPro
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const measure = () => setWidth(Math.min(Math.round(el.clientWidth), GSI_MAX_WIDTH));
+    const measure = () =>
+      setWidth(Math.min(Math.round(el.clientWidth), GSI_MAX_WIDTH));
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);

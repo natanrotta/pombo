@@ -15,13 +15,20 @@ export function ProtectedRoute({ children }: PropsWithChildren) {
   if (isLoading) {
     return (
       <Center minH="100vh">
-        <Spinner color="brand.500" thickness="3px" speed="0.65s" size="xl" />
+        <Spinner
+          color="brand.500"
+          borderWidth="3px"
+          animationDuration="0.65s"
+          size="xl"
+        />
       </Center>
     );
   }
 
   if (!isAuthenticated) {
-    return <Navigate to={ROUTE_PATHS.signIn} replace state={{ from: location }} />;
+    return (
+      <Navigate to={ROUTE_PATHS.signIn} replace state={{ from: location }} />
+    );
   }
 
   return <>{children}</>;

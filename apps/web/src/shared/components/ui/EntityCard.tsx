@@ -1,12 +1,16 @@
 import { memo } from "react";
-import { Box, Flex, Icon, IconButton, Text, Tooltip } from "@chakra-ui/react";
+import { Box, Flex, Icon, IconButton, Text } from "@chakra-ui/react";
+import { Tooltip } from "@/components/ui/tooltip";
 import { motion } from "framer-motion";
 import { TRANSITION_SLOW } from "@/shared/constants/animation";
 import type { IconType } from "@/shared/components/icons";
 import type { ReactNode } from "react";
-import { ActionMenu, type ActionMenuItem } from "@/shared/components/ui/ActionMenu";
+import {
+  ActionMenu,
+  type ActionMenuItem,
+} from "@/shared/components/ui/ActionMenu";
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 interface EntityCardMetaItem {
   icon: IconType;
@@ -31,8 +35,8 @@ interface EntityCardProps {
   footerEnd?: ReactNode;
   onClick?: () => void;
   /**
-   * Fired on `mouseenter` / `focus`. Use with `usePrefetchEntity` to
-   * warm the detail cache before the user clicks the card.
+   * Fired on `mouseenter` / `focus`. Hook a `queryClient.prefetchQuery`
+   * here to warm the detail cache before the user clicks the card.
    */
   onHover?: () => void;
 }
@@ -91,13 +95,19 @@ export const EntityCard = memo(function EntityCard({
         <Flex align="center" gap={3} flex={1} minW={0}>
           {avatar}
           <Box flex={1} minW={0}>
-            <Tooltip label={title} fontSize="xs" openDelay={400} hasArrow placement="top">
-              <Text fontWeight="700" fontSize="sm" noOfLines={1}>
+            <Tooltip
+              content={title}
+              contentProps={{ fontSize: "xs" }}
+              openDelay={400}
+              showArrow
+              positioning={{ placement: "top" }}
+            >
+              <Text fontWeight="700" fontSize="sm" lineClamp={1}>
                 {title}
               </Text>
             </Tooltip>
             {subtitle && (
-              <Text fontSize="xs" color="text.secondary" noOfLines={1} mt={0.5}>
+              <Text fontSize="xs" color="text.secondary" lineClamp={1} mt={0.5}>
                 {subtitle}
               </Text>
             )}
@@ -121,7 +131,8 @@ export const EntityCard = memo(function EntityCard({
       footerEnd ? (
         <Flex
           align={{
-            base: quickActions && quickActions.length > 0 ? "flex-end" : "center",
+            base:
+              quickActions && quickActions.length > 0 ? "flex-end" : "center",
             md: "center",
           }}
           gap={3}
@@ -140,7 +151,7 @@ export const EntityCard = memo(function EntityCard({
             flex={1}
             minW={0}
             overflowX={{ base: "visible", md: "auto" }}
-            sx={{
+            css={{
               scrollbarWidth: "none",
               "&::-webkit-scrollbar": { display: "none" },
             }}
@@ -148,19 +159,28 @@ export const EntityCard = memo(function EntityCard({
             {metaItems?.map((meta) => (
               <Flex key={meta.label} align="center" gap={1.5} flexShrink={0}>
                 <Icon
-                  as={meta.icon}
                   boxSize={3.5}
                   color={meta.color ?? "text.secondary"}
                   flexShrink={0}
-                />
-                <Text fontSize="xs" color={meta.color ?? "text.secondary"} whiteSpace="nowrap">
+                >
+                  <meta.icon />
+                </Icon>
+                <Text
+                  fontSize="xs"
+                  color={meta.color ?? "text.secondary"}
+                  whiteSpace="nowrap"
+                >
                   {meta.label}
                 </Text>
               </Flex>
             ))}
           </Flex>
           {footerEnd && (
-            <Flex flexShrink={0} onClick={(e) => e.stopPropagation()} align="center">
+            <Flex
+              flexShrink={0}
+              onClick={(e) => e.stopPropagation()}
+              align="center"
+            >
               {footerEnd}
             </Flex>
           )}
@@ -174,16 +194,24 @@ export const EntityCard = memo(function EntityCard({
               transition="opacity 0.15s ease"
             >
               {quickActions.map((action) => (
-                <Tooltip key={action.label} label={action.label} fontSize="xs" hasArrow>
+                <Tooltip
+                  key={action.label}
+                  content={action.label}
+                  contentProps={{ fontSize: "xs" }}
+                  showArrow
+                >
                   <IconButton
                     aria-label={action.label}
-                    icon={<Icon as={action.icon} boxSize={3.5} />}
                     size="xs"
                     variant="ghost"
                     color="text.secondary"
                     _hover={{ color: "text.brand", bg: "bg.brand.subtle" }}
                     onClick={action.onClick}
-                  />
+                  >
+                    <Icon boxSize={3.5}>
+                      <action.icon />
+                    </Icon>
+                  </IconButton>
                 </Tooltip>
               ))}
             </Flex>

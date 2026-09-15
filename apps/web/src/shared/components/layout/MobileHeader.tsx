@@ -1,5 +1,6 @@
 import { memo } from "react";
-import { Avatar, Flex, IconButton, Image, Text } from "@chakra-ui/react";
+import { Flex, IconButton, Image, Text } from "@chakra-ui/react";
+import { Avatar } from "@/components/ui/avatar";
 import { FiMenu } from "@/shared/components/icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/modules/auth";
@@ -9,7 +10,9 @@ interface MobileHeaderProps {
   onOpenSidebar: () => void;
 }
 
-export const MobileHeader = memo(function MobileHeader({ onOpenSidebar }: MobileHeaderProps) {
+export const MobileHeader = memo(function MobileHeader({
+  onOpenSidebar,
+}: MobileHeaderProps) {
   const { t } = useTranslation("common");
   const { user } = useAuth();
 
@@ -31,13 +34,14 @@ export const MobileHeader = memo(function MobileHeader({ onOpenSidebar }: Mobile
       <Flex align="center" gap={3}>
         <IconButton
           aria-label={t("layout.openMenu")}
-          icon={<FiMenu />}
           variant="ghost"
           size="sm"
           onClick={onOpenSidebar}
           minW="40px"
           minH="40px"
-        />
+        >
+          <FiMenu />
+        </IconButton>
         <Flex align="center" gap={2}>
           <Image
             src={pomboIcon}
@@ -48,7 +52,12 @@ export const MobileHeader = memo(function MobileHeader({ onOpenSidebar }: Mobile
             objectFit="cover"
             flexShrink={0}
           />
-          <Text fontSize="sm" fontWeight="700" color="text.primary" letterSpacing="-0.01em">
+          <Text
+            fontSize="sm"
+            fontWeight="700"
+            color="text.primary"
+            letterSpacing="-0.01em"
+          >
             Pombo
           </Text>
         </Flex>

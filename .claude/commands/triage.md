@@ -112,7 +112,7 @@ Write **exactly** this structure (the spec.md template, populated from the three
 | **Branch** | `<branch>` |
 | **Date** | YYYY-MM-DD |
 | **Size / Risk** | [S/M/L from Engineer] / [Low/Medium/High from Architect] |
-| **Specialist** | `[/backend | /frontend | /fullstack]` — [one-sentence reason] |
+| **Specialist** | `[/backend | /frontend | /fullstack | /ai-backend]` — [one-sentence reason] |
 
 ## 1. Goal
 [One paragraph — the user outcome, anchored on the Product brief's goal.]
@@ -158,7 +158,7 @@ Invoke the recommended specialist via the `Skill` tool, passing the **spec path 
 
 ```
 Skill({
-  skill: "[backend | frontend | fullstack ]",
+  skill: "[backend | frontend | fullstack | ai-backend]",
   args: "Task Spec: .claude/specs/<slug>.md\n\n<the spec content verbatim>"
 })
 ```
@@ -183,7 +183,7 @@ After the specialist returns, the lifecycle continues normally (`/finish-task` f
 | `/start-task` | Runs first (worktree creation). `/triage` runs immediately after. |
 | `/architect` | Heavyweight spec for L-sized / High-risk features. `/triage` escalates to it; never replaces it. |
 | `/brainstorm` | Divergent design exploration BEFORE the task is shaped. `/triage` runs AFTER the task is shaped. |
-| `/backend`, `/frontend`, `/fullstack` | Consume the Task Spec from `/triage` as `$ARGUMENTS`. They run their own Step 0 (knowledge) + Step 0.5 (BASELINE) + Step 0.75 (contract) on top. |
+| `/backend`, `/frontend`, `/fullstack`, `/ai-backend` | Consume the Task Spec from `/triage` as `$ARGUMENTS`. They run their own Step 0 (knowledge) + Step 0.5 (BASELINE) + Step 0.75 (contract) on top. |
 | `/normalize` | Independent — for auditing existing code. `/triage` is for incoming work. |
 
 ---

@@ -1,14 +1,23 @@
-import { Box, Flex, Grid, Skeleton, SkeletonCircle, VStack } from "@chakra-ui/react";
+import {
+  Box,
+  Flex,
+  Grid,
+  Skeleton,
+  SkeletonCircle,
+  VStack,
+} from "@chakra-ui/react";
 import { SectionCardSkeleton } from "./SectionCardSkeleton";
 
 interface DetailPageSkeletonProps {
   variant?: "two-column" | "profile" | "single";
 }
 
-export function DetailPageSkeleton({ variant = "two-column" }: DetailPageSkeletonProps) {
+export function DetailPageSkeleton({
+  variant = "two-column",
+}: DetailPageSkeletonProps) {
   if (variant === "profile") {
     return (
-      <VStack spacing={5} align="stretch">
+      <VStack gap={5} align="stretch">
         <Flex align="center" gap={4}>
           <SkeletonCircle size="16" />
           <Box flex={1}>
@@ -24,7 +33,7 @@ export function DetailPageSkeleton({ variant = "two-column" }: DetailPageSkeleto
 
   if (variant === "single") {
     return (
-      <VStack spacing={5} align="stretch">
+      <VStack gap={5} align="stretch">
         <SectionCardSkeleton lines={4} />
         <SectionCardSkeleton lines={6} />
       </VStack>
@@ -33,11 +42,11 @@ export function DetailPageSkeleton({ variant = "two-column" }: DetailPageSkeleto
 
   return (
     <Grid templateColumns={{ base: "1fr", lg: "3fr 2fr" }} gap={5}>
-      <VStack spacing={5} align="stretch">
+      <VStack gap={5} align="stretch">
         <SectionCardSkeleton lines={5} />
         <SectionCardSkeleton lines={4} />
       </VStack>
-      <VStack spacing={5} align="stretch">
+      <VStack gap={5} align="stretch">
         <SectionCardSkeleton lines={3} />
         <SectionCardSkeleton lines={3} />
       </VStack>

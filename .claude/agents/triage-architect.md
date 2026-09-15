@@ -47,10 +47,12 @@ Identify which areas of the codebase the task touches. Use `Glob` and `Grep` agg
 
 | Signal in the task | What to inspect |
 |---|---|
-| Mentions an entity (`user`, `profile`, ...) | `apps/api/prisma/schema.prisma` (the model + relations + indexes), `apps/api/src/modules/<domain>/domain/entity/{entity}.entity.ts`, `apps/api/src/modules/<domain>/application/use-case/{feature}/` |
+| Mentions an entity (`device`, `outbox message`, `api token`, ...) | `apps/api/prisma/schema.prisma` (the model + relations + indexes), `apps/api/src/modules/<domain>/domain/entity/{entity}.entity.ts`, `apps/api/src/modules/<domain>/application/use-case/{feature}/` |
 | Mentions an endpoint or "API" | `apps/api/src/modules/<domain>/infrastructure/route/` (the feature route file) + `apps/api/src/core/http/routes/index.ts` (the aggregator) |
 | Mentions a UI page / button / filter | `apps/web/src/modules/{feature}/presentation/` (find the page, hook, component) |
 | Mentions a worker / queue / job | `apps/api/src/core/bootstrap/` + `apps/api/src/modules/<domain>/application/use-case/**/jobs/` |
+| Mentions the WhatsApp socket / session / QR / reconnect | `apps/api/src/modules/devices/infrastructure/provider/` (Baileys adapter, session manager, reconnect policy) + `core/service/whatsapp/` |
+| Mentions LLM / AI / RAG | `apps/api/src/modules/ai/` (does not exist yet — the task builds the foundation; route to `/ai-backend`) |
 
 If the task is cross-layer (FE + BE), look at both. If the user gave a Jira ID with no other detail, look at the most recently changed module via `git log --oneline -10 -- apps/api apps/web`.
 
@@ -61,9 +63,11 @@ For the surface you identified, answer these questions in your head before writi
 - **Layer placement.** Backend-only? Frontend-only? Both? Inside an existing module or a new one?
 - **Reuse.** Which existing entities, repositories, hooks, components, services cover part of this? Cite paths.
 - **Contract impact.** Does this change a response shape, an `ErrorCode`, an env var, a route path? If yes, both layers + i18n + config must move in lockstep (R20, R21).
-- **Migration impact.** Does this require a Prisma migration? Is the affected table already large in production?
-- **Ownership + soft delete.** Are the affected reads/writes obviously scoped to their owner? (R1, R2)
-- **Risk class.** Low (CRUD on existing entity), Medium (cross-module + new table), High (auth / permissions / migration on busy table / new public endpoint).
+- **Migration impact.** Does this require a Prisma migration? Is the affected table multi-tenant? Is the table already large in production?
+- **Multi-tenancy + soft delete.** Are the affected reads/writes obviously scoped? (R1, R2)
+- **Gateway surface.** Does this touch the Baileys session, the outbox/drain, the send limiter/pacer, or webhook signing? If yes, name the invariant at risk (write-before-send, single-replica lock, no double-drain).
+- **AI infra.** Does this touch an LLM, RAG, embeddings? If yes, route the implementer to `/ai-backend` (B-C13/R23).
+- **Risk class.** Low (CRUD on existing entity), Medium (cross-module + new table), High (auth / API tokens / session keys / webhook signing / migration on busy table / new public endpoint).
 
 ### Step 3 — Produce the brief
 
@@ -73,7 +77,7 @@ Output **exactly** this structure (Markdown, ≤ 60 lines total). The parent `/t
 ## Architect brief
 
 ### Layer & module placement
-- [1–2 bullets — concrete: "Lives in apps/api/src/modules/user (backend) + apps/web/src/modules/settings (frontend). New use case UpdateUserProfileUseCase."]
+- [1–2 bullets — concrete: "Lives in apps/api/src/modules/devices (backend) + apps/web/src/modules/devices (frontend). New use case ListDeviceGroupsUseCase."]
 
 ### Existing pieces to reuse
 | Piece | Path | How |
@@ -81,7 +85,7 @@ Output **exactly** this structure (Markdown, ≤ 60 lines total). The parent `/t
 | [entity / repo / hook / component / service] | [path] | [one sentence] |
 
 ### Contract / migration impact
-- [bullets — empty if none. Be explicit: "Adds new field `avatarUrl`. New ErrorCode USER_AVATAR_INVALID. No migration needed (column nullable, default null)."]
+- [bullets — empty if none. Be explicit: "Adds new field `lastConnectedAt`. New ErrorCode DEVICE_OFFLINE. No migration needed (column nullable, default null)."]
 
 ### Multi-tenancy / soft delete checks
 - [bullets — explicit pass/fail for the affected reads and writes]
@@ -97,7 +101,7 @@ Output **exactly** this structure (Markdown, ≤ 60 lines total). The parent `/t
 2. ...
 
 ### Recommended specialist
-- `[/backend | /frontend | /fullstack]` — [one-sentence reason]
+- `[/backend | /frontend | /fullstack | /ai-backend]` — [one-sentence reason]
 ```
 
 **Rules for the brief:**

@@ -28,6 +28,15 @@ case "$file" in
   *apps/web/src/app/theme/*) exit 0 ;;
 esac
 
+# Skip the Chakra v3 snippets — vendored design-system primitives, not feature
+# code. `color-mode.tsx` *defines* useColorMode (F-H16 can't tell a definition
+# from a call site) and `toaster.tsx` owns the toast's fixed light palette,
+# which is deliberately mode-independent. Same rationale as the
+# `react-refresh/only-export-components` override in apps/web/.eslintrc.cjs.
+case "$file" in
+  *apps/web/src/components/ui/*) exit 0 ;;
+esac
+
 [ -f "$file" ] || exit 0
 
 warn() {
@@ -38,6 +47,16 @@ warn() {
 if grep -nEi '\b(yellow|orange|amber|gold)\.[0-9]{2,3}|#(ff[a-f0-9]{2}00|ffd700|ffa500|ff8c00)\b' "$file" >/dev/null; then
   lines="$(grep -nEi '\b(yellow|orange|amber|gold)\.[0-9]{2,3}|#(ff[a-f0-9]{2}00|ffd700|ffa500|ff8c00)\b' "$file" | head -3)"
   warn "F-C3: yellow/orange/amber/gold detected — project rule forbids these. Use 'purple' for warnings, 'red' for errors, 'accent' (green) for success. Lines: $lines"
+fi
+
+# F-C21: Chakra v2 props that SILENTLY survive into v3.
+# `colorScheme` is the dangerous one: v3's generated types repurpose it as the
+# native CSS `color-scheme` property (typed as a free string), so a leftover
+# `colorScheme="brand"` type-checks and lints clean while the component quietly
+# loses its palette. tsc cannot catch this class — only a grep can.
+if grep -nE '\bcolorScheme=' "$file" >/dev/null; then
+  lines="$(grep -nE '\bcolorScheme=' "$file" | head -3)"
+  warn "F-C21: \`colorScheme\` is a Chakra v2 prop — v3 renamed it to \`colorPalette\`. It still type-checks (v3 maps it to the CSS \`color-scheme\` property), so the component silently loses its palette. Lines: $lines"
 fi
 
 # F-C2: hardcoded hex outside theme
@@ -117,7 +136,7 @@ case "$file" in
 esac
 
 # F-C6 (reinforce): `queryKeys.X.all` em invalidateQueries — invalidação ampla
-# (refetch de TODOS os shards). Use sub-keys (.byPatient, .byMonth, etc).
+# (refetch de TODOS os shards). Use sub-keys (.detail(id), .list(params), .linked*(id)).
 if grep -nE 'invalidateQueries\s*\(\s*\{\s*queryKey:\s*queryKeys\.[a-zA-Z]+\.all' "$file" >/dev/null; then
   lines="$(grep -nE 'invalidateQueries\s*\(\s*\{\s*queryKey:\s*queryKeys\.[a-zA-Z]+\.all' "$file" | head -3)"
   warn "F-C6: invalidateQueries(queryKeys.X.all) — invalidação ampla. Preferir sub-key cirúrgico (.detail(id), .list(params)). Lines: $lines"

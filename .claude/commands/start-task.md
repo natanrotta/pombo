@@ -22,9 +22,9 @@ Arguments: `$ARGUMENTS` — can be:
 
 Run `git rev-parse --show-toplevel` and `git rev-parse --git-common-dir`.
 
-- The main checkout is at `/Users/natanrotta/Documents/repository/boilerplate`.
+- The main checkout is at `/Users/natanrotta/Documents/repositories/pombo`.
 - If `show-toplevel` is NOT the main checkout: the user is already inside a worktree. Abort with:
-  > "You are already in a worktree at `<path>`. Run `/start-task` from the main checkout at `~/Documents/repository/boilerplate`."
+  > "You are already in a worktree at `<path>`. Run `/start-task` from the main checkout at `~/Documents/repositories/pombo`."
 
 ### 2. Fetch latest develop
 
@@ -60,19 +60,19 @@ Parse `$ARGUMENTS`. Keep the **full original text** as the `TASK_BRIEF` variable
 
 Worktree path convention (fixed):
 ```
-~/Documents/repository/boilerplate-worktrees/<branch-name-sanitized>
+~/Documents/repositories/pombo-worktrees/<branch-name-sanitized>
 ```
 
 Where `<branch-name-sanitized>` replaces `/` with `+` (e.g. `feature/DEVEL-1234-foo` → `feature+DEVEL-1234-foo`).
 
 Create the parent directory if it doesn't exist:
 ```bash
-mkdir -p ~/Documents/repository/boilerplate-worktrees
+mkdir -p ~/Documents/repositories/pombo-worktrees
 ```
 
 Create the worktree with a **new branch** based on `origin/develop`:
 ```bash
-git worktree add ~/Documents/repository/boilerplate-worktrees/<sanitized> -b <branch> origin/develop
+git worktree add ~/Documents/repositories/pombo-worktrees/<sanitized> -b <branch> origin/develop
 ```
 
 If `git worktree add` fails because the branch already exists, report the error and ask the user whether to:
@@ -84,7 +84,7 @@ If `git worktree add` fails because the branch already exists, report the error 
 The worktree starts with a fresh working tree but `.env` files are not tracked. Copy them from the main checkout so the worktree is usable immediately:
 
 ```bash
-MAIN=/Users/natanrotta/Documents/repository/boilerplate
+MAIN=/Users/natanrotta/Documents/repositories/pombo
 WT=<worktree-path>
 for f in .env apps/api/.env apps/web/.env apps/api/.env.local apps/web/.env.local; do
   if [ -f "$MAIN/$f" ]; then mkdir -p "$(dirname "$WT/$f")"; cp "$MAIN/$f" "$WT/$f"; fi
@@ -128,7 +128,7 @@ Instead, immediately continue with the task lifecycle in the current conversatio
 3. **All tool calls from this point on must target the worktree path**, not the main checkout:
    - Absolute paths rooted at the worktree (preferred for `Read`, `Edit`, `Write`, `Glob`, `Grep`).
    - `cd <worktree-path> && …` for `Bash` commands that must run with the worktree as cwd (tests, yarn scripts, git commands).
-   - Never edit files in `/Users/natanrotta/Documents/repository/boilerplate/**` — that's the main checkout and would corrupt it.
+   - Never edit files in `/Users/natanrotta/Documents/repositories/pombo/**` — that's the main checkout and would corrupt it.
 4. After implementation, invoke `/finish-task` from the worktree directory.
 5. After the PR is merged, the user runs `/cleanup-task` from anywhere.
 

@@ -13,7 +13,11 @@ import { NumberField } from "@/shared/components/forms/NumberField";
 import { TextAreaField } from "@/shared/components/forms/TextAreaField";
 import { useFormState } from "@/shared/hooks/useFormState";
 import { useNotify } from "@/shared/hooks/useNotify";
-import { maskPhoneBr, unformatPhone, formatPhoneDisplay } from "@/shared/utils/phone";
+import {
+  maskPhoneBr,
+  unformatPhone,
+  formatPhoneDisplay,
+} from "@/shared/utils/phone";
 import { ROUTE_PATHS } from "@/app/router/RoutePaths";
 import { useDevicesList, useDeviceGroups } from "@/modules/devices";
 import {
@@ -29,7 +33,12 @@ import {
   type SendMessageResult,
 } from "@/modules/messaging/domain/entities/Message";
 
-const MEDIA_TYPES: readonly MessageType[] = ["image", "audio", "video", "document"];
+const MEDIA_TYPES: readonly MessageType[] = [
+  "image",
+  "audio",
+  "video",
+  "document",
+];
 const MESSAGE_TYPES: readonly SandboxMessageType[] = [
   "text",
   "image",
@@ -300,17 +309,21 @@ export function SandboxPage() {
           onAction={() => navigate(ROUTE_PATHS.devices)}
         />
       ) : (
-        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={5} alignItems="start">
+        <SimpleGrid columns={{ base: 1, lg: 2 }} gap={5} alignItems="start">
           {/* Compose (request) */}
           <SectionCard>
             <Flex direction="column" gap={4}>
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+              <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
                 <SelectField
                   label={t("fields.device")}
                   options={deviceOptions}
                   value={form.formData.deviceId}
                   onChange={(v) => setField("deviceId", v)}
-                  error={form.errors.deviceId ? t("errors.deviceRequired") : undefined}
+                  error={
+                    form.errors.deviceId
+                      ? t("errors.deviceRequired")
+                      : undefined
+                  }
                 />
                 <SelectField
                   label={t("fields.type")}
@@ -337,10 +350,14 @@ export function SandboxPage() {
                   placeholder={t("fields.phonePlaceholder")}
                   value={form.formData.phone}
                   onChange={(v) => setField("phone", maskPhoneBr(v))}
-                  error={form.errors.phone ? t("errors.phoneInvalid") : undefined}
+                  error={
+                    form.errors.phone ? t("errors.phoneInvalid") : undefined
+                  }
                   inputMode="tel"
                   recents={recents}
-                  onSelectRecent={(digits) => setField("phone", maskPhoneBr(digits))}
+                  onSelectRecent={(digits) =>
+                    setField("phone", maskPhoneBr(digits))
+                  }
                   onRemoveRecent={removeRecipient}
                 />
               )}
@@ -351,7 +368,9 @@ export function SandboxPage() {
                   placeholder={t("fields.textPlaceholder")}
                   value={form.formData.text}
                   onChange={(v) => setField("text", v)}
-                  error={form.errors.text ? t("errors.textRequired") : undefined}
+                  error={
+                    form.errors.text ? t("errors.textRequired") : undefined
+                  }
                   rows={6}
                 />
               )}
@@ -364,7 +383,11 @@ export function SandboxPage() {
                     helperText={t("fields.mediaHelper")}
                     value={form.formData.mediaUrl}
                     onChange={(v) => setField("mediaUrl", v)}
-                    error={form.errors.mediaUrl ? t("errors.mediaRequired") : undefined}
+                    error={
+                      form.errors.mediaUrl
+                        ? t("errors.mediaRequired")
+                        : undefined
+                    }
                   />
                   {messageType === "document" && (
                     <FormField
@@ -408,11 +431,13 @@ export function SandboxPage() {
                   {t("actions.clear")}
                 </Button>
                 <Button
-                  colorScheme="brand"
-                  leftIcon={<Icon as={FiSend} />}
+                  colorPalette="brand"
                   onClick={handleSend}
-                  isLoading={isSending}
+                  loading={isSending}
                 >
+                  <Icon>
+                    <FiSend />
+                  </Icon>
                   {t("actions.send")}
                 </Button>
               </Flex>

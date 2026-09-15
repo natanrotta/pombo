@@ -35,7 +35,7 @@ Apply headline patterns, CTA insights, and tone calibration from previous runs. 
 Ask (if not provided):
 
 1. **Which page?** — Landing page, pricing, feature page, onboarding, email, in-app?
-2. **Who reads this?** — The target customer for the product built on this boilerplate (define the persona per project), an admin, a prospect?
+2. **Who reads this?** — A developer/integrator evaluating a WhatsApp gateway API, the operator who will run the account, a prospect comparing with an official-API vendor?
 3. **What's the desired action?** — Signup, schedule demo, start trial, upgrade?
 4. **What's the traffic context?** — How did the user get here? (Google, referral, ad, email)
 5. **Desired tone?** — Professional, conversational, technical, aspirational?
@@ -57,7 +57,7 @@ Ask (if not provided):
 | `The [Category] for [Audience]` | "The starter kit for solo founders" |
 | `[Action] [Object] in [Time]` | "Find any record in 2 seconds" |
 | `[Number] [Audience] already [Result]` | "500+ teams already shipping on this stack" |
-| `Stop [Pain]. Start [Benefit]` | "Stop rebuilding boilerplate. Start building your product" |
+| `Stop [Pain]. Start [Benefit]` | "Stop babysitting WhatsApp sessions. Start shipping messages" |
 
 ### CTA Rules
 **Formula:** `[Action Verb] + [What they get] + [Optional qualifier]`

@@ -12,7 +12,10 @@ declare module "vitest" {
   // diverging type parameters here would conflict at type-check time.
   /* eslint-disable @typescript-eslint/no-explicit-any */
   interface Assertion<T = any> extends TestingLibraryMatchers<any, T> {}
-  interface AsymmetricMatchersContaining extends TestingLibraryMatchers<any, any> {}
+  interface AsymmetricMatchersContaining extends TestingLibraryMatchers<
+    any,
+    any
+  > {}
   /* eslint-enable @typescript-eslint/no-explicit-any */
 }
 
@@ -45,23 +48,26 @@ afterEach(() => {
   }
 });
 
-// jsdom doesn't implement these — Chakra/Framer Motion read both during render.
+// jsdom doesn't implement these — Chakra v3 / next-themes / Framer Motion read
+// them during render. `matchMedia` is a PLAIN function (not a `vi.fn`) so that
+// test files calling `vi.clearAllMocks()` can't wipe its implementation and make
+// next-themes read `.matches` off `undefined`.
 if (typeof window !== "undefined") {
-  if (!window.matchMedia) {
-    Object.defineProperty(window, "matchMedia", {
-      writable: true,
-      value: vi.fn().mockImplementation((query: string) => ({
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    configurable: true,
+    value: (query: string): MediaQueryList =>
+      ({
         matches: false,
         media: query,
         onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      })),
-    });
-  }
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }) as unknown as MediaQueryList,
+  });
 
   // Element.scrollIntoView — used by the chat auto-scroll effect.
   if (!Element.prototype.scrollIntoView) {
@@ -79,6 +85,30 @@ if (typeof window !== "undefined") {
     }
   }
   const globalRef = window as unknown as Record<string, unknown>;
-  if (!globalRef.IntersectionObserver) globalRef.IntersectionObserver = StubObserver;
+  if (!globalRef.IntersectionObserver)
+    globalRef.IntersectionObserver = StubObserver;
   if (!globalRef.ResizeObserver) globalRef.ResizeObserver = StubObserver;
+
+  // jsdom ships no `PointerEvent` at all. Chakra v3's press tracking (zag's
+  // `dom-query/press`) constructs one on blur to cancel an in-flight press, so
+  // ANY zag control that is clicked and then loses focus — menu item, dialog
+  // trigger, select — throws an unhandled `PointerEvent is not a constructor`
+  // out of an event listener. Vitest reports it as an unhandled error and exits
+  // non-zero even though every assertion passed: a red suite with a green report.
+  //
+  // Subclassing MouseEvent is enough — the handler only needs the constructor
+  // and `pointerId`/`pointerType` off the instance.
+  if (!globalRef.PointerEvent) {
+    class StubPointerEvent extends MouseEvent {
+      readonly pointerId: number;
+      readonly pointerType: string;
+
+      constructor(type: string, params: PointerEventInit = {}) {
+        super(type, params);
+        this.pointerId = params.pointerId ?? 0;
+        this.pointerType = params.pointerType ?? "mouse";
+      }
+    }
+    globalRef.PointerEvent = StubPointerEvent;
+  }
 }
