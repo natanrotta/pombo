@@ -133,8 +133,8 @@ FE_CALLS_FILE="${TMPDIR_LOCAL}/fe-calls.txt"
 : > "${FE_CALLS_FILE}"
 
 # Two FE call conventions coexist in this repo:
-#   (a) httpClient.<verb><T>("/path")            — e.g. HttpPatientRepository
-#   (b) destructured helpers get/post/put/patch/del<T>("/path") — e.g. HttpWorkplaceRepository
+#   (a) httpClient.<verb><T>("/path")            — e.g. HttpDeviceRepository
+#   (b) destructured helpers get/post/put/patch/del<T>("/path") — e.g. HttpUserRepository
 # Both are often multi-line (path on the next line) — the awk pass joins them.
 # For (b), requiring the first arg to start with "/" kills generic false hits.
 fe_call_re='httpClient\.(get|post|put|patch|delete)[^(]*\([[:space:]]*[`"]([^`"]+)[`"]'

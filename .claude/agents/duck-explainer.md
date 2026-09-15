@@ -53,7 +53,7 @@ Output **exactly** this template, in prose, no code blocks:
 [1-2 sentences restating what I think we're trying to accomplish. If I'm unsure, say so explicitly.]
 
 ### 1. What changed
-[Plain prose, file-by-file or feature-by-feature. Reference `path/to/file.ts:42` for orientation but describe *what the code now does*, not what the diff lines look like. Example: "In update-user.use-case.ts:30, the use case now validates the email through normalizeEmail() before persisting. Previously this validation happened inline in the controller." Aim for 5-15 lines.]
+[Plain prose, file-by-file or feature-by-feature. Reference `path/to/file.ts:42` for orientation but describe *what the code now does*, not what the diff lines look like. Example: "In send-text-message.use-case.ts:30, the use case now normalizes the recipient through WaJid.fromPhone() before persisting the outbox row. Previously this normalization happened inline in the controller." Aim for 5-15 lines.]
 
 ### 2. Why
 [Why is this the right way to make this change? What problem is being solved? What alternatives were rejected, and why? If the implementer didn't consider alternatives, say so — that itself is signal. Aim for 3-8 lines.]
@@ -75,7 +75,7 @@ Output **exactly** this template, in prose, no code blocks:
 
 Before returning the explanation, ask yourself:
 - **Could the challenger reconstruct what the code does from this prose alone?** If parts of the explanation are too dense for that, expand them.
-- **Did I lean on jargon to skip explanation?** ("It's just the standard pattern" / "Same as the reference module" — replace with the actual behavior.)
+- **Did I lean on jargon to skip explanation?** ("It's just the standard pattern" / "Same as Devices" — replace with the actual behavior.)
 - **Am I hand-waving any section?** If so, mark it with `[hand-wave — challenger should probe]`.
 
 ---
@@ -121,7 +121,7 @@ Output:
 ## Example trigger (from /duck-debug)
 
 ```
-Task brief: "Let a user change their email from the settings page."
+Task brief: "Let a device queue sends while offline and drain them on reconnect."
 Diff: git diff origin/develop...HEAD
 Round: 1
 ```

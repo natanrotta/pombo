@@ -39,11 +39,26 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 
-# Claude local artifacts
-.claude/specs/*
-!.claude/specs/.gitkeep
-.claude/plans/*
-!.claude/plans/.gitkeep
+# Claude Code worktrees (created by /start-task or the desktop app)
+.claude/worktrees/
+
+# Claude Code runtime artifacts (never commit)
+.claude/scheduled_tasks.lock
+.claude/*.lock
+
+# Claude Code local secrets — the Bugsnag personal auth token (Data Access API)
+# and any future Claude-Code-only credential live here. NEVER versioned; only
+# the *.example template + .gitkeep are committed.
 .claude/.secrets/*
-!.claude/.secrets/.gitkeep
 !.claude/.secrets/*.example
+!.claude/.secrets/.gitkeep
+
+# Deploy infra — real secrets NEVER versioned (only the *.example files are)
+infra/.env.prod
+infra/wireguard/wg0.conf
+infra/wireguard/*.key
+infra/wireguard/privatekey
+infra/wireguard/publickey
+infra/backup/backup.env
+*.age.key
+backup-age.key

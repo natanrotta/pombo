@@ -23,10 +23,10 @@ Always-required:
 Always-required when writing UI tests:
 4. **`apps/web/playwright.config.ts`** — confirms which Playwright project the new spec belongs to (default: `chromium` — the only module-spec project today).
 5. **`apps/web/e2e/global.setup.ts`** + **`apps/web/e2e/fixtures/auth.fixture.ts`** + **`apps/web/e2e/fixtures/test-data.ts`** — the fixture surface you must reuse.
-6. **`apps/web/e2e/fixtures/api-client.ts`** — authenticated REST helper for non-assertion setup/cleanup. Read it before adding API calls; extend its per-module helpers (`userApi`, etc.) rather than inlining `fetch` in specs.
-7. **A signed synthetic-webhook fixture** (if the app has an inbound webhook) — required reading for any spec that exercises webhook side effects. See `patterns/e2e.md` § Webhooks.
+6. **`apps/web/e2e/fixtures/api-client.ts`** — authenticated REST helper for non-assertion setup/cleanup. Read it before adding API calls; extend its per-module helpers (`deviceApi`, etc. — add the first one) rather than inlining `fetch` in specs.
+7. **A signed synthetic-webhook fixture** (create it if a spec ever needs an inbound webhook) — see `patterns/e2e.md` § Webhooks. Pombo's own webhooks are *outbound* (signed with the device secret): to assert them, point the device at a local receiver fixture, never at the internet.
 8. **`apps/web/e2e/fixtures/preflight.ts`** — env preflight (web up? API up? seed account?). Don't bypass it.
-9. **The `auth` module specs (`apps/web/e2e/tests/auth/*` + `apps/web/e2e/pages/LoginPage.ts`)** — the **canonical reference implementation**. New module coverage must mirror its shape (POM structure, spec skeleton, cleanup loop, bilingual assertions). When in doubt, re-read the sign-in + password-reset specs; they cover happy paths, negative paths, and a `browser.newContext()` mobile case.
+9. **The existing spec (`apps/web/e2e/tests/auth.spec.ts`)** — today the only spec, and the template for the skeleton + bilingual assertions. There are no Page Objects yet: the first module you cover (`devices` is the natural candidate) creates `e2e/pages/<Module>ListPage.ts` + `e2e/tests/<module>/` per `patterns/e2e.md` and becomes the canonical reference from then on. Never bundle flows into one file to "match" `auth.spec.ts` — the flat single file is the boilerplate seed, not the convention.
 
 Always-required when targeting a specific module:
 7. **`apps/web/src/modules/<module>/`** — list pages, components, hooks. Read `presentation/pages/` to find route URLs and on-screen titles. Read `presentation/components/` to discover modal/form structure. Read `presentation/hooks/` to learn debounce values, optimistic update behaviour, list paging.
@@ -59,11 +59,11 @@ You receive one of these scopes via the orchestrator's prompt or `$ARGUMENTS`:
 
 | Scope | Example | Behavior |
 |---|---|---|
-| **Cover module** | "cover the `settings` module" | Plan + write the full flow set from the coverage rubric (`patterns/e2e.md` § "Coverage rubric"). Skip flows the UI doesn't support; explain why. |
-| **Add flow** | "add a `profile-edit.spec.ts` to settings" | Write one focused spec + add any missing POM methods. |
-| **Fix flaky spec** | "fix `sign-in.spec.ts` — it fails on CI intermittently" | Read the failing spec + the POM + the source page; diagnose; minimal patch. |
-| **Expand POM only** | "add a theme-toggle helper to `SettingsPage`" | POM-only change, no new spec file. |
-| **Audit + fix** | "the auditor flagged E-C3 / E-H1 in `sign-in.spec.ts` — fix them" | Targeted patch matching the codes cited. |
+| **Cover module** | "cover the `devices` module" | Plan + write the full flow set from the coverage rubric (`patterns/e2e.md` § "Coverage rubric"). Skip flows the UI doesn't support (a QR pairing can't complete without a phone — assert the modal + polling state, not the pairing); explain why. |
+| **Add flow** | "add a `device-webhooks-edit.spec.ts` to devices" | Write one focused spec + add any missing POM methods. |
+| **Fix flaky spec** | "fix `message-send.spec.ts` — it fails on CI when the device is offline" | Read the failing spec + the POM + the source page; diagnose; minimal patch. |
+| **Expand POM only** | "add QR-modal helpers to `DevicesListPage`" | POM-only change, no new spec file. |
+| **Audit + fix** | "the auditor flagged E-C3 / E-H1 in `device-delete.spec.ts` — fix them" | Targeted patch matching the codes cited. |
 
 If the scope is ambiguous (the user names only a feature, not a module), ask **one** batched clarifying question before writing — never two rounds.
 
@@ -98,8 +98,8 @@ Output **one paragraph** (≤6 lines): files you'll create/edit, the flow set yo
 Order:
 1. **Fixtures first**:
    - Extend `test-data.ts` if a new `createUnique<Entity>()` is needed.
-   - Extend `api-client.ts` if the spec needs API-driven setup/cleanup — add a typed `<entity>Api` block following the `userApi` example. Never inline raw `fetch` in a spec.
-   - Reach for a signed synthetic-webhook fixture only when testing webhook side effects.
+   - Extend `api-client.ts` if the spec needs API-driven setup/cleanup — add a typed `<entity>Api` block (`deviceApi` first). Never inline raw `fetch` in a spec.
+   - Reach for a signed synthetic-webhook fixture only when testing inbound-webhook side effects.
 2. **POM second** (new file or surgical method additions). Locators come straight from the POM skeleton in `patterns/e2e.md`. Build the locators by reading the on-screen text in the locale JSONs — never guess strings.
 3. **Specs last**, one flow per file. Each spec:
    - Imports `test, expect` from `../../fixtures/auth.fixture`.

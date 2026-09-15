@@ -117,7 +117,7 @@ case "$file" in
 esac
 
 # F-C6 (reinforce): `queryKeys.X.all` em invalidateQueries — invalidação ampla
-# (refetch de TODOS os shards). Use sub-keys (.byPatient, .byMonth, etc).
+# (refetch de TODOS os shards). Use sub-keys (.detail(id), .list(params), .linked*(id)).
 if grep -nE 'invalidateQueries\s*\(\s*\{\s*queryKey:\s*queryKeys\.[a-zA-Z]+\.all' "$file" >/dev/null; then
   lines="$(grep -nE 'invalidateQueries\s*\(\s*\{\s*queryKey:\s*queryKeys\.[a-zA-Z]+\.all' "$file" | head -3)"
   warn "F-C6: invalidateQueries(queryKeys.X.all) — invalidação ampla. Preferir sub-key cirúrgico (.detail(id), .list(params)). Lines: $lines"

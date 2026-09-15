@@ -34,9 +34,11 @@ Pombo's UI is in pt-BR; users describe modules by label, not folder name. Resolv
 
 | User says | Module folder | Route key |
 |---|---|---|
-| "Login" / "Entrar" / "Autenticação" | `auth` | `ROUTE_PATHS.signIn` / `signUp` |
-| "Painel" / "Dashboard" | `dashboard` | `ROUTE_PATHS.dashboard` |
-| "Configurações" / "Perfil" | `settings` | `ROUTE_PATHS.settings` |
+| "Login" / "Entrar" / "Autenticação" / "Cadastro" | `auth` | `ROUTE_PATHS.signIn` / `register` / `forgotPassword` / `resetPassword` / `verifyEmail` |
+| "Dispositivos" / "Devices" / "QR" / "Webhooks" | `devices` | `ROUTE_PATHS.devices` / `deviceDetail` (the index route redirects here) |
+| "Sandbox" / "Enviar mensagem" / "Mensagens" | `messaging` | `ROUTE_PATHS.sandbox` |
+| "API" / "Token" / "Integração" | `account` | `ROUTE_PATHS.api` |
+| "Perfil" / "Configurações" | `settings` | `ROUTE_PATHS.profile` (`/perfil`; `/settings` is a legacy redirect) |
 
 If the user names a module that isn't in this table, grep `apps/web/src/modules/` to find it, then dispatch.
 
@@ -151,22 +153,22 @@ No "let me know if you want changes". The user owns the loop — they'll iterate
 ## Example dispatches
 
 ```
-User: "/test-e2e cobre o módulo de settings"
+User: "/test-e2e cobre o módulo de devices"
 
 Orchestrator:
-- Resolves "settings" → apps/web/e2e/tests/settings/, apps/web/src/modules/settings/
+- Resolves "devices" → apps/web/e2e/tests/devices/ (new), apps/web/src/modules/devices/
 - Baseline activated: R24 (tests mandatory).
-- Existing specs detected: profile-edit.
-- Coverage gap vs rubric: theme toggle, password change (if the UI supports them).
-- Dispatch subagent with Mode: cover-module, Target: settings. Brief notes "check coverage rubric and fill any negative-path gaps".
+- Existing specs detected: none for the module (only the flat auth.spec.ts template exists).
+- Coverage gap vs rubric: register (modal), list, detail + webhooks edit, delete; QR pairing can't complete without a phone → assert the modal + polling/error state only.
+- Dispatch subagent with Mode: cover-module, Target: devices. Brief notes "first module suite — create DevicesListPage POM + the per-module folder per patterns/e2e.md; add deviceApi to api-client.ts".
 ```
 
 ```
-User: "esse teste do sign-in.spec.ts tá flakeando no CI"
+User: "esse teste do auth.spec.ts tá flakeando no CI"
 
 Orchestrator:
 - Baseline activated: R24 (tests mandatory).
-- Dispatch subagent with Mode: fix-flaky, Target: apps/web/e2e/tests/auth/sign-in.spec.ts.
+- Dispatch subagent with Mode: fix-flaky, Target: apps/web/e2e/tests/auth.spec.ts.
 - Brief includes the failure mode and the constraint "minimal patch, no rewrite".
 ```
 

@@ -65,7 +65,7 @@ One line per Critical/High finding, even ones that will be auto-fixed immediatel
 
 If the user asks for a fix after the report, **do not patch the code yourself in this skill**. Either:
 
-- Recommend invoking `/backend` / `/frontend` / `/fullstack` to apply the fix; or
+- Recommend invoking `/backend` / `/frontend` / `/fullstack` / `/ai-backend` to apply the fix; or
 - If the user explicitly wants it done in this turn and the fix is unambiguous, exit this skill and hand the fix to the appropriate specialist.
 
 `/code-review` itself stays read-only.
@@ -94,7 +94,7 @@ If the user asks for a fix after the report, **do not patch the code yourself in
 ```
 
 ```
-/code-review files=apps/api/src/.../create-user.use-case.ts mode=quick
+/code-review files=apps/api/src/.../register-device.use-case.ts mode=quick
 ```
 
 $ARGUMENTS

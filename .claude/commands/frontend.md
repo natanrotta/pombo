@@ -17,7 +17,7 @@ You are a **senior frontend engineer** with deep mastery of this project's React
 ## Communication Style
 
 - Lead with the action, not the reasoning.
-- Reference real file paths: `modules/settings/presentation/pages/ProfilePage.tsx` as canonical examples.
+- Reference real file paths: `modules/devices/presentation/pages/DevicesListPage.tsx` as canonical examples.
 - When creating files, state the full path and layer (domain/infrastructure/presentation).
 - After completing work, run through the Pre-Delivery Checklist silently and fix issues before presenting.
 
@@ -88,7 +88,7 @@ During implementation: anything not covered by an AC does not get built (R27). I
 13. **Auto-save debounce = 1500ms; search debounce = 300ms** — match `useDetailPageController` / `useServerListPage`.
 14. **Every module has a barrel `index.ts`** (public API: entity types + public hooks). Reach another module ONLY through its barrel (`@/modules/<x>`), never a deep internal path. New modules ship the barrel from day one.
 15. **`presentation` NEVER imports `infrastructure` directly** — resolve the repository via `core/di` and consume it through a hook. Enforced as `no-restricted-imports` (warn) in `apps/web/.eslintrc.cjs`; the only sanctioned exception (dev-only quick-login) carries a documented `eslint-disable`.
-16. **Module-scoped code lives in its slot** under `presentation/`: `components`, `hooks`, `context` (a Context definition + its Provider — never loose in `presentation/`), `constants`, `styles`, `utils`, `types`. A module may own its routes in `routes.tsx`, aggregated by `app/router` (`{xRoutes()}`); e.g. `modules/settings/routes.tsx`.
+16. **Module-scoped code lives in its slot** under `presentation/`: `components`, `hooks`, `context` (a Context definition + its Provider — never loose in `presentation/`), `constants`, `styles`, `utils`, `types`. A module may own its routes in `routes.tsx`, aggregated by `app/router` (`{xRoutes()}`) — adopt it the first time a module grows past two routes.
 
 ---
 
@@ -172,7 +172,7 @@ For a new CRUD module, follow `.claude/patterns/frontend.md` § "Adding a New CR
 
 For each step, copy the canonical example in `.claude/patterns/frontend.md`. Do not invent patterns.
 
-**Canonical reference module:** `apps/web/src/modules/settings/` — copy its shape.
+**Canonical reference module:** `apps/web/src/modules/devices/` — most complete (list + detail + modals + action hooks); copy its shape.
 
 ---
 
@@ -258,7 +258,7 @@ The reviewer catches what regex cannot: ghost filter / dead state, dead-API surf
 
 ### Iteration 4 — Level 3: `/duck-debug` (Rubber Duck, only for M/L tasks)
 
-Skip if trivial (typo / rename / one-liner / test-only / styling-only). **Run** if any of: ≥4 files; new module; new repository / hook; auth / resource-ownership surface; cross-layer contract change.
+Skip if trivial (typo / rename / one-liner / test-only / styling-only). **Run** if any of: ≥4 files; new module; new repository / hook; auth / multi-tenant / PII surface; cross-layer contract change.
 
 Invoke `/duck-debug` via the `Skill` tool with a 2-3 sentence task brief. Emits verdict CLEAN / GAPS / DESIGN-SMELL.
 

@@ -1,7 +1,7 @@
 # Backend — Module-First Architecture
 
 > Canonical reference for how `apps/api/src` is organized. Every backend
-> specialist (`/backend`, `/fullstack`) defers to this doc for
+> specialist (`/backend`, `/fullstack`, `/ai-backend`) defers to this doc for
 > **where a file goes**. The layering rules (Clean Architecture, dependency
 > direction) are unchanged — this doc only changes the *physical organization*
 > from **layer-first** to **module-first**.
@@ -14,8 +14,8 @@ files are grouped into **singular type subfolders** (`use-case/`, `dto/`,
 `entity/`, `controller/`…). The file path *is* the documentation:
 
 ```
-modules/user/application/use-case/update-user.use-case.ts
-   └ module  └ layer      └ type      └ file
+modules/devices/application/use-case/devices/register-device.use-case.ts
+   └ module   └ layer      └ type    └ feature └ file
 ```
 
 You read the path and you know: which feature, which layer, which kind of
@@ -84,8 +84,8 @@ co-located). The spec travels with its file during migration.
 
 ```
 application/use-case/
-  update-user.use-case.ts
-  update-user.use-case.spec.ts   # glued, same folder
+  register-device.use-case.ts
+  register-device.use-case.spec.ts   # glued, same folder
 ```
 
 - **Factories** (build a module's entity → carry domain knowledge) live in `modules/<owner>/test/`.
@@ -110,19 +110,24 @@ module. This is the leak detector.
 
 A file is `shared` **only if it has zero domain knowledge** — it would make
 sense pasted into a completely different app (an e-commerce, a blog). If the
-name mentions a business concept (`user`, `profile`, `jwt-scope`), it is
-**not** shared — it belongs to that module.
+name mentions a business concept (`device`, `outbox`, `webhook`, `api-token`,
+`jwt-scope`), it is **not** shared — it belongs to that module.
 
 ```
 shared/
   error/       app-error.ts, error-codes.ts
   i18n/        index.ts, zod-error-map.ts, locale/
-  util/        dedupe.ts, pagination.ts, parse-expires-in.ts, html.ts,
-               generate-public-code.ts
-  constant/    limits.ts, defaults.ts, queue-jobs.ts
-  policy/      ensure-authenticated.ts
-  provider/    cache-provider.ts, event-bus.ts, queue-provider.ts,
-               encryption-provider.ts, mail-provider.ts   (generic PORTS only)
+  util/        html.ts, parse-expires-in.ts, safe-s3-delete.ts,
+               extract-s3-key.ts, with-cache.ts, email/
+  constant/    defaults.ts
+  policy/      (none yet — add `ensure-same-account.ts` the day a use case needs
+               an explicit post-read tenancy check; today scoping lives in the
+               repository signature, see backend.md § Multi-tenancy)
+  provider/    cache-provider, event-bus, domain-event-bus, queue-provider,
+               flow-producer, encryption-provider, mail-provider, storage-provider,
+               jwt-provider, hash-provider, logger-provider, app-config, health,
+               ci-provider, database-status-provider, node-exporter-metrics-provider
+               (generic PORTS only — `*.interface.ts`)
 ```
 
 ## `core/` — the chassis
@@ -151,24 +156,52 @@ port, never on Redis.
 > architecture taste — it stays addressed via the `@generated` alias and is out
 > of scope to relocate.
 
+**Narrow exception — cross-module write primitives.** When two repositories in
+**different modules** must share the exact same transactional semantics (same
+lock, same counting rule) and neither may import the other's `infrastructure/`,
+the primitive may live in `core/database/prisma/` (or `core/service/` for a
+process-level primitive). It carries just enough domain vocabulary to name what
+it locks or counts. Precedents in this repo: `core/service/whatsapp/`
+(`advisory-lock.ts` + `gateway-boot.ts` — the single-replica gateway lock and
+boot that `devices` and `messaging` both depend on without importing each
+other's `infrastructure/`), and the `ResolveOutboxText` DI token (a
+function-shaped port: `devices` needs an outbox row's text for Baileys'
+`getMessage`, `messaging` owns it, so the function is injected and `devices`
+never imports `messaging`). Duplicating lock semantics across modules is worse
+than the exception — but this is a last resort, not a default: prefer a port in
+`shared/provider/` (or a DI-injected function) when the primitive has no
+table-level knowledge.
+
+**DI: always register services with an explicit token.** The dev runtime
+(`tsx`/esbuild) does **not** emit `design:paramtypes` decorator metadata, so a
+constructor parameter typed only by its class — with no `@inject(DI_TOKENS.X)`
+— resolves to `undefined` at runtime and throws on first use (the production
+`tsc` build happens to emit it, which makes the bug dev-only and easy to miss).
+Unit specs construct dependencies by hand and never catch this. Every
+`@injectable()` service consumed by another class gets a token in
+`core/container/tokens.ts` + a `registerSingleton` + `@inject` at the call site.
+
 ## The domains (module list)
 
-Pombo ships with **2 domains** — the minimum a real product needs.
-Add new modules by cloning the canonical skeleton above.
+Pombo is a **multi-tenant WhatsApp gateway**: an `account` connects WhatsApp
+numbers (`device`) through Baileys and sends messages / receives events via the
+REST API, the public token API and signed outbound webhooks. **7 domains**:
 
 | Domain | Owns |
 |---|---|
-| `auth` | authentication: sign-in, sign-out, token issuance/refresh, password reset, jwt-scopes |
-| `user` | the single application user: profile, credentials, settings |
+| `account` | the tenant itself + the public-API credential (`api_token`: generate / metadata / hashed at rest) |
+| `auth` | sign-in / sign-up / Google sign-in / refresh / sign-out, password reset, e-mail verification PIN, profile + avatar, account deletion, `jwt-scopes` |
+| `user` | user CRUD inside an account (+ the cached repository decorator and the sign-up transaction) |
+| `devices` | the WhatsApp number lifecycle: register, QR pairing, connect / disconnect / delete, session events (`handle-session-*`), per-event webhook URLs, groups listing; the `WhatsAppGateway` port + the Baileys adapter (session manager, reconnect policy, socket config) and the `auth_key` persistence (Signal keys) |
+| `messaging` | the outbox: send text / rich messages (media, PIX, list…), status tracking (`message.*` events), drain-on-reconnect, per-device send rate limit + human pacing, outbox pruning, the `wa-jid` value object |
+| `webhooks` | outbound delivery of session + message events to the customer's URLs: HMAC-SHA256 signing (`hmac-signer.ts`), bounded retries, disconnect debouncing |
+| `public-api` | the `/api/v1/*` surface for integrators: `apiTokenAuthMiddleware` (`pmb_` Bearer tokens → `req.apiAuth`), per-token rate limit, public DTOs. No domain of its own — it reuses `messaging` use cases |
 
+`core/service/whatsapp/` (advisory lock + gateway boot) is the process-level
+glue that `main.ts` calls when `WHATSAPP_ENABLED=true`; it is not a domain.
 Cross-module imports go through another module's `domain/`/`application/`, never
-its `infrastructure/`. When you grow the product, keep each new feature as its
-own vertical slice with the same skeleton — the boundaries matter more than the
-exact count.
-
-> The `user` module was originally named `platform` in the source project; the
-> Pombo uses `user` for clarity. If you still see a `platform/` folder in
-> `apps/api/src/modules/`, treat it as the `user` domain.
+its `infrastructure/`. The boundaries matter more than the exact count — add a
+new feature as its own vertical slice with the same skeleton.
 
 ## Where do I put X? (cheat-sheet)
 

@@ -39,7 +39,7 @@ Sections 1–3 are mandatory for every spec. Sections 4–7 scale with task size
 | **Branch** | `<branch>` |
 | **Date** | YYYY-MM-DD |
 | **Size / Risk** | S/M/L / Low/Medium/High |
-| **Specialist** | /backend \| /frontend \| /fullstack |
+| **Specialist** | /backend \| /frontend \| /fullstack \| /ai-backend |
 
 ## 1. Goal
 [One paragraph. The user outcome, not the implementation. If you can't say it in one paragraph, the task isn't shaped yet.]

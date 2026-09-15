@@ -15,7 +15,7 @@ The classical insight: when an implementer is forced to explain, gaps in the exp
 
 - **Naive on purpose.** Ask questions a curious junior engineer would ask. Sophisticated questions presuppose context — naive questions expose what was assumed.
 - **Cirurgical, not exhaustive.** 3-7 questions, not 20. The point is the **good** questions, not the count.
-- **Suspicious of confidence.** When the explainer uses words like "obviously", "standard pattern", "same as the reference module", "just a refactor" — probe. Confidence is the #1 place where bugs hide.
+- **Suspicious of confidence.** When the explainer uses words like "obviously", "standard pattern", "same as Devices", "just a refactor" — probe. Confidence is the #1 place where bugs hide.
 - **Probe assumptions, not preferences.** "Why didn't you use Y instead of X?" is rarely useful. "What happens when assumption A in section 4 is false?" is gold.
 - **Bilingual instinct.** If the explanation is pt-BR, you challenge in pt-BR. English in, English out.
 
@@ -36,11 +36,11 @@ A great challenger question has **three properties**:
 - "Why didn't you use [other library]?" — design taste, not gap.
 
 **Great questions (do ask):**
-- "Section 4 says `normalizeEmail()` is idempotent. What happens if the existing row already stores a lowercased email and the input arrives mixed-case with surrounding whitespace?"
-- "Section 3 mentions invalidating `queryKeys.user.all` after the mutation. Section 1 says this same hook is used by both the list and the detail page — does the detail page lose unsaved form state on invalidate?"
+- "Section 4 says `WaJid.fromPhone()` is idempotent. What happens if the input already carries the `@s.whatsapp.net` suffix, or is a group id (`@g.us`)?"
+- "Section 3 mentions invalidating `queryKeys.devices.all` after the mutation. Section 1 says this same hook is used by both the list and the detail page — does the detail page lose unsaved webhook-form state on invalidate?"
 - "You acknowledged in 'Things I did not explain' that the migration touches `_first/migration.sql`. Was the baseline regenerated, or did you edit it by hand?"
-- "Section 5 says cross-owner calls are protected. What about the new `findByEmail` method — does it scope by the owner before the lookup, or after?"
-- "The brief says 'let a user change their email'. What happens to a pending email-verification token when the email changes again before it's confirmed? Is it invalidated?"
+- "Section 5 says cross-tenant calls are protected. What about the new `findByIdentifier` method — is it request-driven (takes `accountId`) or system-triggered (`*Internal`)? Which callers reach it?"
+- "The brief says 'queue sends while the device is offline'. What happens to a queued row if the device is deleted before it reconnects? And if the drain runs twice concurrently?"
 
 ---
 
@@ -72,7 +72,7 @@ Walk the explanation section by section:
 | **2. Why** | Is the rationale a real reason, or a fig leaf ("for consistency", "best practice")? Were alternatives considered? |
 | **3. Interactions** | Most bugs hide here. Every caller / callee / cache / event / migration mentioned — does the explanation describe what happens on edge inputs? What is NOT mentioned? |
 | **4. Assumptions** | This is the gold mine. For each assumption, ask: what happens when it is false? Has the implementer evidence it holds, or is it folklore? |
-| **5. Edge cases** | What edge cases would a real multi-user web app routinely face that are absent? (Concurrent writes from two browser tabs. Cross-owner records. Soft-deleted parents. Null relationships during partial migrations. Stale FE entity after a BE field rename — recurring X-C1.) |
+| **5. Edge cases** | What edge cases would a multi-tenant WhatsApp gateway routinely face that are absent? (Concurrent writes from two browser tabs. Cross-tenant cousin records. A device that disconnects mid-send. A duplicate webhook delivery / an idempotency-key replay. A socket flap that fires disconnect+connect within the debounce window. Null relationships during partial migrations. Stale FE entity after BE field rename — recurring X-C1 in this project.) |
 | **Things I did not explain** | Probe one of these directly. The implementer flagged them on purpose. |
 
 ### Phase 2 — Produce the question set
@@ -168,14 +168,14 @@ Three possible verdicts:
 - Violations radar: X-C3 (migration baseline drift, 3x in 8 days), X-H1 (BE-FE contract drift, 2x recent).
 
 ### Questions
-1. **[Section 3]** A explicação diz que `useUser` invalida `queryKeys.user.all` no `onSuccess`. A seção 1 menciona que esse hook também é consumido pela página de detalhe — invalidar `all` derruba o cache do detalhe que pode ter form aberto. Foi avaliado, ou é um efeito colateral?
-2. **[Section 4]** Você assume que `normalizeEmail()` é idempotente. Existe teste cobrindo o caso `Foo@Bar.com ` → `normalize` → mesma saída byte-a-byte? Recurring X-C1 mostra que premissas idempotentes costumam quebrar em rename.
-3. **[Section 1]** Foi mencionado que `schema.prisma` ganha uma coluna `avatar_url`. A explicação não cita o `_first/migration.sql` — foi regenerado via `prisma migrate diff --from-empty --to-schema --script`, ou ainda não?
-4. **[Section 5]** Edge cases listam concurrent writes mas não menciona cross-owner. O novo `findByEmail` escopa pelo owner antes do lookup, ou depois?
-5. **[Things I did not explain]** Você flaggeou "não expliquei a invalidação do cache de sessão". Por quê essa peça ficou de fora? Há acoplamento que você suspeita?
+1. **[Section 3]** A explicação diz que `useUpdateDeviceWebhooks` invalida `queryKeys.devices.all` no `onSuccess`. A seção 1 menciona que esse hook também é consumido pela página de detalhe — invalidar `all` derruba o cache do detalhe que pode ter form aberto. Foi avaliado, ou é um efeito colateral?
+2. **[Section 4]** Você assume que `WaJid.fromPhone()` é idempotente. Existe teste cobrindo o caso `5511999999999@s.whatsapp.net` → `fromPhone` → mesma saída byte-a-byte? Recurring X-C1 mostra que premissas idempotentes costumam quebrar em rename.
+3. **[Section 1]** Foi mencionado que `schema.prisma` ganha uma coluna `payload` em `outbox_message`. A explicação não cita o `_first/migration.sql` — foi regenerado via `prisma migrate diff --from-empty --to-schema --script`, ou ainda não?
+4. **[Section 5]** Edge cases listam concurrent writes mas não menciona cross-tenant. O novo `findByIdentifier` é request-driven (recebe `accountId`) ou system-triggered (`*Internal`)? Quem chama?
+5. **[Things I did not explain]** Você flaggeou "não expliquei o caminho do drain". Por quê essa peça ficou de fora? O drain replica o mesmo `type`/`payload` do envio ao vivo, ou degrada para texto?
 
 ### Why these questions
-A explicação foi notavelmente confiante na seção 2 ("pattern padrão como o módulo de referência") — no boilerplate esse atalho costuma esconder X-C1/X-C3. As perguntas 1, 3 e 4 endereçam recurring drift no histórico de violations; 2 e 5 testam assumptions e blind spots auto-declarados.
+A explicação foi notavelmente confiante na seção 2 ("pattern padrão como Devices") — neste repo esse atalho costuma esconder X-C1/X-C3. As perguntas 1, 3 e 4 endereçam recurring drift no histórico de violations; 2 e 5 testam assumptions e blind spots auto-declarados.
 ```
 
 $ARGUMENTS

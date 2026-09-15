@@ -59,6 +59,13 @@ if grep -nE '\bconsole\.(log|error|warn|info|debug)\b' "$file" >/dev/null; then
   warn "B-H12: console.* detected — use ILoggerProvider (Pino) instead. Lines: $lines"
 fi
 
+# B-C13: Direct LLM API calls (must go through the ILlmProvider port — R23)
+if grep -nE '(api\.openai\.com|api\.anthropic\.com|fetch\(.*openai|fetch\(.*anthropic|from "openai"|from "@anthropic-ai/)' "$file" >/dev/null; then
+  if ! echo "$file" | grep -qE 'core/provider/llm/'; then
+    warn "B-C13: direct LLM API/SDK usage detected — go through the ILlmProvider port (impl lives in core/provider/llm/; see /ai-backend)."
+  fi
+fi
+
 # B-C7: Raw SQL with string interpolation
 if grep -nE '\$queryRawUnsafe\(' "$file" >/dev/null; then
   warn "B-C7: \$queryRawUnsafe detected — sanitize via parameterized \$queryRaw\`...\` with template literal placeholders."

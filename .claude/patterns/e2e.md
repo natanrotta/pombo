@@ -14,8 +14,8 @@ Authoritative source for Playwright end-to-end tests in this project. Specialist
 | App under test | React 18 + Chakra UI 2.8 + React Router v6 + TanStack Query v5 | `apps/web/src/` |
 | Web dev server | Vite on `:4000` (proxies `/api` → `:4444`) | `apps/web/vite.config.ts` |
 | API | Express + Prisma on `:4444` (real backend, no mocks) | `apps/api/src/main.ts` |
-| Database | Postgres seeded with the demo user (`felipe@pombo.dev` is the E2E test user) | `apps/api/prisma/seed.ts` |
-| Auth | JWT in `localStorage`, persisted via `storageState` | `apps/web/e2e/global.setup.ts` |
+| Database | Postgres seeded with the demo user (`demo@example.com` / `Demo1234!` — `e2e/fixtures/constants.ts` mirrors it) | `apps/api/prisma/seed.ts` |
+| Auth | Session JWT in the httpOnly `pombo_at` cookie + `pombo_csrf` double-submit, seeded through the **API** (`apiClient.getSession()`) then persisted via `storageState` | `apps/web/e2e/global.setup.ts` |
 | API client (test) | `fetch`-based, authenticated as the seed user | `apps/web/e2e/fixtures/api-client.ts` |
 | Reports | HTML reporter, trace `on-first-retry`, screenshot `only-on-failure` | `playwright.config.ts` |
 | i18n | `pt-BR` (default), `en`, `es` — assertions match both pt-BR **and** en | `apps/web/src/shared/i18n/locales/` |
@@ -86,7 +86,9 @@ yarn test:e2e:down        # docker compose down -v
 
 - `prisma/seed.ts` schema drift breaks the cycle at step 4 — fix the seed
   to match the current schema.
-- The api-client session cache (`e2e/.auth/api-session.json`) probes
+- The api-client session cache (`apps/web/e2e/.auth/api-session.json`,
+  anchored to the fixture file, never the cwd — it's a credential, keep it
+  gitignored: `apps/web/e2e/.auth/` already is) probes
   `/auth/me` on load — if the cached JWT references a `userId` that no
   longer exists, the cache is invalidated and a fresh sign-in runs. So
   a stale cache from a previous DB can't break the next run.
@@ -102,13 +104,13 @@ yarn test:e2e:down        # docker compose down -v
 apps/web/
   playwright.config.ts                    # canonical config — do not duplicate per-project flags
   e2e/
-    .auth/user.json                       # gitignored; written by global.setup; consumed by `chromium`/`docs` projects
+    .auth/user.json                       # gitignored; written by global.setup; consumed by the `chromium` project
     global.setup.ts                       # runs preflight, logs in once, stores auth state
     fixtures/
       auth.fixture.ts                     # base `test` re-export (extensible; do not duplicate `test`/`expect`)
       preflight.ts                        # fail-fast env check (web up? API up? seed account?)
       api-client.ts                       # authenticated fetch client + per-module domain helpers
-      test-data.ts                        # `createUniqueXxx()` factories, `uniqueName()` helper
+      test-data.ts                        # `createUniqueXxx()` factories, `uniqueName()` helper (create on first use)
     pages/                                # Page Objects — one class per routable page
       <Module>ListPage.ts
       <Module>DetailPage.ts
@@ -118,7 +120,7 @@ apps/web/
         <module>-<flow>.spec.ts           # one flow per file — see "Naming"
 ```
 
-**Reference module:** `e2e/tests/auth/` + `e2e/pages/LoginPage.ts` are the canonical examples. New module coverage must follow that shape (POM structure, spec skeleton, cleanup loop, bilingual assertions).
+**Reference today:** the suite ships a single `e2e/tests/auth.spec.ts` (UI sign-in from a signed-out context + an authenticated session reaching the protected shell) and no Page Objects yet — it is the template for the spec skeleton and the bilingual-assertion style. The first module suite (`devices` is the obvious candidate: register → QR modal → webhooks section → delete) creates `e2e/pages/DevicesListPage.ts` + `e2e/tests/devices/` following the layout above, and becomes the canonical reference from then on. The index route redirects to `/devices` (there is no `/dashboard`).
 
 **Hard rules:**
 - Never create a parallel `e2e/__tests__/`, `apps/web/__e2e__/`, or `cypress/` folder.
@@ -165,7 +167,7 @@ The single `webServer` entry spawns a **dedicated E2E Vite on `:3001`** (`VITE_P
 | Tab | `getByRole("tab", { name: /.../ })` |
 | Toast / success message | `getByText(/criado com sucesso\|created successfully/i)` (Chakra toasts have inconsistent roles) |
 | Menu item | `getByRole("menuitem", { name: /.../ })` |
-| Heading (page title) | `getByRole("heading", { name: /painel\|dashboard/i, level: 1 })` |
+| Heading (page title) | `getByRole("heading", { name: /dispositivos\|devices/i, level: 1 })` |
 | Card row in a list | `page.getByRole("group").filter({ has: page.getByRole("button", { name: /ações\|actions/i }) })` |
 
 ---
@@ -241,7 +243,7 @@ Reusable widgets (Sidebar, ConfirmDialog, FilterBar) live in `e2e/pages/componen
 
 ### Authentication — already wired
 
-There is **one** auth path: `global.setup.ts` signs in `felipe@pombo.dev / 123456` and writes `e2e/.auth/user.json`. The `chromium` and `docs` projects consume that file via `storageState`. Every spec inherits an authenticated page — **do not** re-login in `beforeEach`. → `E-C2`
+There is **one** auth path: `global.setup.ts` runs the preflight, calls `apiClient.getSession()` (API sign-in as `demo@example.com`), seeds the `pombo_at` + `pombo_csrf` cookies and the language key, and writes `e2e/.auth/user.json`. The `chromium` project consumes that file via `storageState`. It goes through the API on purpose — the UI sign-in races the cookie write against navigation and produced flaky signed-out specs. Every spec inherits an authenticated page — **do not** re-login in `beforeEach`. → `E-C2`
 
 If a test needs an **unauthenticated** page (sign-in flows, public routes), use a fresh context:
 
@@ -264,7 +266,7 @@ Add new factories here when a new module ships; never inline test data in the sp
 
 ### API client — `fixtures/api-client.ts`
 
-Authenticated REST client over `fetch`. Signs in once with the seed user (`felipe@pombo.dev`), caches the JWT for the suite, and exposes `apiClient.{get,post,put,patch,delete}` plus per-module helpers (`tagApi.create()`, etc.). Add a new helper block when a module ships its first spec that needs API-side setup.
+Authenticated REST client over `fetch`. Signs in once with the seed user (`demo@example.com`), caches the JWT for the suite, and exposes `apiClient.{get,post,put,patch,delete}` plus per-module helpers (`deviceApi.create()`, etc.). Add a new helper block when a module ships its first spec that needs API-side setup.
 
 **Use it when:**
 - A spec needs an existing entity to assert against (search results, list with ≥N items, edit/delete tests) and creating one through the UI would just slow the suite down.
@@ -272,17 +274,17 @@ Authenticated REST client over `fetch`. Signs in once with the seed user (`felip
 - Setting up cross-module fixtures the UI can't easily build (a state the seed user can't represent).
 
 **Don't use it when:**
-- The UI flow IS the thing under test. `user-create.spec.ts` exercises the modal — never replace its first `createUser()` UI call with `userApi.create()`, you'd be testing the wrong contract.
+- The UI flow IS the thing under test. `device-register.spec.ts` exercises the modal — never replace its first `registerDevice()` UI call with `deviceApi.create()`, you'd be testing the wrong contract.
 
 ```ts
-import { userApi } from "../../fixtures/api-client";
+import { deviceApi } from "../../fixtures/api-client";
 
 // Seed: 5 rows so the search test has results to filter.
 const seeded = await Promise.all(
-  Array.from({ length: 5 }, (_, i) => userApi.create({ name: `Seed ${i}`, email: `seed${i}@pombo.dev` }))
+  Array.from({ length: 5 }, (_, i) => deviceApi.create({ name: `Seed ${i}` }))
 );
 test.afterEach(async () => {
-  for (const u of seeded) await userApi.delete(u.id).catch(() => {});
+  for (const d of seeded) await deviceApi.delete(d.id).catch(() => {});
 });
 ```
 
@@ -298,15 +300,16 @@ Mocks (`page.route(...)`) are **not** part of the current model — re-introduce
 e2e/tests/<module>/<entity>-<flow>.spec.ts
 ```
 
-- `<module>`: matches `apps/web/src/modules/<module>/` (`auth`, `dashboard`, `settings`, ...). For a module with multiple entities, still split by entity.
-- `<entity>`: singular (`user`, `profile`, ...).
+- `<module>`: matches `apps/web/src/modules/<module>/` (`auth`, `devices`, `messaging`, `account`, `settings`). For a module with multiple entities, still split by entity.
+- `<entity>`: singular (`device`, `message`, `api-token`, `profile`, ...).
 - `<flow>`: one of `create`, `list`, `search`, `edit`, `delete`, `detail`, etc. **One flow per file** — never bundle `create + edit + delete` into one spec. → `E-H4`
 
 Examples:
 ```
 e2e/tests/auth/sign-in.spec.ts
-e2e/tests/auth/password-reset.spec.ts
-e2e/tests/settings/profile-edit.spec.ts
+e2e/tests/devices/device-register.spec.ts
+e2e/tests/devices/device-webhooks-edit.spec.ts
+e2e/tests/messaging/message-send.spec.ts
 ```
 
 ### Spec skeleton
@@ -357,7 +360,7 @@ test.describe("<Entity> <Flow>", () => {
 ```
 
 **Mandatory pieces:**
-- `test.describe` per file, named after the flow (`"User Creation"`, `"Profile Edit"`).
+- `test.describe` per file, named after the flow (`"Device Registration"`, `"Profile Edit"`).
 - Best-effort cleanup in `afterEach` wrapped in `try/catch` — never fail a test on cleanup. → `E-H5`
 - A `// ── Negative path ──` divider comment when negative tests follow positive ones (mirrors existing specs).
 - Bilingual regex on every user-facing assertion (`/criado|created/i`).
@@ -387,7 +390,7 @@ E2E specs touch Postgres **only through the running API**. There is no direct Pr
 2. **API helpers for non-assertion setup.** When the spec needs an entity to exist but its creation is not under test, call `apiClient` (see Fixtures § API client). Faster, deterministic, and contractually identical to the UI path (both go through the same controller → use case).
 3. **Cleanup is best-effort, never blocking.** The `afterEach` loop searches + deletes each `createdNames[]` entry via the UI; failures are swallowed (`E-H5`). If you need a hard guarantee, do the cleanup via `apiClient.delete()` inside `try/catch`.
 4. **State leaks across specs.** Because workers=1 and there's no DB reset, an entity created in one spec will exist when the next spec runs unless cleanup succeeded. Always use `createUnique<Entity>()` factories so collisions don't bite, and treat the seed (`yarn seed`) as the only stable baseline.
-5. **The seed is your reference data.** `apps/api/prisma/seed.ts` provisions the demo user (`felipe@pombo.dev`) plus any demo data you add. Treat existing seeded rows as fixtures you can read but should not modify or delete from a test.
+5. **The seed is your reference data.** `apps/api/prisma/seed.ts` provisions the demo account + user (`demo@example.com`) plus any demo data you add. Treat existing seeded rows as fixtures you can read but should not modify or delete from a test.
 
 **When you need a fresh account** (a state the seed user can't represent): use `apiClient.post("/auth/sign-up", ...)`, then `apiClient.signIn()` with the new credentials, then teardown via `apiClient.delete(...)`. Document the rationale in the spec — most flows are achievable on the seed user.
 
@@ -476,8 +479,8 @@ yarn test:e2e                          # all chromium specs (default project)
 yarn test:e2e:ui                       # UI mode — fastest for authoring
 yarn test:e2e:headed                   # see the browser
 yarn test:e2e:report                   # open last HTML report
-npx playwright test e2e/tests/auth     # narrow by folder
-npx playwright test sign-in            # narrow by filename grep
+npx playwright test e2e/tests/devices  # narrow by folder
+npx playwright test device-register    # narrow by filename grep
 npx playwright test -g "happy path"    # narrow by test title grep
 ```
 

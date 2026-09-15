@@ -15,7 +15,7 @@ This skill is invoked by `/finish-task` after `/code-review` to confirm the code
 ## Workspace Layout
 
 - Root scripts use Turborepo to fan out into both apps (`apps/api`, `apps/web`)
-- API tests = Vitest (`yarn workspace @pombo/api test`)
+- API tests = Vitest, sempre via turbo (`yarn turbo run test --filter=@pombo/api`) — ver a nota na seção 4
 - Web tests = Playwright (`yarn workspace @pombo/web test:e2e`)
 - API lint auto-fixes (`--fix` flag); web lint does NOT auto-fix
 
@@ -63,8 +63,15 @@ Then re-run `yarn format:check` to confirm.
 ### 4. Backend tests (Vitest)
 
 ```
-yarn workspace @pombo/api test
+yarn turbo run test --filter=@pombo/api
 ```
+
+Via turbo, **nunca** `yarn workspace @pombo/api test`: o script do workspace é um
+`vitest run` pelado, e a API resolve `@pombo/shared-types` pelo `main` do pacote
+(`packages/shared-types/dist`). Chamado direto, o vitest roda contra o dist que
+estiver no disco — se ele estiver velho, os símbolos novos chegam como `undefined`
+e a suíte quebra longe da causa. `turbo run test` honra o `dependsOn: ["^build"]`
+declarado em `turbo.json` e rebuilda o shared-types antes de testar.
 
 If it fails: analyze the failing test, identify root cause, fix the **code** (not the test, unless the test is genuinely outdated). Re-run. **Never** disable a test or weaken assertions to make it pass.
 
