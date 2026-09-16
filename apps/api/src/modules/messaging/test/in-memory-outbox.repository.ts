@@ -32,6 +32,14 @@ interface Row {
  */
 export class InMemoryOutboxRepository implements IOutboxRepository {
   private readonly rows = new Map<string, Row>();
+  /** Which account owns a device — the DB resolves this through the relation. */
+  private readonly deviceAccounts = new Map<string, string>();
+
+  /** Test setup: put a device under an account so the account-wide count can
+   *  see its queued messages. */
+  linkDevice(deviceId: string, accountId: string): void {
+    this.deviceAccounts.set(deviceId, accountId);
+  }
 
   private toEntity(row: Row): OutboxMessage {
     return new OutboxMessage({ ...row });
@@ -102,6 +110,17 @@ export class InMemoryOutboxRepository implements IOutboxRepository {
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
       .slice(0, limit)
       .map((row) => this.toEntity(row));
+  }
+
+  async countQueuedForAccount(accountId: string): Promise<number> {
+    const now = Date.now();
+    return [...this.rows.values()].filter(
+      (row) =>
+        this.deviceAccounts.get(row.deviceId) === accountId &&
+        row.status === "PENDING" &&
+        row.waMessageId === null &&
+        row.expiresAt.getTime() > now,
+    ).length;
   }
 
   async setWaMessageId(id: string, waMessageId: string): Promise<void> {

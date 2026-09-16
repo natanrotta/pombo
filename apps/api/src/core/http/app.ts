@@ -92,6 +92,9 @@ app.use(
       // consumers need it whitelisted for the preflight to pass.
       "Idempotency-Key",
     ],
+    // The rate limiters send `Retry-After`; cross-origin, the browser hides any
+    // response header that is not exposed here, and the web shows the wait.
+    exposedHeaders: ["Retry-After"],
     credentials: true,
   }),
 );

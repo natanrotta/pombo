@@ -73,7 +73,11 @@ export function AppModal({
       scrollBehavior={scrollBehavior}
       placement="center"
     >
-      <DialogContent borderRadius={borderRadius} mx={{ base: 3, md: 0 }}>
+      <DialogContent
+        data-cy="app-modal"
+        borderRadius={borderRadius}
+        mx={{ base: 3, md: 0 }}
+      >
         <DialogHeader>
           <DialogTitle fontSize={{ base: "md", md: "lg" }}>{title}</DialogTitle>
         </DialogHeader>
@@ -85,6 +89,7 @@ export function AppModal({
         >
           {footerLeft && <Flex mr="auto">{footerLeft}</Flex>}
           <Button
+            data-cy="app-modal-cancel"
             variant="ghost"
             onClick={onCancelAction ?? onClose}
             loading={isCancelLoading}
@@ -94,6 +99,7 @@ export function AppModal({
           </Button>
           {primaryActionLabel && onPrimaryAction ? (
             <Button
+              data-cy="app-modal-primary"
               colorPalette={primaryColorScheme}
               onClick={onPrimaryAction}
               loading={isPrimaryLoading}

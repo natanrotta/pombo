@@ -1,9 +1,7 @@
 import { inject, injectable } from "tsyringe";
 import { DI_TOKENS } from "@core/container/tokens";
 import { IDevicesRepository } from "@modules/devices/domain/repository/devices-repository.interface";
-import { Device } from "@modules/devices/domain/entity/device.entity";
-
-type DeviceResponse = ReturnType<Device["toJSON"]>;
+import type { DeviceResponseDTO } from "@pombo/shared-types";
 
 /** Lists every registered device (public projection — no webhookSecret). */
 @injectable()
@@ -13,7 +11,7 @@ export class ListDevicesUseCase {
     private readonly devicesRepository: IDevicesRepository,
   ) {}
 
-  async execute(accountId: string): Promise<DeviceResponse[]> {
+  async execute(accountId: string): Promise<DeviceResponseDTO[]> {
     const devices = await this.devicesRepository.list(accountId);
     return devices.map((device) => device.toJSON());
   }

@@ -1,0 +1,6 @@
+/* Applied only while Playwright takes a `toHaveScreenshot` (see
+   playwright.config.ts). Hides dev-server-only chrome that floats over the
+   page and has nothing to do with the design under test. */
+.tsqd-parent-container {
+  display: none !important;
+}

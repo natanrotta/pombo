@@ -25,8 +25,29 @@ export default defineConfig({
   workers: 1,
   timeout: 60000,
   reporter: [["html", { open: "never", outputFolder: "./.playwright/report" }]],
+  // Visual baselines live next to the specs and are versioned. The platform
+  // suffix keeps a macOS baseline from being compared against Linux (CI)
+  // rendering — fonts antialias differently.
+  snapshotPathTemplate: "{testDir}/__screenshots__/{testFilePath}/{arg}-{platform}{ext}",
+  // Baselines only exist for macOS (`-darwin`). Elsewhere (the Linux CI job)
+  // the visual specs still drive the UI but skip the pixel comparison.
+  ignoreSnapshots: process.platform !== "darwin",
+  expect: {
+    toHaveScreenshot: {
+      animations: "disabled",
+      caret: "hide",
+      // Same machine + same browser renders deterministically, so the per-pixel
+      // color threshold can be tight: the 0.2 default lets a subtle token change
+      // (white → a faint tint) pass unnoticed.
+      threshold: 0.02,
+      maxDiffPixelRatio: 0.002,
+      stylePath: "./e2e/fixtures/screenshot.css",
+    },
+  },
   use: {
     baseURL: E2E_WEB_URL,
+    // Test ids are `data-cy` in this app (see patterns/e2e.md).
+    testIdAttribute: "data-cy",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },

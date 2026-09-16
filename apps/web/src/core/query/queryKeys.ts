@@ -1,11 +1,4 @@
 export const queryKeys = {
-  settings: {
-    all: ["settings"] as const,
-  },
-  auth: {
-    all: ["auth"] as const,
-    me: () => [...queryKeys.auth.all, "me"] as const,
-  },
   devices: {
     all: ["devices"] as const,
     list: () => [...queryKeys.devices.all, "list"] as const,
@@ -21,9 +14,6 @@ export const queryKeys = {
     all: ["messaging"] as const,
     messageStatus: (id: string) =>
       [...queryKeys.messaging.all, "message-status", id] as const,
-  },
-  health: {
-    all: ["health"] as const,
-    version: () => [...queryKeys.health.all, "version"] as const,
+    queueSummary: () => [...queryKeys.messaging.all, "queue-summary"] as const,
   },
 } as const;

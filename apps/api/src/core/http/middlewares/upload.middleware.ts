@@ -1,5 +1,6 @@
 import multer from "multer";
 import { RequestHandler } from "express";
+import { MAX_IMAGE_UPLOAD_BYTES } from "@pombo/shared-types";
 import { BadRequestError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
 import { isAllowedImageMimeType } from "@shared/constant/image-upload";
@@ -30,9 +31,10 @@ const imageFilter: multer.Options["fileFilter"] = (_req, file, cb) => {
 };
 
 // Single-image upload — used by the avatar endpoint. `memoryStorage` buffers
-// the whole file in RAM, so the 5 MB ceiling doubles as a memory guard.
+// the whole file in RAM, so the size ceiling (`MAX_IMAGE_UPLOAD_BYTES`)
+// doubles as a memory guard.
 export const uploadImage: RequestHandler = multer({
   storage,
   fileFilter: imageFilter,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: MAX_IMAGE_UPLOAD_BYTES },
 }).single("file") as unknown as RequestHandler;

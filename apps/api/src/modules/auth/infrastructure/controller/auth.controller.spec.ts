@@ -1,8 +1,12 @@
 import { Request, Response } from "express";
 import { container } from "tsyringe";
 import { AuthController } from "./auth.controller";
-import { setAccessTokenCookie } from "@core/http/helpers/auth-cookies";
+import {
+  clearAuthCookies,
+  setAccessTokenCookie,
+} from "@core/http/helpers/auth-cookies";
 import { ErrorCodes } from "@shared/error/error-codes";
+import { InternalError, UnauthorizedError } from "@shared/error";
 
 const mockExecute = vi.fn();
 
@@ -199,13 +203,70 @@ describe("AuthController", () => {
     expect(status).toHaveBeenCalledWith(200);
   });
 
-  it("refresh rejects AUTH_NO_TOKEN when neither cookie nor body carries a refresh token", async () => {
-    const { req, res } = mockReqRes({ body: {}, cookies: {} });
+  it("refresh rejects AUTH_NO_TOKEN and clears a leftover session when no refresh token arrives", async () => {
+    const { req, res } = mockReqRes({
+      body: {},
+      cookies: { pombo_at: "stale-jwt", pombo_csrf: "csrf" },
+    });
 
     await expect(sut.refresh(req, res)).rejects.toMatchObject({
       code: ErrorCodes.AUTH_NO_TOKEN,
     });
     expect(mockExecute).not.toHaveBeenCalled();
+    // No renewable session left: its cookies go with the error.
+    expect(clearAuthCookies).toHaveBeenCalledWith(res);
+  });
+
+  it("refresh leaves the cookies alone for a request that carries none (forged cross-site POST)", async () => {
+    const { req, res } = mockReqRes({ body: {}, cookies: {} });
+
+    await expect(sut.refresh(req, res)).rejects.toMatchObject({
+      code: ErrorCodes.AUTH_NO_TOKEN,
+    });
+    expect(clearAuthCookies).not.toHaveBeenCalled();
+  });
+
+  it("refresh leaves the cookies alone when a body-only API client sends a rejected token", async () => {
+    mockExecute.mockRejectedValue(
+      new UnauthorizedError(
+        "Invalid",
+        undefined,
+        ErrorCodes.AUTH_TOKEN_INVALID,
+      ),
+    );
+    const { req, res } = mockReqRes({
+      body: { refreshToken: "bad" },
+      cookies: {},
+    });
+
+    await expect(sut.refresh(req, res)).rejects.toBeInstanceOf(
+      UnauthorizedError,
+    );
+    expect(clearAuthCookies).not.toHaveBeenCalled();
+  });
+
+  it("refresh clears the auth cookies when the refresh token is rejected", async () => {
+    mockExecute.mockRejectedValue(
+      new UnauthorizedError(
+        "Refresh token expired",
+        undefined,
+        ErrorCodes.AUTH_TOKEN_EXPIRED,
+      ),
+    );
+    const { req, res } = mockReqRes({ cookies: { pombo_rt: "dead-rt" } });
+
+    await expect(sut.refresh(req, res)).rejects.toMatchObject({
+      code: ErrorCodes.AUTH_TOKEN_EXPIRED,
+    });
+    expect(clearAuthCookies).toHaveBeenCalledWith(res);
+  });
+
+  it("refresh keeps the cookies when the failure is not about the session", async () => {
+    mockExecute.mockRejectedValue(new InternalError("database down"));
+    const { req, res } = mockReqRes({ cookies: { pombo_rt: "rt" } });
+
+    await expect(sut.refresh(req, res)).rejects.toBeInstanceOf(InternalError);
+    expect(clearAuthCookies).not.toHaveBeenCalled();
   });
 
   it("sendEmailVerificationPin should return 204", async () => {

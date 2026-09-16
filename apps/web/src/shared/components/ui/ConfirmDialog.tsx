@@ -55,7 +55,7 @@ export function ConfirmDialog({
         document.querySelector<HTMLButtonElement>("[data-confirm-cancel]")
       }
     >
-      <DialogContent borderRadius="lg" mx={{ base: 4, md: 0 }}>
+      <DialogContent data-cy="confirm-dialog" borderRadius="lg" mx={{ base: 4, md: 0 }}>
         <DialogHeader>
           <DialogTitle fontSize="md" fontWeight="700">
             {resolvedTitle}
@@ -67,6 +67,7 @@ export function ConfirmDialog({
         <DialogFooter gap={2}>
           <Button
             data-confirm-cancel
+            data-cy="confirm-dialog-cancel"
             size="sm"
             variant="ghost"
             onClick={onClose}
@@ -74,8 +75,13 @@ export function ConfirmDialog({
             {resolvedCancelLabel}
           </Button>
           <Button
+            data-cy="confirm-dialog-confirm"
             size="sm"
-            colorPalette={isDanger ? "red" : "brand"}
+            // The button recipe paints `solid` with the brand tokens and ignores
+            // `colorPalette` (`colorPalette="red"` rendered this green), so the
+            // destructive CTA uses the recipe's own `danger` variant. Chakra's
+            // generated types don't know the custom variant name.
+            variant={(isDanger ? "danger" : "solid") as "solid"}
             onClick={onConfirm}
             loading={isLoading}
           >

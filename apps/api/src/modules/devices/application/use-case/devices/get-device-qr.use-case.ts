@@ -2,14 +2,9 @@ import { inject, injectable } from "tsyringe";
 import { DI_TOKENS } from "@core/container/tokens";
 import { IDevicesRepository } from "@modules/devices/domain/repository/devices-repository.interface";
 import { IWhatsAppGateway } from "@modules/devices/domain/provider/whatsapp-gateway.interface";
-import { type DeviceStatus } from "@modules/devices/domain/value-object/device-status";
+import type { DeviceQrResponseDTO } from "@pombo/shared-types";
 import { NotFoundError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
-
-export interface GetDeviceQrResponse {
-  status: DeviceStatus;
-  qr: string | null;
-}
 
 /**
  * The current pairing QR for a device, for the connect modal's poll. The `qr`
@@ -33,7 +28,7 @@ export class GetDeviceQrUseCase {
     private readonly gateway: IWhatsAppGateway,
   ) {}
 
-  async execute(accountId: string, id: string): Promise<GetDeviceQrResponse> {
+  async execute(accountId: string, id: string): Promise<DeviceQrResponseDTO> {
     const device = await this.devicesRepository.findById(accountId, id);
     if (!device) {
       throw new NotFoundError(

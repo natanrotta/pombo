@@ -1,6 +1,6 @@
 import { NumberInput as ChakraNumberInput } from "@chakra-ui/react";
 import * as React from "react";
-import { fieldBase } from "@/app/theme/foundations/recipes";
+import { fieldBase } from "@pombo/theme";
 
 export interface NumberInputProps extends ChakraNumberInput.RootProps {}
 

@@ -2,7 +2,7 @@ import { inject, injectable } from "tsyringe";
 import { DI_TOKENS } from "@core/container/tokens";
 import { IUserRepository } from "@modules/user/domain/repository/user-repository.interface";
 import { IHashProvider, IJwtProvider } from "@shared/provider";
-import { SignInDTO, SignInResponseDTO } from "../../dto/auth.dto";
+import { SignInDTO, SignInResult } from "../../dto/auth.dto";
 import { UnauthorizedError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
 import { AuthProfileBuilder } from "@modules/auth/application/service/auth-profile.builder";
@@ -25,7 +25,7 @@ export class SignInUseCase {
     private readonly profileBuilder: AuthProfileBuilder,
   ) {}
 
-  async execute(data: SignInDTO): Promise<SignInResponseDTO> {
+  async execute(data: SignInDTO): Promise<SignInResult> {
     const user = await this.userRepository.findByEmail(data.email);
 
     if (!user) {

@@ -16,11 +16,8 @@
     "types": ["vitest/globals"],
     "paths": {
       "@/*": ["./src/*"],
-      "@/app/*": ["./src/app/*"],
-      "@/core/*": ["./src/core/*"],
-      "@/shared/*": ["./src/shared/*"],
-      "@/modules/*": ["./src/modules/*"],
-      "@assets/*": ["./assets/*"]
+      "@assets/*": ["./assets/*"],
+      "@pombo/shared-types": ["../../packages/shared-types/src/index.ts"]
     }
   },
   "include": ["src"],

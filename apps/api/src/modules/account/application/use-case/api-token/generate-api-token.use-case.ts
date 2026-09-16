@@ -2,15 +2,11 @@ import { inject, injectable } from "tsyringe";
 import { DI_TOKENS } from "@core/container/tokens";
 import { IApiTokenRepository } from "@modules/account/domain/repository/api-token-repository.interface";
 import { generateApiToken } from "@modules/account/application/service/api-token.generator";
+import type { GenerateApiTokenResponseDTO } from "@pombo/shared-types";
 
 export interface GenerateApiTokenInput {
   accountId: string;
   userId: string;
-}
-
-/** Returned exactly once when a token is generated — carries the clear token. */
-export interface GenerateApiTokenResponse {
-  token: string;
 }
 
 /**
@@ -28,7 +24,7 @@ export class GenerateApiTokenUseCase {
 
   async execute(
     input: GenerateApiTokenInput,
-  ): Promise<GenerateApiTokenResponse> {
+  ): Promise<GenerateApiTokenResponseDTO> {
     const { token, tokenHash, tokenPrefix } = generateApiToken();
 
     await this.apiTokenRepository.rotate({

@@ -11,7 +11,7 @@ Every frontend skill (`/frontend`, `/fullstack`, `/ui-design`, `/code-review`, `
 - **Bundler:** Vite
 - **Framework:** React 19 (functional + hooks, no class components)
 - **Router:** React Router v6 (config-based, lazy + Suspense)
-- **UI:** Chakra UI **v3** with a custom system + semantic tokens. The theme is composed in `app/theme/index.ts` via `createSystem(defaultConfig, defineConfig({...}))`; the **snippets** in `src/components/ui/*` (the upstream `chakra snippet` shape) are the ONLY place a v3 compound component (Dialog, Menu, Popover, Field, Drawer, NativeSelect, NumberInput, PinInput, Tooltip, Avatar, Toaster) is assembled — product components consume the snippet, never `Dialog.Root` directly.
+- **UI:** Chakra UI **v3** with a custom system + semantic tokens. The design system (palettes, semantic tokens, text styles, recipes, `fieldBase`) lives in the source-only package `packages/theme` (`@pombo/theme`); `app/theme/index.ts` only composes it — `createSystem(defaultConfig, pomboThemeConfig, config)`, where `config` holds the app's `globalCss`; the **snippets** in `src/components/ui/*` (the upstream `chakra snippet` shape) are the ONLY place a v3 compound component (Dialog, Menu, Popover, Field, Drawer, NativeSelect, NumberInput, PinInput, Tooltip, Avatar, Toaster) is assembled — product components consume the snippet, never `Dialog.Root` directly.
 - **Color mode:** `next-themes` (class strategy) behind `components/ui/color-mode`. `useColorMode()` / `useColorModeValue()` come from there, never from `@chakra-ui/react`. Storage key: `pombo-color-mode`; `defaultTheme="system"`.
 - **State (server):** TanStack Query v5
 - **State (global UI):** React Context only (Auth, Sidebar) — **no Redux, no Zustand**. If a feature needs its own navigation/UI state (never server data — that lives in TanStack Query), use a small feature-scoped Context under `presentation/context/` and document why.
@@ -31,9 +31,10 @@ Every frontend skill (`/frontend`, `/fullstack`, `/ui-design`, `/code-review`, `
 app/                              # App-level setup (one-time)
   router/AppRouter.tsx            # Lazy + Suspense + guards
   router/RoutePaths.ts            # All paths centralized — no string literals in components
-  theme/index.ts                  # createSystem(defaultConfig, config) -> `system` + COLOR_MODE_STORAGE_KEY
-  theme/foundations/semantic-tokens.ts  # bg.*, text.*, border.*, status.* ({ base, _dark } values)
-  theme/foundations/recipes.ts    # button / badge / input / textarea recipes + the shared `fieldBase`
+  theme/index.ts                  # createSystem(defaultConfig, pomboThemeConfig, globalCss) -> `system` + COLOR_MODE_STORAGE_KEY
+  theme/tokenContract.spec.ts     # every semantic token has _dark · no warm hues · no unknown token in src
+                                  # (foundations live in packages/theme/src/foundations: colors, typography,
+                                  #  radii, shadows, semantic-tokens, text-styles, recipes + `fieldBase`)
   providers/                      # AppProviders (Chakra v3 Provider + Toaster, QueryClient, Auth)
 
 components/ui/                    # Chakra v3 snippets — vendored primitives, not product code
@@ -75,18 +76,17 @@ modules/{feature}/                # Feature modules (one per domain — account,
 shared/                           # Cross-module reuse
   components/
     ui/                           # AppModal, EntityCard, EmptyState, PageHeader, SectionCard, ...
-    forms/                        # FormField, SelectField, TextAreaField, NumberField, PasswordField, RichTextField
-    layout/                       # AppShell, SidebarNav, MobileHeader, MobileBottomNav, AppVersion
+    forms/                        # FormField, SelectField, TextAreaField, NumberField, PasswordField
+    layout/                       # AppShell, SidebarNav (+ SidebarNavItems, SidebarUserMenu), BrandMark, MobileHeader, MobileBottomNav, AppVersion
     skeletons/                    # ListPageSkeleton, DetailPageSkeleton, ...
     animations/                   # PageTransition
   hooks/                          # useDetailPageController, useFormState, useAutoSave, useNotify,
-                                  #   useBulkSelection, useConfirm, useDebounce,
-                                  #   useUnsavedChangesGuard, useInfiniteScrollSentinel
+                                  #   useConfirm, useDebounce, useUnsavedChangesGuard
   contexts/                       # SidebarContext (global UI state)
   i18n/locales/{pt-BR,en,es}/     # One JSON per namespace
-  utils/                          # date, phone, document, mergeEdits, pagination
+  utils/                          # date, phone, passwordValidation, download, chunk reload, storage cleanup
   constants/                      # Animation constants (EASE_ORGANIC, TRANSITION_*), enums
-  types/                          # PaginationParams, PaginatedResponse, ...
+  types/                          # phone
 ```
 
 **Dependency rule:** `domain` ← `infrastructure` ← `presentation`. Components never import from `infrastructure` directly — always go through `core/di/repositories.ts` and a hook.
@@ -118,23 +118,20 @@ For "user opens device detail" (illustrative — mirrors `modules/devices`):
 
 ```typescript
 // modules/devices/domain/entities/Device.ts
-export type DeviceStatus = "DISCONNECTED" | "QR_PENDING" | "CONNECTED" | /* ... mirror the API enum */ string;
+import type {
+  DeviceResponseDTO,
+  RegisterDeviceRequestDTO,
+  UpdateDeviceWebhooksRequestDTO,
+} from "@pombo/shared-types";
 
-export interface Device {
-  id: string;
-  accountId: string;
-  name: string;
-  status: DeviceStatus;
-  identifier: string | null;    // paired WhatsApp number once CONNECTED
-  createdAt: string;            // ISO string from API; convert to Date only at render boundary
-  updatedAt: string;
-}
+export type { DeviceStatus, DeviceWebhooks } from "@pombo/shared-types";
 
-export interface CreateDeviceInput { name: string; }
-export interface UpdateDeviceWebhooksInput { /* one nullable URL per event */ }
+export type Device = DeviceResponseDTO;               // dates are ISO strings; convert only at render
+export type CreateDeviceInput = RegisterDeviceRequestDTO;
+export type UpdateDeviceWebhooksInput = UpdateDeviceWebhooksRequestDTO;
 ```
 
-**Rules:** plain TS interfaces (not classes); dates as ISO strings (matches API DTO exactly); separate `Create*Input` (required) and `Update*Input` (all-optional with `| null` for clearable). Field names mirror backend response DTO 1:1.
+**Rules:** the wire contract (request/response DTOs, status/type unions, the `ErrorCodes` catalog, the `{ ok, data }` / `{ ok: false, error }` envelope) is declared **once** in `packages/shared-types` and the API types its projections with it. A module entity file only **aliases** those DTOs into the module's vocabulary — never redeclare a wire field. Types that exist only in the UI (`SandboxMessageType`, `AuthUser`) are declared in the entity file. A new endpoint adds its DTOs to the package first. The web reads the package from its TypeScript source (alias in `apps/web/aliases.ts` + `tsconfig` paths) — never add it back to `optimizeDeps`.
 
 ### Repository Interface (Domain)
 
@@ -217,11 +214,9 @@ devices: {
 | Modal/standalone form (simple) | `useFormState` | `shared/hooks/useFormState.ts` |
 | Validated form (login, register, complex) | `useForm` (RHF) + `zodResolver(buildXSchema())` | direct |
 | Toast | `useNotify` (`showSuccess`, `showError`, `showInfo`, `showWarning`, `showAutoSaved`) | `shared/hooks/useNotify.ts` |
-| Bulk selection state | `useBulkSelection` | `shared/hooks/useBulkSelection.ts` |
 | Confirm dialog state | `useConfirm` | `shared/hooks/useConfirm.ts` |
 | Unsaved-changes nav guard | `useUnsavedChangesGuard(isDirty)` | `shared/hooks/useUnsavedChangesGuard.ts` |
 | Debounce a value | `useDebounce(value, 300)` | `shared/hooks/useDebounce.ts` |
-| Infinite-scroll sentinel | `useInfiniteScrollSentinel` | `shared/hooks/useInfiniteScrollSentinel.ts` |
 | Open/close state for a modal or drawer | `useDisclosure()` from `@chakra-ui/react` — **v3 returns `open`, not `isOpen`** | direct |
 | Centralized error handling | `useErrorHandler()` → `handleError(error, fallback)` | `core/query/useErrorHandler.ts` |
 
@@ -233,7 +228,10 @@ There is deliberately **no** generic `useEntityList` / `useEntityDetail` / `useL
 export function useDeviceDetail(id?: string) {
   return useQuery({
     queryKey: queryKeys.devices.detail(id!),
-    queryFn: () => repositories.devices.getById(id!),
+    // Forward the query's `signal` whenever the repository method takes one:
+    // cancelling the query (unmount, key change) then aborts the request
+    // instead of leaving it running.
+    queryFn: ({ signal }) => repositories.devices.getById(id!, signal),
     enabled: Boolean(id),
   });
 }
@@ -285,10 +283,10 @@ export const EntityRow = memo(function EntityRow({ title, onAction }: EntityRowP
 
 ### Routing (`app/router/AppRouter.tsx`, `RoutePaths.ts`)
 
-- **Config-based** with `lazy()` + `Suspense` for every route
+- Every page is a `lazyWithRetry()` chunk (a stale chunk after a deploy reloads once instead of crashing)
 - Guards: `ProtectedRoute` (requires auth), `PublicOnlyRoute` (redirects authenticated)
 - All paths in `RoutePaths.ts` — never hardcode `"/devices/:id"` in a component; use `ROUTE_PATHS.deviceDetail.replace(":id", id)`
-- Wrap protected routes in `withAppShell()` (applies `AppShell` + `ProtectedRoute` + `RouteErrorBoundary`)
+- Two layout routes in `AppRouter.tsx`: `ProtectedLayout` (`ProtectedRoute` → `AppShell` → `RouteErrorBoundary` → `Suspense`) holds every authenticated page, so the shell stays mounted across navigation; `PublicLayout` (`RouteErrorBoundary`) holds the auth pages. A new page is a `<Route>` under the right layout
 
 ### HTTP Client (`core/http/httpClient.ts`)
 
@@ -334,7 +332,7 @@ const { formData, setField, errors, validate, reset } = useFormState(
 );
 ```
 
-**Form primitives (`shared/components/forms/`):** Always reuse `FormField`, `SelectField`, `TextAreaField`, `NumberField`, `PasswordField`, `RichTextField` — **do not** wrap raw Chakra `<Input>` in feature code. Each one composes the `Field` snippet (`components/ui/field`), so label/error/invalid wiring is identical everywhere. The one sanctioned exception is an RHF `register()` input, which needs a ref-spread and therefore uses `<Field>` + `<Input>` directly (see `SignInPage`).
+**Form primitives (`shared/components/forms/`):** Always reuse `FormField`, `SelectField`, `TextAreaField`, `NumberField`, `PasswordField` — **do not** wrap raw Chakra `<Input>` in feature code. Each one composes the `Field` snippet (`components/ui/field`), so label/error/invalid wiring is identical everywhere. The one sanctioned exception is an RHF `register()` input, which needs a ref-spread and therefore uses `<Field>` + `<Input>` directly (see `SignInPage`).
 
 ### Modals
 
@@ -350,9 +348,10 @@ const { formData, setField, errors, validate, reset } = useFormState(
 | Detail page | `<DetailPageGuard isLoading error entity skeletonVariant="profile" notFoundMessage>{children}</DetailPageGuard>` |
 | List page | `<ListPageSkeleton />` while loading, then the cards; `<EmptyState>` when the list is empty |
 | Section / card | `<SectionCardSkeleton />`, `<EntityCardSkeleton />` |
+| Session check / route chunk | handled by the shell: `ProtectedRoute` renders `<AppShellSkeleton />`, the route `Suspense` renders `<RouteContentSkeleton />` — pages never add their own |
 | Manual empty | `<EmptyState icon title description actionLabel onAction />` |
 | Manual error | `useNotify().showError(error, fallback)` toast |
-| Render error | `<RouteErrorBoundary>` (per route via `withAppShell`); `<GlobalErrorBoundary>` (root) |
+| Render error | `<RouteErrorBoundary>` (in both layout routes of `AppRouter.tsx`); `<GlobalErrorBoundary>` (root) |
 
 **Never** use a bare `<Spinner />` for primary content — always a skeleton matching the target layout. **Never** show a blank area when there's no data — always `<EmptyState>` with helpful CTA.
 
@@ -393,8 +392,15 @@ onMutate: async (deletedId) => {
   queryClient.setQueryData<T[]>(keys.list(), (prev) => prev?.filter((x) => x.id !== deletedId) ?? []);
   return { previous };
 },
-onError: (_err, _id, ctx) => { if (ctx?.previous) queryClient.setQueryData(keys.list(), ctx.previous); },
+onError: (_err, deletedId, ctx) => {
+  // Restore ONLY the failed item into the current cache — resetting the whole
+  // snapshot resurrects items a concurrent optimistic delete already removed.
+  if (ctx?.previous) queryClient.setQueryData<T[]>(keys.list(), (current) => restoreItem(current, ctx.previous, deletedId));
+},
+onSettled: () => queryClient.invalidateQueries({ queryKey: keys.list() }),
 ```
+
+`restoreItem` re-inserts the item at its old position relative to the items still listed (see `restoreDevice` in `modules/devices/presentation/hooks/useDevices.ts`). A `useConfirm` dialog closes before its mutation resolves, so two deletes can overlap.
 
 Use this pattern only when the operation is fast and rollback is cheap; otherwise prefer `invalidate-then-refetch` for correctness.
 
@@ -444,7 +450,7 @@ Use this pattern only when the operation is fast and rollback is cheap; otherwis
 - `useAuth()` to read; the session JWT lives in the httpOnly `pombo_at` cookie — JS never sees or stores it (closes XSS→session theft). `AuthSession` carries only `{ user }`.
 - After login, `i18n.changeLanguage(user.language)` is called automatically
 - Token refresh handled transparently by `httpClient` interceptor (cookie-only)
-- **Session-termination hygiene:** every sign-out path — explicit `signOut()` AND the token-expiry handler (`setAuthExpiredHandler`) — must both `queryClient.clear()` and wipe any browser-persisted, session-scoped data (localStorage/sessionStorage keys under the `@pombo-web:` prefix, except the language). A shared device must never leak one account's data to the next.
+- **Session-termination hygiene:** every sign-out path — explicit `signOut()` AND the token-expiry handler (`setAuthExpiredHandler`) — must both `queryClient.clear()` and wipe any browser-persisted, session-scoped data (localStorage/sessionStorage keys under the `@pombo-web:` prefix, except the device preferences in `DEVICE_PREFERENCE_KEYS` — language and sidebar). Both paths call `clearSessionScopedStorage()` (`shared/utils/sessionStorageCleanup.ts`). A shared device must never leak one account's data to the next.
 
 ### i18n
 
@@ -465,20 +471,16 @@ Use this pattern only when the operation is fast and rollback is cheap; otherwis
 
 ### Semantic Tokens (mandatory — never hardcode hex)
 
-| Category | Token | Light → Dark |
-|----------|-------|--------------|
-| Background | `bg.canvas` | `#f3f7fc` → `#0b1220` (page bg) |
-| Background | `bg.surface` | `#ffffff` → `#121a2b` (card/panel) |
-| Background | `bg.elevated` | `#ffffff` → elevated |
-| Background | `bg.sunken` | `#f0f4f8` (inset) |
-| Background | `bg.glass` | `rgba(255,255,255,0.80)` (frosted) |
-| Text | `text.primary` | `#1f2937` → `#e6eaf2` |
-| Text | `text.secondary` | `#4b5563` → `#a9b3c6` |
-| Border | `border.subtle` | `rgba(15,23,42,0.07)` |
-| Border | `border.default` | `rgba(15,23,42,0.12)` |
-| Border | `border.strong` | `rgba(15,23,42,0.20)` |
-| Status | `status.success.fg` | `green.600` → `green.300` |
-| Status | `status.error.fg` | `red.600` → `red.300` |
+The values live in `packages/theme/src/foundations/semantic-tokens.ts` — read them there; this table lists the families, not the colors (they change when a design is applied).
+
+| Family | Tokens | Use |
+|--------|--------|-----|
+| Background | `bg.canvas` · `bg.surface` · `bg.elevated` · `bg.sunken` · `bg.muted` · `bg.hover` · `bg.active` · `bg.glass` · `bg.topbar` · `bg.overlay` | page, cards, popovers, insets, hover/active fills, frosted bars |
+| Brand fills | `bg.brand.{subtle,emphasis,solid,solid-hover,solid-active}` · `bg.accent.subtle` | selected nav item, primary action |
+| Component fills | `bg.switch.{track,trackEnd,thumb}` · `bg.glow.{primary,secondary,tertiary}` | the color-mode switch · decorative radial glows (auth) |
+| Text | `text.primary` · `text.secondary` · `text.muted` · `text.disabled` · `text.inverse` · `text.link` · `text.brand` · `text.accent` · `text.onBrand` · `text.switchThumb` | |
+| Border | `border.subtle` · `border.default` · `border.strong` · `border.brand` · `border.accent` · `border.focus` | |
+| Status | `status.{success,warning,error,info,neutral,blue}.{fg,bg,border}` · `status.{success,warning,error,info}.solid` | badges, toasts (`solid` = the filled icon badge) |
 
 Dark mode is automatic via the `_dark` half of each token's value — **never** write color-mode conditionals (`useColorMode().colorMode === "dark" ? ... : ...`) in components.
 
@@ -502,7 +504,7 @@ text: { link: { value: { base: "{colors.brand.700}", _dark: "{colors.brand.300}"
 
 ### Shadows
 
-`card`, `card-hover`, `panel`, `lg` (modals), `inner` (sunken), `brand-glow`, `accent-glow`, `input-focus`, `input-error`.
+`shadow.card`, `shadow.cardHover`, `shadow.panel` (popovers, toasts), `shadow.lg` (modals), `shadow.inner` (sunken), `shadow.switchTrack` / `shadow.switchThumb`, `shadow.brandMark` / `shadow.brandMarkSm` / `shadow.authCard` (auth screens), and the focus/glow family `outline`, `input-focus`, `input-error`, `input-error-focus`, `brand-glow`, `accent-glow`. An unknown shadow name renders nothing — `tokenContract.spec.ts` fails on it.
 
 ### Spacing
 
@@ -536,8 +538,8 @@ Global font-size: `sm` (14px). FormLabel: `xs`, `600`, `gray.600`. Section headi
   >;
   const MotionBox = motion.create(Box) as unknown as ComponentType<MotionBoxProps>;
   ```
-- Card hover: `_hover={{ boxShadow: "card-hover", transform: "translateY(-2px)", borderColor: "brand.200" }}`
-- Quick actions reveal: `<Flex opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.15s ease">`
+- Card hover: `_hover={{ boxShadow: "shadow.cardHover", transform: "translateY(-2px)", borderColor: "brand.200" }}`
+- Quick actions reveal: `<Flex opacity={0} _groupHover={{ opacity: 1 }} _focusWithin={{ opacity: 1 }} transition="opacity 0.15s ease">` — the card carries `className="group"` (Chakra v3's `_group*` conditions match the class, not `role="group"`)
 - Fetching state: `<Box opacity={isFetching ? 0.5 : 1} transition="opacity 0.15s ease">`
 
 ---
@@ -550,8 +552,10 @@ Global font-size: `sm` (14px). FormLabel: `xs`, `600`, `gray.600`. Section headi
 |-----------|---------|
 | `PageHeader` | The ONE page header (`title` + `description` + `count`/`countLabel` pill + `primaryAction` + `actions`) — use it on every list/detail page; never hand-roll a title row |
 | `SectionCard` | Content section (variants: `default` / `glass` / `sunken`) |
-| `StatCard` | Statistic display (label + value + hint + icon, tone-coloured) |
-| `EntityCard` | List card (avatar + title + badges + meta + actions + quick actions on hover) |
+| `StatTiles` | The counters above a list: one bordered block split into tiles (tiny label + big mono number, tone-coloured) |
+| `EntityCard` | List card (avatar + title + badges + meta + actions; `hoverAction` reveals the call to action, `isLive` makes a live entity breathe) |
+| `ViewToggle` | Cards ⇄ rows switch for a list |
+| `InlineSelect` | Borderless select that sits inside another control's chrome (the `FilterBar`'s status picker) |
 | `StatusBadge` | Colored status badge |
 | `InfoRow` | Label/value row inside a section |
 | `EmptyState` | Empty state with icon + title + description + CTA |
@@ -560,17 +564,21 @@ Global font-size: `sm` (14px). FormLabel: `xs`, `600`, `gray.600`. Section headi
 | `AppModal` | Standard modal wrapper (header + body + cancel/primary footer) |
 | `SaveButton` | Save with isDirty/isSaving |
 | `CopyButton` | Copy-to-clipboard with a success toast |
-| `FilterBar` | Search input with clear affordance |
+| `FilterBar` | The list filter row: mono `/` prompt, query, clear affordance and an optional `trailing` control |
 | `DetailPageGuard` | Loading/error/not-found wrapper for detail pages |
-| `ColorModeToggle` | Light/dark switch |
+| `ColorModeToggle` | Dark/light segmented control (`shape="pill"` on the auth screens) |
 | `LanguageSelector` | Locale switch (pt-BR / en / es) |
 | `GlobalErrorBoundary` / `RouteErrorBoundary` | Root and per-route render-error boundaries |
 
 **Rule:** check this catalog **before** creating any new shared UI. Duplication is a defect.
 
+**Styleguide:** every primitive above renders, in every state, on the DEV-only route `/dev/styleguide` (`modules/development`, mounted only when `import.meta.env.DEV`; the `pombo:dev-only-modules-excluded` Vite plugin fails a production build that bundles any of its modules). A new or changed shared primitive gets a spot there, and the visual baselines in `e2e/tests/design-system/` get updated in the same change. Interactive primitives without a unique semantic selector carry a `data-cy` (the app's test-id attribute).
+
+**Custom button variants:** the recipe's `danger` and `dangerOutline` variants are not in Chakra's generated types, and every recipe variant paints explicit tokens regardless of `colorPalette` — `colorPalette="red"` renders green, so don't pass `colorPalette` to a `Button`. A destructive primary action uses `variant={"danger" as "solid"}` (see `ConfirmDialog`, pinned by `AppModal.spec.tsx`); a destructive secondary action uses `variant={"dangerOutline" as "outline"}` (see `DeviceDetailPage`). The cast only bridges the missing typegen.
+
 ### Skeletons (`shared/components/skeletons/`)
 
-`ListPageSkeleton`, `DetailPageSkeleton` (`profile` / `two-column` / `single`), `EntityCardSkeleton`, `FilterBarSkeleton`, `SectionCardSkeleton`.
+`ListPageSkeleton`, `DetailPageSkeleton` (`profile` / `two-column` / `single`), `EntityCardSkeleton`, `FilterBarSkeleton`, `SectionCardSkeleton`. Shell-level: `AppShellSkeleton` (the `ProtectedRoute` state while the session resolves — honors the collapsed sidebar width from `SIDEBAR_WIDTH`) and `RouteContentSkeleton` (the route `Suspense` fallback; it fades in after a CSS delay, so fast loads never flash it).
 
 ### Animations (`shared/components/animations/`)
 
@@ -633,7 +641,7 @@ See `/test-e2e` skill for the full template.
 8. **Create modal** — `components/{Entity}CreateModal.tsx` (`AppModal` + `useFormState` or RHF)
 9. **Detail page** — `pages/{Feature}DetailPage.tsx` (`useDetailPageController` + `SectionCard` + `DetailPageGuard`)
 10. **Route paths** — add to `app/router/RoutePaths.ts`
-11. **Router** — add to `AppRouter.tsx` with `withAppShell()` + `lazy()`
+11. **Router** — a `<Route>` under `ProtectedLayout` in `AppRouter.tsx`, with the page as a `lazyWithRetry()` chunk
 12. **i18n** — create `shared/i18n/locales/{pt-BR,en,es}/{feature}.json`; register namespace in `shared/i18n/index.ts`
 13. **Sidebar** — add nav item
 14. **Barrel** — `modules/{feature}/index.ts` exporting the entity types + public hooks + pages (MANDATORY)

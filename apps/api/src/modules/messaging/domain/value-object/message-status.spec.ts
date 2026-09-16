@@ -1,3 +1,8 @@
+import {
+  MESSAGE_STATUSES as SHARED_MESSAGE_STATUSES,
+  type MessageStatus,
+} from "@pombo/shared-types";
+import { message_status } from "@generated/prisma/enums";
 import { canTransitionTo } from "./message-status";
 
 describe("canTransitionTo", () => {
@@ -17,5 +22,14 @@ describe("canTransitionTo", () => {
     expect(canTransitionTo("PENDING", "FAILED")).toBe(true);
     expect(canTransitionTo("DELIVERY_ACK", "FAILED")).toBe(true);
     expect(canTransitionTo("READ", "FAILED")).toBe(false);
+  });
+});
+
+describe("MessageStatus wire contract", () => {
+  it("matches the Prisma message_status enum", () => {
+    expect([...SHARED_MESSAGE_STATUSES].sort()).toEqual(
+      Object.values(message_status).sort(),
+    );
+    expectTypeOf<MessageStatus>().toEqualTypeOf<message_status>();
   });
 });

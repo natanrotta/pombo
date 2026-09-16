@@ -1,3 +1,5 @@
+import type { ApiTokenMetadataDTO } from "@pombo/shared-types";
+
 export interface ApiTokenProps {
   id: string;
   accountId: string;
@@ -51,7 +53,7 @@ export class ApiToken {
    * Display projection for the settings screen. Carries only the non-secret
    * fragment plus timestamps — never the hash.
    */
-  public toMetadata() {
+  public toMetadata(): ApiTokenMetadataDTO {
     return {
       prefix: this.props.tokenPrefix,
       createdAt: this.props.createdAt.toISOString(),

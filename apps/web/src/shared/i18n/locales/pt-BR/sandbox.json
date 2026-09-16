@@ -16,6 +16,7 @@
     "groupLoading": "Carregando grupos...",
     "groupEmpty": "Nenhum grupo encontrado",
     "groupError": "Não foi possível carregar os grupos",
+    "groupOffline": "O dispositivo está offline — reconecte-o para listar os grupos",
     "text": "Mensagem",
     "textPlaceholder": "Digite a mensagem de teste...",
     "media": {
@@ -31,7 +32,8 @@
     "caption": "Legenda",
     "captionPlaceholder": "Legenda opcional",
     "count": "Quantidade",
-    "countHelper": "Enfileira várias mensagens para ver a fila e o ritmo humanizado (digitando + variação) na prática."
+    "countHelper": "Enfileira várias mensagens para ver a fila e o ritmo humanizado (digitando + variação) na prática.",
+    "textCount": "{{count}} caracteres"
   },
   "type": {
     "text": "Texto",
@@ -55,6 +57,7 @@
   "errors": {
     "deviceRequired": "Selecione um dispositivo.",
     "phoneInvalid": "Informe um número válido.",
+    "phoneNotOnWhatsApp": "Este número não está no WhatsApp.",
     "textRequired": "Digite uma mensagem.",
     "mediaRequired": "Informe a URL ou o base64 da mídia.",
     "groupRequired": "Selecione um grupo.",
@@ -65,14 +68,16 @@
     "clear": "Limpar"
   },
   "queue": {
-    "title": "Fila de envio",
-    "summary": "{{total}} na fila",
+    "title": "Fila em tempo real",
     "item": "Mensagem {{index}}/{{total}}",
-    "pacingHint": "Com o ritmo humanizado ativo, o destinatário vê \"digitando…\" e as mensagens saem espaçadas — acompanhe a fila drenar acima.",
+    "pacingPending": "Aguardando o ritmo humanizado: a mensagem sai depois das anteriores e das pausas.",
     "empty": {
       "title": "Nenhum envio ainda",
       "description": "Envie uma ou mais mensagens de teste para acompanhar a fila drenar aqui em tempo real."
-    }
+    },
+    "subtitle": "Acompanhe cada mensagem sair"
   },
-  "success": "{{total}} mensagem(ns) na fila de envio."
+  "success": "{{total}} mensagem(ns) na fila de envio.",
+  "ready_one": "{{count}} device pronto",
+  "ready_other": "{{count}} devices prontos"
 }

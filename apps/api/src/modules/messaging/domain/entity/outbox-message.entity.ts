@@ -1,3 +1,4 @@
+import type { MessageStatusResponseDTO } from "@pombo/shared-types";
 import { type MessageStatus } from "../value-object/message-status";
 import { type MessageType } from "../value-object/message-type";
 
@@ -85,7 +86,7 @@ export class OutboxMessage {
    * Public status projection. The outbox stores `text`/`toJid` for protocol
    * reasons — those are never leaked; the consumer only ever sees the status.
    */
-  public toJSON() {
+  public toJSON(): MessageStatusResponseDTO {
     return {
       messageId: this.id,
       status: this.status,

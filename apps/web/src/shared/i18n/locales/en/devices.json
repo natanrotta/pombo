@@ -23,12 +23,15 @@
       "connected": "Connected",
       "connectedHint": "Devices online now",
       "disconnected": "Disconnected",
-      "disconnectedHint": "Offline devices"
+      "disconnectedHint": "Offline devices",
+      "queued": "Queued"
     },
     "filter": {
       "all": "All",
       "connected": "Connected",
-      "disconnected": "Disconnected"
+      "disconnected": "Disconnected",
+      "label": "Filter by status",
+      "pairing": "Pairing"
     },
     "empty": {
       "title": "No devices yet",
@@ -45,6 +48,28 @@
     "disconnectConfirm": {
       "title": "Disconnect device",
       "description": "The WhatsApp session will be ended. To reconnect, scan the QR code again."
+    },
+    "view": {
+      "grid": "Grid view",
+      "list": "List view"
+    },
+    "columns": {
+      "device": "Device",
+      "status": "Status"
+    },
+    "connect": {
+      "title": "Connect a number",
+      "hint": "Scan the QR in WhatsApp"
+    },
+    "meta": {
+      "since": "Up since {{date}}",
+      "left": "Left on {{date}}",
+      "created": "Created on {{date}}"
+    },
+    "action": {
+      "open": "Open",
+      "reconnect": "Reconnect",
+      "qr": "Show QR code"
     }
   },
   "create": {
@@ -72,7 +97,11 @@
     "waiting": "Generating the QR code...",
     "connected": "Device connected.",
     "error": "Couldn't start the connection. Please try again.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "gatewayDisabled": {
+      "title": "Connection unavailable in this environment",
+      "description": "The WhatsApp gateway is turned off on this server, so no device can be paired here."
+    }
   },
   "webhooks": {
     "title": "Webhooks",

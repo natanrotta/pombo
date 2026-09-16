@@ -1,14 +1,13 @@
-import { Box, Flex, Text } from "@chakra-ui/react";
+import { Flex, Text } from "@chakra-ui/react";
 import { useNotify } from "@/shared/hooks/useNotify";
-import { Tooltip } from "@/components/ui/tooltip";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/modules/auth";
 import { useErrorHandler } from "@/core/query/useErrorHandler";
 
 const LANGUAGES = [
-  { value: "pt-BR", flag: "🇧🇷" },
-  { value: "en", flag: "🇺🇸" },
-  { value: "es", flag: "🇪🇸" },
+  { value: "pt-BR", flag: "🇧🇷", code: "pt-br" },
+  { value: "en", flag: "🇺🇸", code: "en" },
+  { value: "es", flag: "🇪🇸", code: "es" },
 ] as const;
 
 // Render each language's name in its OWN language (e.g. "Português", "English",
@@ -54,68 +53,61 @@ export function LanguageSelector() {
   return (
     <Flex
       align="center"
-      bg="bg.sunken"
-      borderRadius="full"
-      border="1px solid"
+      gap="2px"
+      p="3px"
+      bg="bg.canvas"
+      borderWidth="1px"
       borderColor="border.default"
-      p={0.5}
-      gap={0}
+      borderRadius="md"
+      flexShrink={0}
     >
       {LANGUAGES.map((lang) => {
         const isActive = currentLanguage === lang.value;
         const label = getNativeName(lang.value);
         return (
-          <Tooltip
+          <Flex
             key={lang.value}
-            content={label}
-            contentProps={{
-              fontSize: "xs",
-              fontWeight: "500",
-              bg: "neutral.800",
-              color: "white",
-              borderRadius: "md",
-              px: 2.5,
-              py: 1,
+            as="button"
+            aria-label={label}
+            aria-pressed={isActive}
+            data-cy={`language-option-${lang.value}`}
+            align="center"
+            justify="center"
+            gap={1.5}
+            h="30px"
+            px={3}
+            borderRadius="sm"
+            cursor="pointer"
+            fontFamily="mono"
+            fontSize="12.5px"
+            color={isActive ? "text.brand" : "text.secondary"}
+            bg={isActive ? "bg.brand.subtle" : "transparent"}
+            boxShadow={
+              isActive
+                ? "inset 0 0 0 1px var(--chakra-colors-border-accent)"
+                : undefined
+            }
+            transition="background-color 150ms ease, color 150ms ease"
+            _hover={
+              isActive ? { bg: "bg.brand.subtle" } : { color: "text.primary" }
+            }
+            _focusVisible={{
+              outline: "2px solid",
+              outlineColor: "border.focus",
+              outlineOffset: "1px",
             }}
-            showArrow
-            openDelay={300}
+            onClick={() => handleChange(lang.value)}
           >
-            <Flex
-              as="button"
-              align="center"
-              justify="center"
-              gap={1.5}
-              px={isActive ? 3 : 2}
-              py={1}
-              borderRadius="full"
-              cursor="pointer"
-              bg={isActive ? "bg.surface" : "transparent"}
-              shadow={isActive ? "sm" : "none"}
-              border="1px solid"
-              borderColor={isActive ? "border.default" : "transparent"}
-              transition="all 0.2s cubic-bezier(0.22, 1, 0.36, 1)"
-              _hover={{
-                bg: isActive ? "bg.surface" : "bg.sunken",
-              }}
-              onClick={() => handleChange(lang.value)}
+            <Text
+              as="span"
+              fontSize="13px"
+              lineHeight="1"
+              opacity={isActive ? 1 : 0.75}
             >
-              <Text fontSize="sm" lineHeight="1">
-                {lang.flag}
-              </Text>
-              {isActive && (
-                <Box overflow="hidden">
-                  <Text
-                    fontSize="xs"
-                    fontWeight="600"
-                    color="text.primary"
-                    whiteSpace="nowrap"
-                  >
-                    {label}
-                  </Text>
-                </Box>
-              )}
-            </Flex>
-          </Tooltip>
+              {lang.flag}
+            </Text>
+            {lang.code}
+          </Flex>
         );
       })}
     </Flex>

@@ -177,4 +177,16 @@ describe("MessageController", () => {
     expect(mockExecute).toHaveBeenCalledWith("acc-1", "m1");
     expect(status).toHaveBeenCalledWith(200);
   });
+
+  it("getQueueSummary counts the caller's own account → 200", async () => {
+    mockExecute.mockResolvedValue({ pending: 17 });
+    const { req, res, status, json } = mockReqRes();
+
+    await controller.getQueueSummary(req, res);
+
+    // The account comes from the session, never from the request.
+    expect(mockExecute).toHaveBeenCalledWith("acc-1");
+    expect(status).toHaveBeenCalledWith(200);
+    expect(json).toHaveBeenCalledWith({ ok: true, data: { pending: 17 } });
+  });
 });

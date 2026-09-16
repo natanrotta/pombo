@@ -133,13 +133,15 @@ describe("ProfileTab", () => {
     );
   });
 
-  it("does NOT autosave when the name field is emptied (silent skip)", async () => {
+  it("does NOT autosave when the name field is emptied and says why", async () => {
     const ProfileTab = await importTab();
     renderWithProviders(<ProfileTab />);
 
     const nameInput = screen.getByLabelText(/nome completo/i);
     await userEvent.clear(nameInput);
 
+    expect(await screen.findByText("Informe seu nome.")).toBeInTheDocument();
+    expect(nameInput).toHaveAttribute("aria-invalid", "true");
     await new Promise((r) => setTimeout(r, 100));
     expect(updateProfileMock).not.toHaveBeenCalled();
   });

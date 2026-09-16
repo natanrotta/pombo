@@ -4,21 +4,13 @@ import { IDevicesRepository } from "@modules/devices/domain/repository/devices-r
 import { IWhatsAppGateway } from "@modules/devices/domain/provider/whatsapp-gateway.interface";
 import { IOutboxRepository } from "@modules/messaging/domain/repository/outbox-repository.interface";
 import { OutboxMessage } from "@modules/messaging/domain/entity/outbox-message.entity";
-import { type MessageStatus } from "@modules/messaging/domain/value-object/message-status";
+import type { SendMessageResponseDTO } from "@pombo/shared-types";
 import { AppConfig } from "@shared/provider/app-config.interface";
 import { ConflictError, NotFoundError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
 import { SendRichInput } from "@modules/messaging/application/dto/message.dto";
 import { buildUserJid } from "@modules/messaging/domain/value-object/wa-jid";
 import { DrainOutboxUseCase } from "./drain-outbox.use-case";
-
-export interface SendRichOutput {
-  messageId: string;
-  /** The 202 acceptance status — always `PENDING`. The authoritative delivery
-   *  status is polled via `GET /messages/:id`. Typed as the full union to mirror
-   *  `SendTextOutput`. */
-  status: MessageStatus;
-}
 
 /** Order-independent JSON compare — Postgres jsonb does not preserve key order,
  *  so idempotency must not depend on it. Arrays keep their order (semantic). */
@@ -60,7 +52,7 @@ export class SendRichMessageUseCase {
     private readonly drainOutbox: DrainOutboxUseCase,
   ) {}
 
-  async execute(input: SendRichInput): Promise<SendRichOutput> {
+  async execute(input: SendRichInput): Promise<SendMessageResponseDTO> {
     const device = await this.devicesRepository.findById(
       input.accountId,
       input.deviceId,

@@ -9,7 +9,9 @@ export interface NavigationItem {
 }
 
 /** A group of nav items. The sidebar renders the items only — the group has no
- *  visible header. */
+ *  visible header; the bottom nav renders all items flat. Both mark an item
+ *  active with `NavLink`'s default prefix match (`/devices` stays active on
+ *  `/devices/:id`) — pass `end` if an item ever becomes a prefix of another. */
 export interface NavigationSection {
   items: NavigationItem[];
 }

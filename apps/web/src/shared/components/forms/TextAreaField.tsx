@@ -1,9 +1,9 @@
-import { memo } from "react";
+import { memo, type ReactNode } from "react";
 import { Textarea, type TextareaProps } from "@chakra-ui/react";
 import { Field } from "@/components/ui/field";
 
 interface TextAreaFieldProps extends Omit<TextareaProps, "onChange" | "value"> {
-  label?: string;
+  label?: ReactNode;
   value: string;
   error?: string;
   /** Optional helper copy rendered under the textarea when no error is present. */

@@ -1,14 +1,15 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
+import { ErrorCodes, type ApiErrorResponse } from "@pombo/shared-types";
 import i18n from "@/shared/i18n";
 import { AppError } from "@/core/errors/AppError";
-import { ErrorCodes } from "@/core/errors/errorCodes";
 import { STORAGE_KEYS } from "@/shared/constants/storageKeys";
+import { clearSessionScopedStorage } from "@/shared/utils/sessionStorageCleanup";
 
 // Per-request opt-out from the global session-expired redirect. The silent
 // `/auth/me` session probe (AuthContext boot + refreshUser) sets this flag: a
 // 401 there only means "not signed in", so getCurrentUser maps it to a null
 // user and the route guards own any redirect. Without it, an unauthenticated
-// visitor on a PUBLIC page (/register, /invite, /forgot-password) gets bounced
+// visitor on a PUBLIC page (/register, /forgot-password) gets bounced
 // to /sign-in by clearAuthAndRedirect.
 declare module "axios" {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
@@ -19,9 +20,8 @@ declare module "axios" {
 
 const CSRF_COOKIE = "pombo_csrf";
 
-/** Double-submit CSRF cookie reader — exported for the one non-axios
- *  transport (the copilot SSE fetch in HttpCopilotRepository). */
-export function getCsrfToken(): string | null {
+/** Double-submit CSRF cookie reader (`pombo_csrf` → `X-CSRF-Token`). */
+function getCsrfToken(): string | null {
   const match = document.cookie.match(new RegExp(`(?:^|; )${CSRF_COOKIE}=([^;]*)`));
   return match ? decodeURIComponent(match[1]) : null;
 }
@@ -87,10 +87,10 @@ function processQueue(error: unknown) {
  * out on those is a bug — the user must stay logged in and see the error inline.
  */
 const SESSION_REFRESH_CODES = new Set<string>([
-  "AUTH_TOKEN_EXPIRED",
-  "AUTH_TOKEN_INVALID",
-  "AUTH_TOKEN_REVOKED",
-  "AUTH_NO_TOKEN",
+  ErrorCodes.AUTH_TOKEN_EXPIRED,
+  ErrorCodes.AUTH_TOKEN_INVALID,
+  ErrorCodes.AUTH_TOKEN_REVOKED,
+  ErrorCodes.AUTH_NO_TOKEN,
 ]);
 
 let onAuthExpired: (() => void) | null = null;
@@ -102,8 +102,8 @@ export function setAuthExpiredHandler(handler: () => void) {
 function clearAuthAndRedirect() {
   // The session lives in the httpOnly access cookie, which the server clears on
   // sign-out / refresh failure — JS can't touch it. Here we only drop the
-  // client-side flags.
-  sessionStorage.removeItem(STORAGE_KEYS.emailVerifyToken);
+  // session-scoped browser data (scoped verify token, sandbox recents, ...).
+  clearSessionScopedStorage();
 
   if (onAuthExpired) {
     onAuthExpired();
@@ -124,6 +124,10 @@ httpClient.interceptors.response.use(
     return body;
   },
   async (error: AxiosError) => {
+    // An aborted request (a cancelled query) is not a network failure.
+    if (axios.isCancel(error)) {
+      return Promise.reject(error);
+    }
     if (!axios.isAxiosError(error) || !error.response) {
       return Promise.reject(
         new AppError(i18n.t("errors.networkError", { ns: "common" }), "NETWORK_ERROR", 0)
@@ -131,14 +135,16 @@ httpClient.interceptors.response.use(
     }
 
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-    const { status, data } = error.response;
+    const { status } = error.response;
+    // Every API error body is the shared envelope; a proxy/CDN error page may
+    // not be, hence the optional chaining on `apiError` below.
+    const apiError = (error.response.data as Partial<ApiErrorResponse> | undefined)?.error;
 
     // Only an APP-token 401 (expired/invalid JWT) should attempt refresh/logout.
     // A domain 401 (e.g. wrong password on a sensitive action) must
     // NOT log the user out — it falls through to the generic AppError reject so
     // the caller can show the error inline.
-    const auth401Code = (data as { error?: { code?: string } } | undefined)?.error?.code;
-    const isAppTokenExpiry = !auth401Code || SESSION_REFRESH_CODES.has(auth401Code);
+    const isAppTokenExpiry = !apiError?.code || SESSION_REFRESH_CODES.has(apiError.code);
 
     if (status === 401 && !originalRequest._retry && isAppTokenExpiry) {
       // A flagged silent session probe (the `/auth/me` call in getCurrentUser)
@@ -146,10 +152,9 @@ httpClient.interceptors.response.use(
       // no clearAuthAndRedirect. A 401 here just means "not signed in"; the
       // caller maps the rejection to a null user and the route guards
       // (ProtectedRoute) own any redirect. This keeps unauthenticated visitors
-      // on public pages (/register, /invite, /forgot-password) from being
+      // on public pages (/register, /forgot-password) from being
       // bounced to /sign-in by the boot probe.
       if (originalRequest.skipSessionExpiredRedirect) {
-        const apiError = (data as { error?: { message?: string; code?: string } })?.error;
         return Promise.reject(
           new AppError(
             apiError?.message || i18n.t("errors.sessionExpired", { ns: "common" }),
@@ -167,9 +172,6 @@ httpClient.interceptors.response.use(
       // up") — don't clear auth, don't attempt a refresh.
       const isEmailVerification = originalRequest.url?.includes("/auth/email-verification/");
       if (isEmailVerification) {
-        const apiError = (
-          data as { error?: { message?: string; code?: string; details?: unknown } }
-        )?.error;
         return Promise.reject(
           new AppError(
             apiError?.message || i18n.t("errors.sessionExpired", { ns: "common" }),
@@ -182,9 +184,6 @@ httpClient.interceptors.response.use(
       // Auth routes should not attempt refresh
       if (originalRequest.url?.includes("/auth/")) {
         clearAuthAndRedirect();
-        const apiError = (
-          data as { error?: { message?: string; code?: string; details?: unknown } }
-        )?.error;
         return Promise.reject(
           new AppError(
             apiError?.message || i18n.t("errors.sessionExpired", { ns: "common" }),
@@ -213,11 +212,18 @@ httpClient.interceptors.response.use(
         // Refresh token rides the httpOnly cookie; the backend sets a fresh
         // `pombo_at` cookie on success. We don't touch the token in JS —
         // replay the queued + original requests with the new cookie attached.
+        // Raw axios skips the request interceptor, so the CSRF double-submit
+        // header is attached here — the API rejects the refresh without it
+        // whenever the (expired) session cookie is still present.
+        const csrf = getCsrfToken();
         await axios.post(
           `${httpClient.defaults.baseURL}/auth/refresh`,
           {},
           {
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...(csrf && { "X-CSRF-Token": csrf }),
+            },
             withCredentials: true,
           }
         );
@@ -241,10 +247,9 @@ httpClient.interceptors.response.use(
     }
 
     if (status === 429) {
-      const apiError = (data as { error?: { message?: string; code?: string } })?.error;
       const retryAfter = error.response.headers["retry-after"];
       const message = apiError?.message || i18n.t("errors.rateLimited", { ns: "common" });
-      const code = apiError?.code || "RATE_LIMIT";
+      const code = apiError?.code || ErrorCodes.RATE_LIMIT;
       return Promise.reject(
         new AppError(message, code, 429, {
           retryAfter: retryAfter ? Number(retryAfter) : undefined,
@@ -252,8 +257,6 @@ httpClient.interceptors.response.use(
       );
     }
 
-    const apiError = (data as { error?: { message?: string; code?: string; details?: unknown } })
-      ?.error;
     const message = apiError?.message || i18n.t("errors.unexpectedError", { ns: "common" });
     const code = apiError?.code || "UNKNOWN_ERROR";
     const details = apiError?.details;

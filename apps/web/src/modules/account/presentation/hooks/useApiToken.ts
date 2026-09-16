@@ -7,7 +7,7 @@ import { useErrorHandler } from "@/core/query/useErrorHandler";
 export function useApiToken() {
   return useQuery({
     queryKey: queryKeys.account.apiToken(),
-    queryFn: () => repositories.account.getApiToken(),
+    queryFn: ({ signal }) => repositories.account.getApiToken(signal),
   });
 }
 

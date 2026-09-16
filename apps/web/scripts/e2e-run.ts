@@ -78,11 +78,32 @@ function parseDotenv(path: string): Record<string, string> {
   return out;
 }
 
+// The seed account (apps/api/prisma/seed.ts; mirrored in e2e/fixtures/constants.ts).
+const SEED_USER_EMAIL = "demo@example.com";
+
 function buildApiEnv(): NodeJS.ProcessEnv {
   const base = parseDotenv(resolve(API_DIR, ".env"));
-  const override = parseDotenv(resolve(API_DIR, ".env.e2e"));
-  if (Object.keys(override).length === 0) fail("env", "apps/api/.env.e2e not found");
-  return { ...process.env, ...base, ...override };
+  // A local `.env.e2e` wins; the committed example serves CI and fresh checkouts.
+  const localOverride = resolve(API_DIR, ".env.e2e");
+  const overridePath = existsSync(localOverride)
+    ? localOverride
+    : resolve(API_DIR, ".env.e2e.example");
+  const override = parseDotenv(overridePath);
+  if (Object.keys(override).length === 0) {
+    fail("env", "neither apps/api/.env.e2e nor apps/api/.env.e2e.example found");
+  }
+  const merged = { ...process.env, ...base, ...override };
+  return {
+    ...merged,
+    // Whatever the dev `.env` says, the suite never opens real WhatsApp
+    // sessions and never sends real e-mail (an empty key selects the console
+    // mail provider).
+    WHATSAPP_ENABLED: "false",
+    RESEND_API_KEY: "",
+    // The auth specs hit the IP-keyed auth limiter more than its default (10 /
+    // 15 min) allows across one run.
+    RATE_LIMIT_AUTH_MAX: merged.RATE_LIMIT_AUTH_MAX ?? "100",
+  };
 }
 
 function run(cmd: string, args: string[], opts: { cwd?: string; env?: NodeJS.ProcessEnv } = {}) {
@@ -161,7 +182,7 @@ function seedUserPresent(): boolean {
       "-d",
       "pombo_e2e",
       "-tAc",
-      `SELECT COUNT(*) FROM "user" WHERE email = 'felipe@pombo.dev';`,
+      `SELECT COUNT(*) FROM "user" WHERE email = '${SEED_USER_EMAIL}';`,
     ],
     { encoding: "utf8" }
   );

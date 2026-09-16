@@ -1,4 +1,5 @@
-import { Flex, Spinner, Text } from "@chakra-ui/react";
+import { memo, useState } from "react";
+import { Box, Flex, Spinner, Text } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
 import { StatusBadge } from "@/shared/components/ui/StatusBadge";
 import { useMessageStatus } from "@/modules/messaging/presentation/hooks/useSendMessage";
@@ -9,6 +10,9 @@ import type {
 
 /** One enqueued send tracked by the Sandbox queue — the 202 body kept in memory. */
 export type SandboxQueueEntry = SendMessageResult;
+
+/** How long a row may sit PENDING before we explain the pacer's queue. */
+const LONG_PENDING_MS = 15_000;
 
 const STATUS_TONE: Record<
   MessageStatus,
@@ -34,7 +38,7 @@ interface SandboxQueueItemProps {
  *  which is exactly how the humanized pacing becomes visible: earlier rows climb
  *  to SERVER_ACK/READ while later ones sit PENDING, spaced out by the drain's
  *  typing window and long pauses. */
-export function SandboxQueueItem({
+export const SandboxQueueItem = memo(function SandboxQueueItem({
   messageId,
   index,
   total,
@@ -48,35 +52,55 @@ export function SandboxQueueItem({
   const isError = statusQuery.isError;
   const isPolling = status !== "READ" && status !== "FAILED" && !isError;
 
+  // Client clock only: when the row first rendered vs. its latest poll. The
+  // 2s poll re-renders the row, so no timer of its own is needed.
+  const [shownAt] = useState(() => Date.now());
+  const waitedMs = statusQuery.dataUpdatedAt - shownAt;
+  const showPacingHint =
+    status === "PENDING" && !isError && waitedMs > LONG_PENDING_MS;
+
   return (
-    <Flex
-      direction="column"
-      gap={1}
-      py={2.5}
+    <Box
+      data-cy="sandbox-queue-item"
+      aria-label={t("queue.item", { index, total })}
+      display="grid"
+      gridTemplateColumns="26px minmax(0, 1fr) auto"
+      alignItems="center"
+      gap={3}
+      px={4.5}
+      py={3.5}
       borderBottomWidth="1px"
       borderColor="border.subtle"
       _last={{ borderBottomWidth: 0 }}
     >
-      <Flex align="center" justify="space-between" gap={3}>
-        <Text fontSize="sm" fontWeight="600" color="text.primary">
-          {t("queue.item", { index, total })}
-        </Text>
-        <Flex align="center" gap={2} flexShrink={0}>
-          {isPolling && <Spinner size="xs" color="text.muted" />}
-          <StatusBadge
-            status={STATUS_TONE[status]}
-            label={t(`status.${status}`)}
-          />
-        </Flex>
-      </Flex>
-      <Text fontSize="xs" color="text.muted" wordBreak="break-all">
-        {messageId}
+      <Text textStyle="mono" fontSize="11.5px" color="text.disabled">
+        {String(index).padStart(2, "0")}
       </Text>
-      {failureReason && (
-        <Text fontSize="xs" color="status.error.fg">
-          {failureReason}
+
+      <Flex direction="column" gap={0.5} minW={0}>
+        <Text textStyle="mono" color="text.primary" lineClamp={1}>
+          {messageId}
         </Text>
-      )}
-    </Flex>
+        {/* Only what the badge does NOT already say. */}
+        {(failureReason || showPacingHint) && (
+          <Text
+            textStyle="caption"
+            color={failureReason ? "status.error.fg" : "text.muted"}
+            lineClamp={2}
+          >
+            {failureReason ?? t("queue.pacingPending")}
+          </Text>
+        )}
+      </Flex>
+
+      <Flex align="center" gap={2} flexShrink={0}>
+        {isPolling && <Spinner size="xs" color="text.muted" />}
+        <StatusBadge
+          status={STATUS_TONE[status]}
+          label={t(`status.${status}`)}
+          isPending={isPolling}
+        />
+      </Flex>
+    </Box>
   );
-}
+});

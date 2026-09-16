@@ -31,6 +31,7 @@ yarn-error.log*
 # Test / coverage
 coverage/
 playwright-report/
+.playwright/
 test-results/
 # Playwright HTML report + artifacts (apps/web/playwright.config.ts → .playwright/)
 apps/web/.playwright/

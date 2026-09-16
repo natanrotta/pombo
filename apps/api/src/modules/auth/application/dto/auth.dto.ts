@@ -1,21 +1,36 @@
 import { z } from "zod";
 import type {
-  AuthResponseDTO,
   GoogleSignInResponseDTO,
   MeResponseDTO,
-  RefreshTokenResponseDTO,
-  SignInResponseDTO,
   SignUpResponseDTO,
 } from "@pombo/shared-types";
 
-export type {
-  AuthResponseDTO,
-  GoogleSignInResponseDTO,
-  MeResponseDTO,
-  RefreshTokenResponseDTO,
-  SignInResponseDTO,
-  SignUpResponseDTO,
-};
+export type { MeResponseDTO };
+
+// Use-case results. They are NOT the wire bodies (those live in
+// `@pombo/shared-types`): a session-minting use case also hands the controller
+// the refresh token, which the controller puts in the `pombo_rt` cookie before
+// writing `{ user, token, csrfToken }`.
+
+/** Output of every session-minting use case (sign-in, verify-email PIN). */
+export interface AuthSessionResult {
+  user: MeResponseDTO;
+  token: string;
+  refreshToken: string;
+}
+
+export type SignInResult = AuthSessionResult;
+
+export type GoogleSignInResult = Pick<GoogleSignInResponseDTO, "kind"> &
+  AuthSessionResult;
+
+export interface RefreshTokenResult {
+  token: string;
+  refreshToken: string;
+}
+
+/** The sign-up body minus the CSRF token the controller adds. */
+export type SignUpResult = Omit<SignUpResponseDTO, "csrfToken">;
 
 export const SignInDTOSchema = z.object({
   email: z.string().trim().toLowerCase().email("Invalid email format"),

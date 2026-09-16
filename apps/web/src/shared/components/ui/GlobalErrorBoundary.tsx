@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Box, Button, Container, Flex, Heading, Text } from "@chakra-ui/react";
-import { errorReporter } from "@/shared/lib/error-reporter";
+import { reportRenderError } from "@/shared/lib/error-reporter";
 import { isChunkLoadError } from "@/shared/utils/chunkError";
 import { reloadForStaleChunk } from "@/shared/utils/chunkReload";
 import i18n from "@/shared/i18n";
@@ -34,12 +34,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
       reloadForStaleChunk();
       return;
     }
-    errorReporter.notify(error, (event) => {
-      // A React tree crash is unambiguously an error. Bugsnag defaults handled
-      // notifications to "warning", so set it explicitly for correct triage.
-      event.severity = "error";
-      event.addMetadata("react", { componentStack: info.componentStack });
-    });
+    reportRenderError(error, info.componentStack);
   }
 
   handleReload = () => {

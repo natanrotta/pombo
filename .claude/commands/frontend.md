@@ -103,7 +103,6 @@ Open/close state for a modal/drawer?                     → useDisclosure()  (v
 Validated form (login, register, complex)?                → useForm (RHF) + zodResolver(buildXSchema())
 Modal/standalone simple form?                             → useFormState
 Toast notification?                                        → useNotify
-Bulk selection?                                            → useBulkSelection
 Confirm dialog?                                            → useConfirm
 Unsaved changes guard?                                     → useUnsavedChangesGuard(isDirty)
 Debounce a value?                                          → useDebounce(value, 300)
@@ -122,7 +121,7 @@ Before creating any component, check `.claude/patterns/frontend.md` § "Reuse-Fi
 - **Cards / display:** `EntityCard`, `StatCard`, `StatusBadge`, `InfoRow`, `EmptyState`
 - **Actions:** `ActionMenu`, `ConfirmDialog`, `AppModal`, `SaveButton`
 - **Data display:** `FilterBar`, `CopyButton`
-- **Forms:** `FormField`, `SelectField`, `TextAreaField`, `NumberField`, `PasswordField`, `RichTextField`
+- **Forms:** `FormField`, `SelectField`, `TextAreaField`, `NumberField`, `PasswordField`
 - **Chakra v3 primitives (`src/components/ui/*`):** `dialog`, `drawer`, `menu`, `popover`, `field`, `native-select`, `number-input`, `pin-input`, `tooltip`, `avatar`, `toaster`, `color-mode` — assemble a compound component ONLY through these
 - **Skeletons:** `ListPageSkeleton`, `DetailPageSkeleton` (variants), `EntityCardSkeleton`, `FilterBarSkeleton`, `SectionCardSkeleton`
 - **Animations:** `PageTransition` (route-level); per-element entrances are inline `motion.create(...)`
@@ -138,11 +137,11 @@ If a shared component is missing, propose it as a shared addition rather than du
 3. **Auto-save** — `useDetailPageController` (1500ms debounce) + `showAutoSaved()` toast on save. Inline saves should never need a Save button.
 4. **Unsaved-changes guard** — `useUnsavedChangesGuard(isDirty)` on every editable detail page.
 5. **Optimistic delete** — implement `onMutate`/`onError` rollback in the module's mutation hook (see `patterns/frontend.md` § Optimistic Updates).
-6. **Hover lift on cards** — `_hover={{ boxShadow: "card-hover", transform: "translateY(-2px)", borderColor: "brand.200" }}`.
-7. **Quick-action reveal** — `<Flex opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.15s ease">`.
+6. **Hover lift on cards** — `_hover={{ boxShadow: "shadow.cardHover", transform: "translateY(-2px)", borderColor: "brand.200" }}`.
+7. **Quick-action reveal** — `<Flex opacity={0} _groupHover={{ opacity: 1 }} _focusWithin={{ opacity: 1 }} transition="opacity 0.15s ease">` inside a parent with `className="group"`.
 8. **Fetching fade** — `<Box opacity={isFetching ? 0.5 : 1} transition="opacity 0.15s ease">`.
 9. **Toast feedback** — every user action: `showSuccess` / `showError`. Silent operations are bugs.
-10. **Accessibility** — `aria-label` on every icon-only button; semantic HTML; keyboard nav; `role="group"` on cards with `_groupHover`.
+10. **Accessibility** — `aria-label` on every icon-only button; semantic HTML; keyboard nav; `className="group"` (not `role="group"`) on the parent of any `_groupHover` / `_groupFocusVisible` — Chakra v3 matches the class.
 
 ---
 
@@ -167,7 +166,7 @@ For a new CRUD module, follow `.claude/patterns/frontend.md` § "Adding a New CR
 3. List page (`PageHeader` + `FilterBar` + cards + `ListPageSkeleton` + `EmptyState`)
 4. Create modal (`AppModal` + `useFormState` or RHF)
 5. Detail page (`useDetailPageController` + `SectionCard` + `DetailPageGuard`)
-6. Route paths → AppRouter (`withAppShell()` + `lazy()`)
+6. Route paths → AppRouter (a `<Route>` under `ProtectedLayout`, page via `lazyWithRetry()`)
 7. i18n (3 locales)
 8. Sidebar nav
 

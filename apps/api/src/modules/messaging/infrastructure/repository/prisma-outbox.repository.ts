@@ -127,6 +127,24 @@ export class PrismaOutboxRepository implements IOutboxRepository {
     }
   }
 
+  async countQueuedForAccount(accountId: string): Promise<number> {
+    try {
+      return await prisma.outbox_message.count({
+        where: {
+          status: "PENDING",
+          wa_message_id: null,
+          expires_at: { gt: new Date() },
+          // Tenant scope (R1) travels through the owning device. Devices are
+          // hard-deleted (their outbox rows cascade), so account is the whole
+          // filter.
+          device: { account_id: accountId },
+        },
+      });
+    } catch (error) {
+      throw mapPrismaError(error);
+    }
+  }
+
   async setWaMessageId(id: string, waMessageId: string): Promise<void> {
     try {
       await prisma.outbox_message.update({

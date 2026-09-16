@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import type { ApiErrorResponse } from "@pombo/shared-types";
 import { AppError, ErrorCodes } from "@shared/error";
 import { i18n } from "@shared/i18n";
 import { env } from "../../config";
@@ -82,7 +83,7 @@ export function errorHandlerMiddleware(
         ...err.toJSON(),
         message: translatedMessage,
       },
-    });
+    } satisfies ApiErrorResponse);
     return;
   }
 
@@ -116,5 +117,5 @@ export function errorHandlerMiddleware(
       ...(!isProduction &&
         err instanceof Error && { debug: { stack: err.stack } }),
     },
-  });
+  } satisfies ApiErrorResponse);
 }

@@ -1,8 +1,8 @@
 import { defineConfig, type ViteDevServer } from "vite";
 import react from "@vitejs/plugin-react";
 import basicSsl from "@vitejs/plugin-basic-ssl";
-import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
+import { aliases } from "./aliases";
 
 const enableHttps = process.env.VITE_HTTPS === "true";
 // `VITE_PORT` + `VITE_API_PROXY_TARGET` let the Playwright webServer (see
@@ -66,8 +66,37 @@ const devDepsNoImmutableCache = () => ({
   },
 });
 
+// `modules/development` (the /dev/styleguide gallery) is reachable only through
+// an `import.meta.env.DEV` branch in AppRouter, which the production build
+// drops. Failing the build when any of its modules lands in a chunk turns that
+// guarantee into a gate instead of a convention.
+const DEV_ONLY_MODULE_DIR = "/src/modules/development/";
+const devOnlyModulesExcluded = () => ({
+  name: "pombo:dev-only-modules-excluded",
+  apply: "build" as const,
+  generateBundle(
+    this: { error: (message: string) => never },
+    _options: unknown,
+    bundle: Record<string, { type: string; fileName: string; modules?: Record<string, unknown> }>,
+  ) {
+    for (const output of Object.values(bundle)) {
+      const leaked = Object.keys(output.modules ?? {}).find((id) =>
+        id.includes(DEV_ONLY_MODULE_DIR),
+      );
+      if (leaked) {
+        this.error(`Dev-only module ${leaked} leaked into ${output.fileName}`);
+      }
+    }
+  },
+});
+
 export default defineConfig(({ command }) => ({
-  plugins: [react(), devDepsNoImmutableCache(), ...(enableHttps ? [basicSsl()] : [])],
+  plugins: [
+    react(),
+    devDepsNoImmutableCache(),
+    devOnlyModulesExcluded(),
+    ...(enableHttps ? [basicSsl()] : []),
+  ],
   define: {
     __APP_VERSION__: JSON.stringify(resolveAppVersion(command)),
   },
@@ -89,46 +118,28 @@ export default defineConfig(({ command }) => ({
       "/api": {
         target: apiProxyTarget,
         changeOrigin: true,
+        // `/api` is also an app route (the API token page). A browser
+        // navigation asks for HTML and gets the SPA; only the client's own
+        // calls reach the API.
+        bypass: (req) =>
+          req.headers.accept?.includes("text/html") ? "/index.html" : undefined,
       },
     },
   },
   resolve: {
-    alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
-      "@/app": fileURLToPath(new URL("./src/app", import.meta.url)),
-      "@/core": fileURLToPath(new URL("./src/core", import.meta.url)),
-      "@/shared": fileURLToPath(new URL("./src/shared", import.meta.url)),
-      "@/modules": fileURLToPath(new URL("./src/modules", import.meta.url)),
-      "@assets": fileURLToPath(new URL("./assets", import.meta.url)),
-    },
+    alias: aliases,
   },
-  // shared-types ships as CommonJS via `__exportStar(require(...))` chains;
-  // Vite's CJS lexer can't surface nested named exports like
-  // `buildPatientDocumentFilename`, so force the dep optimizer to pre-bundle
-  // it into a single ESM blob where every named export is statically
-  // reachable from the browser.
-  optimizeDeps: {
-    include: ["@pombo/shared-types"],
-  },
-  // The dev fix above (optimizeDeps) only applies to the dev server. For the
-  // production `vite build`, @pombo/shared-types is a linked workspace dep that
-  // resolves OUTSIDE node_modules (packages/shared-types/dist/index.js), so
-  // Rollup treats its CommonJS output as ESM source and can't see its runtime
-  // value exports (EMAIL_VERIFY_JWT_SCOPE, IMPORT_MAX_ROWS, ...). Including it in
-  // commonjsOptions makes Rollup run the CJS→ESM interop on it. `/node_modules/`
-  // must stay so the default behaviour for real node_modules deps is preserved.
+  // `@pombo/shared-types` is aliased to its TypeScript source (see aliases.ts),
+  // so it is compiled like app code: no CJS interop and no dep pre-bundle that
+  // goes stale when the package changes.
   build: {
-    commonjsOptions: {
-      include: [/packages\/shared-types/, /node_modules/],
-    },
     rollupOptions: {
       output: {
         // Stable vendor chunks: app deploys (route-chunk churn) no longer
         // invalidate the big framework payloads in the browser cache.
         // framer-motion rides with Chakra (hard peer dep — same graph).
-        // Heavy leaf libs (jspdf, tiptap, qrcode) are NOT
-        // listed: they reach the browser only via dynamic import / React.lazy
-        // and must keep their own lazy chunks.
+        // Heavy leaf libs (qrcode) are NOT listed: they reach the browser only
+        // through lazy route chunks and must keep their own chunks.
         manualChunks: {
           "vendor-react": ["react", "react-dom", "react-router-dom"],
           "vendor-chakra": ["@chakra-ui/react", "@emotion/react", "framer-motion"],

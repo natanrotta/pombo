@@ -40,3 +40,38 @@ export function buildRegisterSchema() {
 }
 
 export type RegisterFormValues = z.infer<ReturnType<typeof buildRegisterSchema>>;
+
+export function buildForgotPasswordSchema() {
+  return z.object({
+    email: z
+      .string()
+      .trim()
+      .min(1, tAuth("forgotPassword.emailRequired"))
+      .email(tAuth("forgotPassword.emailRequired")),
+  });
+}
+
+export type ForgotPasswordFormValues = z.infer<
+  ReturnType<typeof buildForgotPasswordSchema>
+>;
+
+export function buildResetPasswordSchema() {
+  return z
+    .object({
+      password: z
+        .string()
+        .min(1, tAuth("resetPassword.passwordRequired"))
+        .refine(isPasswordStrong, {
+          message: tAuth("resetPassword.passwordWeak"),
+        }),
+      confirm: z.string(),
+    })
+    .refine((values) => values.password === values.confirm, {
+      message: tAuth("resetPassword.confirmMismatch"),
+      path: ["confirm"],
+    });
+}
+
+export type ResetPasswordFormValues = z.infer<
+  ReturnType<typeof buildResetPasswordSchema>
+>;

@@ -1,3 +1,12 @@
+import type { z } from "zod";
+import type {
+  SendAudioMessageRequestDTO,
+  SendDocumentMessageRequestDTO,
+  SendGroupMessageRequestDTO,
+  SendImageMessageRequestDTO,
+  SendTextMessageRequestDTO,
+  SendVideoMessageRequestDTO,
+} from "@pombo/shared-types";
 import {
   SendMessageDTOSchema,
   SendGroupMessageDTOSchema,
@@ -137,5 +146,29 @@ describe("message DTOs", () => {
       });
       expect(parsed.fileName).toBeUndefined();
     });
+  });
+});
+
+describe("message request DTOs ↔ @pombo/shared-types", () => {
+  it("accept exactly the bodies the shared contract declares", () => {
+    // Type-level — enforced by `yarn type-check`.
+    expectTypeOf<
+      z.input<typeof SendMessageDTOSchema>
+    >().toEqualTypeOf<SendTextMessageRequestDTO>();
+    expectTypeOf<
+      z.input<typeof SendGroupMessageDTOSchema>
+    >().toEqualTypeOf<SendGroupMessageRequestDTO>();
+    expectTypeOf<
+      z.input<typeof SendImageDTOSchema>
+    >().toEqualTypeOf<SendImageMessageRequestDTO>();
+    expectTypeOf<
+      z.input<typeof SendAudioDTOSchema>
+    >().toEqualTypeOf<SendAudioMessageRequestDTO>();
+    expectTypeOf<
+      z.input<typeof SendVideoDTOSchema>
+    >().toEqualTypeOf<SendVideoMessageRequestDTO>();
+    expectTypeOf<
+      z.input<typeof SendDocumentDTOSchema>
+    >().toEqualTypeOf<SendDocumentMessageRequestDTO>();
   });
 });

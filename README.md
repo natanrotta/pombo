@@ -10,7 +10,8 @@
 |---|---|---|---|
 | **API** | `apps/api` | Node.js · Express 4 · Prisma 7 (Postgres 15) · Redis/BullMQ · Baileys · tsyringe DI · Zod · Vitest | `4444` |
 | **Web** | `apps/web` | React 19 · Vite 5 · Chakra UI 3 · TanStack Query 5 · react-i18next · Vitest + Playwright | `4000` |
-| **Shared types** | `packages/shared-types` | `@pombo/shared-types` — contracts shared by API + web | — |
+| **Theme** | `packages/theme` | `@pombo/theme` — the design system (Chakra v3 tokens, semantic tokens, text styles, recipes), consumed as source | — |
+| **Shared types** | `packages/shared-types` | `@pombo/shared-types` — the wire contract (DTOs, status unions, `ErrorCodes`, envelope) shared by API + web | — |
 
 All three are yarn/Turborepo workspaces.
 
@@ -51,6 +52,8 @@ The WhatsApp gateway is **off** locally (`WHATSAPP_ENABLED=false` in `.env.examp
 | `yarn services:up` / `yarn services:down` | Postgres + Redis only (`docker-compose.local.yml`) |
 | `yarn docker:reset` | Stop the services **and drop their volumes** (fresh database) |
 | `yarn drop:all` | Stop and remove **every** Docker container on the machine (network-error escape hatch) |
+
+> The API runs against the **built** `packages/shared-types/dist`; the web reads the package source directly. The root scripts above rebuild it for you — if you start the API any other way (e.g. `yarn workspace @pombo/api dev`), run `yarn shared:build` after editing the package.
 
 ### Database (Prisma)
 

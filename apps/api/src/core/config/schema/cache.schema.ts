@@ -9,7 +9,8 @@ export const cacheSchema = z.object({
   // window: `rotate` can't invalidate the old hash, so a revoked token keeps
   // working for at most this long. The `.max(300)` MACHINE-ENFORCES the "keep
   // small" invariant — ops can't accidentally stretch the revocation window to
-  // hours.
+  // hours. The web's rotation warning (`apiToken.regenerateConfirm` in
+  // apps/web settings.json) quotes the 60 s default — update it with this.
   CACHE_API_TOKEN_TTL_SECONDS: z.coerce
     .number()
     .int()
