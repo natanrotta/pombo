@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// `yarn deploy` — sobe uma versão da API em produção, sem entrar no VPS.
+// `yarn deploy` — sobe uma versão da API em produção, sem entrar no servidor.
 //
 // Faz perguntas sobre qual versão subir, dispara o deploy no GitHub Actions
-// (deploy-api.yml) — cutover LOCAL na VPS via runner self-hosted (sem SSH):
+// (deploy-api.yml) — cutover LOCAL no host via runner self-hosted (sem SSH):
 // `docker compose pull && up -d --wait` + VERIFICAÇÃO de fora da versão em
 // /api/health — e acompanha o run até o fim, reportando ✅/❌ com veredito
 // honesto (falhou sem tocar produção ≠ tocou e não confirmou).
@@ -160,10 +160,9 @@ async function main() {
   // Trava de qualidade: a imagem que vai subir JÁ passou no boot smoke-test no
   // build (build-api.yml sobe a imagem real contra Postgres+Redis, roda o
   // migrate e exige /healthz ANTES de publicar). Então não há trava obrigatória
-  // aqui — e o deploy ainda re-verifica /api/health e faz auto-rollback se
-  // falhar. (O antigo gate rodava o e2e do FRONT, que não valida a API e ainda
-  // era flaky por conflito de porta — foi o que causou o bypass do incidente.)
-  // Opcionalmente o operador pode re-rodar o smoke local do artefato exato.
+  // aqui — o deploy re-verifica /api/health e, se não confirmar, o rollback é
+  // MANUAL (`yarn rollback`): o workflow nunca reverte sozinho. Opcionalmente o
+  // operador pode re-rodar o smoke local do artefato exato.
   const owner = repo.split("/")[0];
   const image = `ghcr.io/${owner}/pombo-api:${tag}`;
   hr();
@@ -190,11 +189,11 @@ async function main() {
     tag !== "latest" && verNum(tag) !== null && verNum(running) !== null && verNum(tag) < verNum(running);
   hr();
   log(`Vou subir ${c.bold(c.green(tag))} em produção (acompanho cada step ao vivo):`);
-  log(c.dim("  · [1/4] guardo a versão boa atual (vira a sugestão de rollback se falhar)"));
-  log(c.dim("  · [2/4] cutover LOCAL na VPS (runner self-hosted — sem SSH): pull + up, drena as filas"));
-  log(c.dim("  · [2/4] espero o container ficar HEALTHY (migrate roda no boot — mostro o log)"));
-  log(c.dim("  · [3/4] verifico, de fora, a versão em /api/health"));
-  log(c.dim("  · [4/4] veredito honesto: sucesso · falhou SEM tocar produção · tocou e não confirmou"));
+  log(c.dim("  · [1/4] pre-flight no host de APP: tag, API_URL, compose e .env.prod legível (falhou = PRODUÇÃO INTOCADA)"));
+  log(c.dim("  · [2/4] pull da imagem no GHCR (falhou = PRODUÇÃO INTOCADA)"));
+  log(c.dim("  · [3/4] cutover LOCAL (runner self-hosted, sem SSH): up --wait até HEALTHY — o antigo drena as filas, o novo migra no boot"));
+  log(c.dim("  · [4/4] verifico, de fora, a versão em /api/health"));
+  log(c.dim(`  · veredito honesto: sucesso · falhou SEM tocar produção · tocou e não confirmou (sugiro rollback p/ ${running ?? "a versão anterior"})`));
   if (isRollback) warn(`Isto é um ROLLBACK: produção sairia de ${running} para ${tag}.`);
   log("");
 

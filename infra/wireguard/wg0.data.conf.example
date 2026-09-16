@@ -1,12 +1,12 @@
-# infra/wireguard/wg0.data.conf.example — VPS-DATA (10.8.0.2)
+# infra/wireguard/wg0.data.conf.example — host de DATA (10.8.0.2)
 #
-# Copie para /etc/wireguard/wg0.conf na VPS-DATA, preencha os placeholders e:
+# Copie para /etc/wireguard/wg0.conf no host de DATA, preencha os placeholders e:
 #   sudo wg-quick up wg0 && sudo systemctl enable wg-quick@wg0
 #
-# Gerar par de chaves (em cada VPS):
+# Gerar par de chaves (em cada host):
 #   wg genkey | tee privatekey | wg pubkey > publickey
 #
-# ufw na VPS-DATA (NADA de 5432/6379 públicos):
+# ufw no host de DATA (NADA de 5432/6379 públicos):
 #   sudo ufw default deny incoming
 #   sudo ufw allow 51820/udp           # WireGuard
 #   sudo ufw allow from <SEU_IP> to any port 22 proto tcp   # SSH restrito
@@ -18,6 +18,6 @@ PrivateKey = <DATA_PRIVATE_KEY>
 ListenPort = 51820
 
 [Peer]
-# VPS-APP (10.8.0.1)
+# host de APP (10.8.0.1)
 PublicKey = <APP_PUBLIC_KEY>
 AllowedIPs = 10.8.0.1/32

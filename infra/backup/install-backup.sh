@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# infra/backup/install-backup.sh — ATIVA o backup Nível 1 na VPS-DATA.
+# infra/backup/install-backup.sh — ATIVA o backup Nível 1 no host de DATA.
 #
-# Idempotente. Roda como root NA VPS-DATA (via `make backup-setup` do laptop):
+# Idempotente. Roda como root NO host de DATA (via `make backup-setup` do laptop):
 #   1) checa pré-requisitos (docker, age, rclone, curl, systemctl)
 #   2) valida /etc/pombo/backup.env (copie do backup.env.example e preencha)
 #   3) instala os scripts em /opt/pombo/
@@ -20,7 +20,7 @@ UNIT_DIR=/etc/systemd/system
 log() { printf '\033[36m[install-backup]\033[0m %s\n' "$*"; }
 die() { printf '\033[31m[install-backup] ERRO:\033[0m %s\n' "$*" >&2; exit 1; }
 
-[ "$(id -u)" = 0 ] || die "rode como root (na VPS-DATA)."
+[ "$(id -u)" = 0 ] || die "rode como root (no host de DATA)."
 
 # 1) pré-requisitos
 log "checando pré-requisitos…"
@@ -41,7 +41,7 @@ done
 rclone lsf "${RCLONE_REMOTE}:${RCLONE_BUCKET}/" >/dev/null 2>&1 \
   || die "remote/bucket rclone '${RCLONE_REMOTE}:${RCLONE_BUCKET}' não responde — rode 'rclone config' (Cloudflare R2) e confira o bucket + 'no_check_bucket = true'."
 docker inspect "${PG_CONTAINER:-pombo-db}" >/dev/null 2>&1 \
-  || die "container '${PG_CONTAINER:-pombo-db}' não existe aqui — este script roda na VPS-DATA."
+  || die "container '${PG_CONTAINER:-pombo-db}' não existe aqui — este script roda no host de DATA."
 log "config OK (recipient age · remote ${RCLONE_REMOTE}:${RCLONE_BUCKET} · dead-man switch)."
 
 # 3) scripts

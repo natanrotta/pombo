@@ -1,47 +1,55 @@
-// Shared helpers for the interactive deploy CLI (`yarn make-tag` / `yarn deploy`).
+// Shared helpers for the guided deploy CLI (`yarn make-tag` · `yarn deploy` ·
+// `yarn rollback` · `yarn monitor-status`).
 //
-// These scripts are the guided, operator-facing layer on top of the same
-// GitHub Actions workflows the Makefile drives (build-api.yml + deploy-api.yml).
-// They use the operator's local `gh` login — never the API's GITHUB_ACTIONS_TOKEN
-// — so nothing here reads or prints a secret. Zero external deps: Node 22
-// built-ins only (child_process, readline/promises, fetch).
+// These scripts are the operator-facing layer on top of the GitHub Actions
+// workflows (build-api.yml + deploy-api.yml), which they dispatch with
+// `gh workflow run`. They use the operator's local `gh` login — never the API's
+// GITHUB_ACTIONS_TOKEN — so nothing here reads or prints a secret. Zero external
+// deps: Node built-ins only (child_process, readline/promises, fetch).
 
 import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import readline from "node:readline/promises";
 import { emitKeypressEvents } from "node:readline";
 import { stdin, stdout } from "node:process";
 
-// ── Deploy target (configure via env — NO real hosts ship with the boilerplate) ──
-// This boilerplate intentionally ships with EMPTY targets so a stray command can
-// never touch someone else's infrastructure. Set these before deploying — export
-// them in your shell, a CI secret, or an untracked `infra/deploy.env` you source:
+// ── Deploy target (infra/deploy.env — NO real host ships with the repo) ───────
+// The targets live in `infra/deploy.env` (gitignored; template:
+// infra/deploy.env.example) — the SAME file the Makefile reads. It is loaded
+// here when present; a variable already exported in the shell always wins
+// (process.loadEnvFile never overrides an existing key). Unset targets make
+// deploy/rollback fail fast, so a stray command can never touch someone else's
+// infrastructure.
 //   API_URL   e.g. https://api.your-domain.tld   (the deployed API base)
 //   WEB_URL   e.g. https://app.your-domain.tld   (web frontend, for monitor)
 //   SITE_URL  e.g. https://your-domain.tld        (marketing site, for monitor)
 //   DATA_HOST the DB host reachable over SSH       (never public)
 //   SSH_USER  defaults to "root"
-export const API_URL = process.env.API_URL || "";
+export const DEPLOY_ENV_FILE = fileURLToPath(new URL("../../infra/deploy.env", import.meta.url));
+if (existsSync(DEPLOY_ENV_FILE)) process.loadEnvFile(DEPLOY_ENV_FILE);
+
+export const API_URL = (process.env.API_URL || "").trim().replace(/\/+$/, "");
 export const HEALTH_URL = API_URL ? `${API_URL}/api/health` : "";
 export const BUILD_WF = process.env.BUILD_WF || "build-api.yml";
 export const DEPLOY_WF = process.env.DEPLOY_WF || "deploy-api.yml";
 /** The branch the CI workflows dispatch from. Override via env if needed. */
 export const DEPLOY_REF = process.env.DEPLOY_REF || "main";
 
-export const WEB_URL = process.env.WEB_URL || "";
-export const SITE_URL = process.env.SITE_URL || "";
+export const WEB_URL = (process.env.WEB_URL || "").trim().replace(/\/+$/, "");
+export const SITE_URL = (process.env.SITE_URL || "").trim().replace(/\/+$/, "");
 /** DB host reached over SSH for the DB/migrations snapshot. Empty by default. */
 export const DATA_HOST = (process.env.DATA_HOST || "").trim();
-export const SSH_USER = process.env.SSH_USER || "root";
+export const SSH_USER = (process.env.SSH_USER || "").trim() || "root";
 
 /** Fail fast unless the deploy target is configured. Keeps deploy/rollback from
  *  ever running against an unset (or someone else's) host. */
 export function requireDeployTarget() {
   if (!API_URL) {
     fail(
-      "Deploy target not configured.\n" +
-        "  Set API_URL (e.g. https://api.your-domain.tld) — and, for monitoring,\n" +
-        "  WEB_URL / SITE_URL / DATA_HOST — before running this command.\n" +
-        "  Export them in your shell or source an untracked infra/deploy.env. See infra/README.md.",
+      "Alvo de deploy não configurado (API_URL vazio).\n" +
+        "  Copie infra/deploy.env.example → infra/deploy.env e preencha API_URL\n" +
+        "  (ex.: https://api.your-domain.tld) — ou exporte API_URL no shell. Ver DEPLOY.md.",
     );
   }
 }
@@ -103,7 +111,7 @@ export function has(cmd) {
  * true on exit 0. Pauses the readline interface around the child so keystrokes
  * typed during the (possibly long) run aren't swallowed by readline before the
  * next prompt; `stdio: "inherit"` is what actually hands stdin/stdout to the
- * child. Used to gate a dispatch on `yarn workspace … test` / `test:e2e`.
+ * child. Used to gate a dispatch on `yarn workspace @pombo/api test`.
  */
 export function runCheck(title, cmd, args) {
   info(`Verificando: ${title}…`);
@@ -534,7 +542,8 @@ export async function followRun(runId) {
 }
 
 /**
- * Dispatch a workflow on `main` and follow it LIVE to completion.
+ * Dispatch a workflow on `DEPLOY_REF` (default `main`) and follow it LIVE to
+ * completion.
  * - `inputs`: array of `key=value` strings passed as `-f key=value`.
  * - Captures the latest run id BEFORE dispatch so it waits for a genuinely NEW
  *   run to appear (never watches a stale one), then streams the steps via
@@ -582,10 +591,10 @@ export async function dispatchAndWatch(workflow, inputs = []) {
  * On a failed run, pull the ROOT-CAUSE logs into this terminal so you can go
  * straight to analysis — no SSH, no browser. Extracts the meaningful lines
  * (crash stack, migration status, `::error::` annotations) from the run:
- * `--log-failed` covers the build boot-smoke (its logs are ON the failed step),
- * and the full log covers the deploy's diagnostic step, which SSHes into the
- * VPS and dumps the crashed container's stack BEFORE the auto-rollback replaces
- * it. Best-effort and always prints how to see the full log.
+ * `--log-failed` covers both the build boot-smoke and the deploy cutover — each
+ * dumps the container's logs ON the failed step (the runner is on the APP host,
+ * so no SSH is involved). The full log is the fallback. Best-effort and always
+ * prints how to see the full log.
  */
 export function printRunFailureLogs(runId) {
   if (!runId) return;

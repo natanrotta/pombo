@@ -1,9 +1,10 @@
-// gen-web-version.mjs — grava <outDir>/version.json no build de cada frontend
-// (Cloudflare Pages), pra dar pra confirmar DE FORA qual commit está no ar — o
-// equivalente web do `version` em /api/health da API.
+// gen-web-version.mjs — grava <outDir>/version.json no build do web (host
+// estático, ex.: Cloudflare Pages), pra dar pra confirmar DE FORA qual commit
+// está no ar — o equivalente web do `version` em /api/health da API. É o que o
+// bloco "App" do `yarn monitor-status` lê.
 //
-// Roda no build:web / build:admin (package.json raiz), DEPOIS do turbo e FORA
-// da task cacheada — então sempre pega o CF_PAGES_COMMIT_SHA do build atual.
+// Roda no `yarn build:web` (package.json raiz), DEPOIS do turbo e FORA da task
+// cacheada — então sempre pega o CF_PAGES_COMMIT_SHA do build atual.
 // Uso: node scripts/gen-web-version.mjs <outDir>   (ex.: apps/web/dist)
 import { writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";

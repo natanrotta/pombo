@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 // `yarn rollback` — reverte a API para uma versão anterior, de forma GUIADA.
 //
-// Diferente do `yarn deploy` (que sobe "latest"), aqui a PRIMEIRA pergunta é
-// QUAL versão reenviar. Nada é automático: você escolhe a tag, confirma
-// digitando, e o script dispara o deploy-api.yml com aquela tag — rollback é
-// subir uma imagem vX.Y anterior (que já está no GHCR, sem rebuild) — e
-// acompanha ao vivo. Se falhar, o erro do container é puxado pro seu terminal.
+// Diferente do `yarn deploy` (que oferece a versão mais nova), aqui a PRIMEIRA
+// pergunta é QUAL versão ANTERIOR reenviar. Nada é automático: você escolhe a
+// tag, confirma por seleção (o padrão é Cancelar), e o script dispara o
+// deploy-api.yml com aquela tag — rollback é subir uma imagem vX.Y anterior (que
+// já está no GHCR, sem rebuild) — e acompanha ao vivo. Se falhar, o erro do
+// container é puxado pro seu terminal.
 //
 // Existe porque o deploy NÃO reverte sozinho: quando algo dá errado, você para,
 // olha o erro e decide pra qual versão voltar. Este é o comando dessa decisão.
@@ -101,8 +102,9 @@ async function main() {
   hr();
   log(`Vou REVERTER produção para ${c.bold(c.green(tag))} (acompanho cada step ao vivo):`);
   if (running) log(c.dim(`  · produção sai de ${running} → ${tag}`));
-  log(c.dim("  · SSH na VPS → puxo a imagem vX.Y do GHCR e subo o container (drena as filas)"));
-  log(c.dim("  · o container aplica migrations no boot e verifico /api/health"));
+  log(c.dim("  · cutover LOCAL no host de APP (runner self-hosted, sem SSH): pull da vX.Y + up --wait (drena as filas)"));
+  log(c.dim("  · o container aplica as migrations pendentes no boot e verifico /api/health de fora"));
+  warn("Migrations não são revertidas: a versão antiga precisa aceitar o schema atual (migrations aditivas).");
   log(c.dim("  · se falhar, mostro o erro aqui pra você escolher outra versão"));
   warn("As imagens antigas seguem no GHCR — rollback é subir uma delas, sem rebuild.");
   log("");

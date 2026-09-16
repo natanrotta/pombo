@@ -74,7 +74,7 @@ Paths live only in `src/app/router/RoutePaths.ts`.
 
 ## Environment
 
-All variables are optional locally (copy `.env.example` to `.env`):
+All variables are optional locally (copy `.env.example` to `.env`). They are public — they ship in the bundle.
 
 | Var | Purpose |
 |---|---|
@@ -98,7 +98,7 @@ Inside `apps/web`:
 yarn dev           # vite dev (:4000)
 yarn build         # tsc + vite build
 yarn test          # Vitest unit tests
-yarn test:e2e      # Playwright against an isolated stack (docker + API :3334 + web :3001)
+yarn test:e2e      # Playwright — boots its own stack (Postgres :5433, Redis :6380, API :3334, web :3001)
 yarn test:e2e --update-snapshots   # accept an intended visual change (design-system baselines)
 ```
 
@@ -106,4 +106,9 @@ yarn test:e2e --update-snapshots   # accept an intended visual change (design-sy
 
 ## Deploy
 
-Static build served by Cloudflare Pages from `main`; `dist/version.json` (commit, branch, build time) is the external "what is live" probe. See [`DEPLOY.md`](../../DEPLOY.md).
+A static build on a CDN / static host (Cloudflare Pages), deployed on push to `main`. Build command: `yarn build:web`; output: `apps/web/dist`. The generated `dist/version.json` (commit, branch, build time) is what `yarn monitor-status` reads to show the live commit. See [`DEPLOY.md`](../../DEPLOY.md).
+
+## Testing
+
+- **Unit:** Vitest, co-located `*.spec.{ts,tsx}`.
+- **E2E:** Playwright in `apps/web/e2e` (fixtures + api client + specs), orchestrated by `scripts/e2e-run.ts`. Conventions: [`.claude/patterns/e2e.md`](../../.claude/patterns/e2e.md). The HTML report lands in `.playwright/` (git-ignored) — `yarn test:e2e:report`.

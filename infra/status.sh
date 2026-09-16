@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# infra/status.sh — snapshot de saúde da VPS-DATA (Postgres + Redis + túnel + disco + backup).
+# infra/status.sh — snapshot de saúde do host de DATA (Postgres + Redis + túnel + disco + backup).
 #
 # Responde "está tudo ok?" numa tela só. Read-only: não altera nada.
-# Uso na VPS-DATA:  bash /opt/pombo/repo/infra/status.sh
-# Atalho opcional:  ln -s /opt/pombo/repo/infra/status.sh /usr/local/bin/pombo-status
+# Uso (da sua máquina):  make db-status
+#      (no host):        bash /opt/pombo/app/infra/status.sh
+# Atalho opcional:       ln -s /opt/pombo/app/infra/status.sh /usr/local/bin/pombo-status
 #
-# Sobrescreva os defaults via env se mudar os caminhos/nomes.
+# Par do infra/status-app.sh. Sobrescreva os defaults via env se mudar os
+# caminhos/nomes (ex.: DATA_DIR=/outro/checkout/infra/data).
 set -uo pipefail
 
-DATA_DIR="${DATA_DIR:-/opt/pombo/repo/infra/data}"
+DATA_DIR="${DATA_DIR:-/opt/pombo/app/infra/data}"
 PG_CONTAINER="${PG_CONTAINER:-pombo-db}"
 REDIS_CONTAINER="${REDIS_CONTAINER:-pombo-redis}"
 PG_USER="${PG_USER:-pombo}"
@@ -30,7 +32,7 @@ if docker exec "$PG_CONTAINER" pg_isready -U "$PG_USER" -d "$PG_DB" >/dev/null 2
   c_ok "aceitando conexões (pg_isready)"
   VER=$(psqlq "show server_version;")
   [ -n "$VER" ] && c_ok "Postgres $VER"
-  # _prisma_migrations só existe depois que a API rodou o migrate (Fase B)
+  # _prisma_migrations só existe depois do 1º boot da API (migrate-on-boot)
   if [ "$(psqlq "select to_regclass('public._prisma_migrations') is not null;")" = "t" ]; then
     APPLIED=$(psqlq "select count(*) from _prisma_migrations where finished_at is not null;")
     PENDING=$(psqlq "select count(*) from _prisma_migrations where finished_at is null;")
@@ -38,7 +40,7 @@ if docker exec "$PG_CONTAINER" pg_isready -U "$PG_USER" -d "$PG_DB" >/dev/null 2
     c_ok "migrations aplicadas: ${APPLIED:-0} (última: ${LAST:-—})"
     [ "${PENDING:-0}" != "0" ] && c_no "migrations incompletas/falhas: $PENDING" || true
   else
-    c_wn "sem _prisma_migrations — a API ainda não rodou migrate (esperado até a Fase B)"
+    c_wn "sem _prisma_migrations — a API ainda não subiu (esperado antes do host de APP)"
   fi
   TBLS=$(psqlq "select count(*) from information_schema.tables where table_schema='public';")
   c_ok "tabelas no schema public: ${TBLS:-0}"
@@ -64,7 +66,7 @@ if ip link show wg0 >/dev/null 2>&1; then
   c_ok "wg0 UP — $ADDR"
   PEERS=$(wg show wg0 peers 2>/dev/null)
   if [ -z "$PEERS" ]; then
-    c_wn "nenhum peer (a VPS-APP entra na Fase B)"
+    c_wn "nenhum peer (o host de APP ainda não entrou no túnel)"
   else
     while read -r pk; do
       [ -z "$pk" ] && continue
@@ -109,7 +111,7 @@ fi
 if [ -f /var/log/pombo-backup.log ]; then
   tail -2 /var/log/pombo-backup.log | sed 's/^/  /'
 else
-  c_wn "sem log ainda — backup é configurado no passo A5"
+  c_wn "sem log ainda — ative o backup: make backup-setup (infra/RUNBOOK.md › B)"
 fi
 
 echo; echo "========================================================================"

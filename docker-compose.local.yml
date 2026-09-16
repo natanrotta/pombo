@@ -1,3 +1,18 @@
+# docker-compose.local.yml — the ONE local dev stack.
+#
+#   yarn services:up     Postgres (:5442) + Redis (:6389) only — what `yarn dev`
+#                        and `yarn backend:up` start before running the API on
+#                        the host (tsx watch, :4444)
+#   yarn services:down   stop them (data kept in the named volumes)
+#   yarn docker:reset    stop them AND drop the volumes (fresh database)
+#   docker compose -f docker-compose.local.yml up api
+#                        optional: the API itself in a container (Dockerfile
+#                        `dev` target, source bind-mounted, :4444)
+#
+# Same Postgres/Redis majors as production (infra/data/docker-compose.data.yml).
+# E2E and the image boot-smoke have their own ephemeral stacks
+# (docker-compose.e2e.yml · docker-compose.smoke.yml).
+
 services:
   db:
     image: postgres:15-alpine
