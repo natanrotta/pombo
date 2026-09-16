@@ -16,6 +16,7 @@
     "groupLoading": "Loading groups...",
     "groupEmpty": "No groups found",
     "groupError": "Couldn't load groups",
+    "groupOffline": "The device is offline — reconnect it to list its groups",
     "text": "Message",
     "textPlaceholder": "Type the test message...",
     "media": {
@@ -55,6 +56,7 @@
   "errors": {
     "deviceRequired": "Select a device.",
     "phoneInvalid": "Enter a valid number.",
+    "phoneNotOnWhatsApp": "This number isn't on WhatsApp.",
     "textRequired": "Type a message.",
     "mediaRequired": "Provide the media URL or base64.",
     "groupRequired": "Select a group.",
@@ -69,6 +71,7 @@
     "summary": "{{total}} in queue",
     "item": "Message {{index}}/{{total}}",
     "pacingHint": "With humanized pacing on, the recipient sees \"typing…\" and messages go out spaced apart — watch the queue drain above.",
+    "pacingPending": "Waiting on the humanized pacing: it goes out after the earlier messages and pauses.",
     "empty": {
       "title": "No send yet",
       "description": "Send one or more test messages to watch the queue drain here in real time."

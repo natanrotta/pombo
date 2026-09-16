@@ -1,3 +1,4 @@
+import { memo, useState } from "react";
 import { Flex, Spinner, Text } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
 import { StatusBadge } from "@/shared/components/ui/StatusBadge";
@@ -9,6 +10,9 @@ import type {
 
 /** One enqueued send tracked by the Sandbox queue — the 202 body kept in memory. */
 export type SandboxQueueEntry = SendMessageResult;
+
+/** How long a row may sit PENDING before we explain the pacer's queue. */
+const LONG_PENDING_MS = 15_000;
 
 const STATUS_TONE: Record<
   MessageStatus,
@@ -34,7 +38,7 @@ interface SandboxQueueItemProps {
  *  which is exactly how the humanized pacing becomes visible: earlier rows climb
  *  to SERVER_ACK/READ while later ones sit PENDING, spaced out by the drain's
  *  typing window and long pauses. */
-export function SandboxQueueItem({
+export const SandboxQueueItem = memo(function SandboxQueueItem({
   messageId,
   index,
   total,
@@ -47,6 +51,13 @@ export function SandboxQueueItem({
   const failureReason = statusQuery.data?.failureReason ?? null;
   const isError = statusQuery.isError;
   const isPolling = status !== "READ" && status !== "FAILED" && !isError;
+
+  // Client clock only: when the row first rendered vs. its latest poll. The
+  // 2s poll re-renders the row, so no timer of its own is needed.
+  const [shownAt] = useState(() => Date.now());
+  const waitedMs = statusQuery.dataUpdatedAt - shownAt;
+  const showPacingHint =
+    status === "PENDING" && !isError && waitedMs > LONG_PENDING_MS;
 
   return (
     <Flex
@@ -72,6 +83,11 @@ export function SandboxQueueItem({
       <Text fontSize="xs" color="text.muted" wordBreak="break-all">
         {messageId}
       </Text>
+      {showPacingHint && (
+        <Text fontSize="xs" color="text.muted">
+          {t("queue.pacingPending")}
+        </Text>
+      )}
       {failureReason && (
         <Text fontSize="xs" color="status.error.fg">
           {failureReason}
@@ -79,4 +95,4 @@ export function SandboxQueueItem({
       )}
     </Flex>
   );
-}
+});
