@@ -6,7 +6,7 @@ import { LanguageSelector } from "@/shared/components/ui/LanguageSelector";
 export function AuthControls() {
   return (
     <Flex align="center" gap={2}>
-      <ColorModeToggle size="sm" />
+      <ColorModeToggle shape="pill" />
       <LanguageSelector />
     </Flex>
   );

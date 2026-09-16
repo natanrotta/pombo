@@ -90,6 +90,8 @@
   },
   "theme": {
     "switchToLight": "Cambiar a tema claro",
-    "switchToDark": "Cambiar a tema oscuro"
+    "switchToDark": "Cambiar a tema oscuro",
+    "dark": "Tema oscuro",
+    "light": "Tema claro"
   }
 }

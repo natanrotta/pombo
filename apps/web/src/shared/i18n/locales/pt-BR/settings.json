@@ -58,7 +58,18 @@
       "changePassword": "Alterar senha",
       "sending": "Enviando...",
       "resetEmailSent": "Enviamos um link para {{email}}. O link expira em 1 hora.",
-      "resetEmailError": "Não foi possível enviar o link. Tente novamente em instantes."
+      "resetEmailError": "Não foi possível enviar o link. Tente novamente em instantes.",
+      "title": "Senha",
+      "description": "Enviamos um link por e-mail para você criar uma nova senha"
+    },
+    "personalDataDescription": "Como seu nome aparece no painel e nas notificações",
+    "preferences": {
+      "title": "Preferências",
+      "description": "Valem para este navegador",
+      "language": "Idioma",
+      "languageDescription": "Interface e mensagens do sistema",
+      "theme": "Tema",
+      "themeDescription": "O escuro é o padrão do Pombo"
     }
   }
 }

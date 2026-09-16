@@ -58,7 +58,18 @@
       "changePassword": "Change password",
       "sending": "Sending...",
       "resetEmailSent": "We've sent a link to {{email}}. The link expires in 1 hour.",
-      "resetEmailError": "Could not send the link. Please try again shortly."
+      "resetEmailError": "Could not send the link. Please try again shortly.",
+      "title": "Password",
+      "description": "We e-mail you a link to set a new password"
+    },
+    "personalDataDescription": "How your name shows up in the panel and in notifications",
+    "preferences": {
+      "title": "Preferences",
+      "description": "They apply to this browser",
+      "language": "Language",
+      "languageDescription": "Interface and system messages",
+      "theme": "Theme",
+      "themeDescription": "Dark is Pombo's default"
     }
   }
 }

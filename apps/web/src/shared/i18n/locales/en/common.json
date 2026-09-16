@@ -90,6 +90,8 @@
   },
   "theme": {
     "switchToLight": "Switch to light theme",
-    "switchToDark": "Switch to dark theme"
+    "switchToDark": "Switch to dark theme",
+    "dark": "Dark theme",
+    "light": "Light theme"
   }
 }

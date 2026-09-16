@@ -1,191 +1,81 @@
 import { memo } from "react";
-import { chakra, Box, Flex, Icon } from "@chakra-ui/react";
-import { Tooltip } from "@/components/ui/tooltip";
+import { chakra, Flex, Icon } from "@chakra-ui/react";
 import { useColorMode } from "@/components/ui/color-mode";
 import { FiMoon, FiSun } from "@/shared/components/icons";
+import type { IconType } from "@/shared/components/icons";
 import { useTranslation } from "react-i18next";
 
 interface ColorModeToggleProps {
-  size?: "sm" | "md";
+  /** `pill` on the auth screens, `rounded` inside a settings card. */
+  shape?: "pill" | "rounded";
 }
 
-/**
- * Pill-shaped sun/moon switch with personality:
- *  - Both icons live inside the track, dim — the thumb covers the
- *    CURRENT mode and the visible-dim icon advertises the DESTINATION
- *    of the toggle. Reading the control becomes "you're on sun, you
- *    can go to moon".
- *  - The thumb itself carries a brighter copy of the current-mode icon
- *    and rolls (360° rotation) as it slides across, with a springy
- *    cubic-bezier overshoot. The icon inside the thumb cross-fades and
- *    counter-rotates so the swap reads as motion, not a hard cut.
- *  - The track gains a subtle gradient + a brand-tinted halo glow
- *    around the thumb in dark mode, suggesting a moon halo without
- *    using any yellow/orange tones (per the project palette rule).
- *
- * `role="switch"` + `aria-checked` + `aria-label` keep the control
- * accessible; activation falls through to the native button defaults
- * (Space/Enter).
- */
-function ColorModeToggleComponent({ size = "sm" }: ColorModeToggleProps) {
-  const { t } = useTranslation("common");
-  const { colorMode, toggleColorMode } = useColorMode();
-  const isDark = colorMode === "dark";
-  const label = isDark ? t("theme.switchToLight") : t("theme.switchToDark");
+type Mode = "dark" | "light";
 
-  const dims =
-    size === "md"
-      ? {
-          trackW: "60px",
-          trackH: "30px",
-          thumb: "24px",
-          pad: "3px",
-          translate: "30px",
-          decoBox: 3,
-          thumbIcon: 3.5,
-        }
-      : {
-          trackW: "52px",
-          trackH: "26px",
-          thumb: "20px",
-          pad: "3px",
-          translate: "26px",
-          decoBox: 2.5,
-          thumbIcon: 3,
-        };
+/**
+ * Two segmented buttons — moon and sun — with the current mode outlined in
+ * the accent. The pressed state (`aria-pressed`) is what a screen reader
+ * announces; each button carries its own label ("dark theme" / "light theme").
+ */
+function ColorModeToggleComponent({ shape = "rounded" }: ColorModeToggleProps) {
+  const { t } = useTranslation("common");
+  const { colorMode, setColorMode } = useColorMode();
+
+  const options: { mode: Mode; icon: IconType; label: string }[] = [
+    { mode: "dark", icon: FiMoon, label: t("theme.dark") },
+    { mode: "light", icon: FiSun, label: t("theme.light") },
+  ];
 
   return (
-    <Tooltip
-      content={label}
-      positioning={{ placement: "bottom" }}
-      showArrow
-      openDelay={300}
+    <Flex
+      gap="2px"
+      p="3px"
+      bg="bg.canvas"
+      borderWidth="1px"
+      borderColor="border.default"
+      borderRadius={shape === "pill" ? "full" : "md"}
+      flexShrink={0}
     >
-      <chakra.button
-        type="button"
-        onClick={toggleColorMode}
-        role="switch"
-        aria-checked={isDark}
-        aria-label={label}
-        position="relative"
-        w={dims.trackW}
-        h={dims.trackH}
-        borderRadius="full"
-        borderWidth="1px"
-        borderColor="border.subtle"
-        // Track gradient — barely-there in light, more present in dark
-        // so the night side reads as "atmosphere".
-        bgGradient="to-br"
-        gradientFrom="bg.switch.track"
-        gradientTo="bg.switch.trackEnd"
-        cursor="pointer"
-        flexShrink={0}
-        overflow="hidden"
-        transition="background 0.3s ease, border-color 0.2s ease, box-shadow 0.3s ease"
-        boxShadow="shadow.switchTrack"
-        _hover={{ borderColor: "border.default" }}
-        _focusVisible={{
-          outline: "2px solid",
-          outlineColor: "brand.400",
-          outlineOffset: "2px",
-        }}
-      >
-        {/* Decoration: sun on the left, moon on the right. The icon
-            opposite the thumb (the destination) is the one that
-            remains visible at low opacity. */}
-        <Flex
-          position="absolute"
-          left="6px"
-          top="50%"
-          transform="translateY(-50%)"
-          align="center"
-          justify="center"
-          opacity={isDark ? 0.55 : 0}
-          color="white"
-          transition="opacity 0.3s ease"
-          pointerEvents="none"
-        >
-          <Icon boxSize={dims.decoBox}>
-            <FiSun />
-          </Icon>
-        </Flex>
-        <Flex
-          position="absolute"
-          right="6px"
-          top="50%"
-          transform="translateY(-50%)"
-          align="center"
-          justify="center"
-          opacity={isDark ? 0 : 0.5}
-          color="text.muted"
-          transition="opacity 0.3s ease"
-          pointerEvents="none"
-        >
-          <Icon boxSize={dims.decoBox}>
-            <FiMoon />
-          </Icon>
-        </Flex>
-
-        {/* Thumb — slides + rotates 360° during travel. The two icons
-            inside cross-fade with a counter-rotation so the swap reads
-            as a coin flip rather than a hard cut. */}
-        <Flex
-          position="absolute"
-          top={dims.pad}
-          left={dims.pad}
-          w={dims.thumb}
-          h={dims.thumb}
-          borderRadius="full"
-          align="center"
-          justify="center"
-          bg="bg.switch.thumb"
-          color="text.switchThumb"
-          // Subtle drop shadow, plus a brand halo in dark mode (token).
-          boxShadow="shadow.switchThumb"
-          transform={
-            isDark
-              ? `translateX(${dims.translate}) rotate(360deg)`
-              : "translateX(0) rotate(0deg)"
-          }
-          // Big springy bezier — overshoots, then settles. The whole
-          // motion runs ~420ms, slow enough to feel deliberate.
-          transition="transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease, color 0.25s ease, box-shadow 0.3s ease"
-        >
-          <Box position="relative" w="100%" h="100%">
-            <Icon
-              boxSize={dims.thumbIcon}
-              position="absolute"
-              top="50%"
-              left="50%"
-              opacity={isDark ? 0 : 1}
-              transform={
-                isDark
-                  ? "translate(-50%, -50%) rotate(-180deg) scale(0.4)"
-                  : "translate(-50%, -50%) rotate(0deg) scale(1)"
-              }
-              transition="opacity 0.25s ease, transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1)"
-            >
-              <FiSun />
+      {options.map(({ mode, icon: ModeIcon, label }) => {
+        const isActive = colorMode === mode;
+        return (
+          <chakra.button
+            key={mode}
+            type="button"
+            aria-label={label}
+            aria-pressed={isActive}
+            data-cy={`color-mode-${mode}`}
+            onClick={() => setColorMode(mode)}
+            display="grid"
+            placeItems="center"
+            w={shape === "pill" ? "38px" : "36px"}
+            h="30px"
+            borderRadius={shape === "pill" ? "full" : "sm"}
+            cursor="pointer"
+            color={isActive ? "text.brand" : "text.secondary"}
+            bg={isActive ? "bg.brand.subtle" : "transparent"}
+            boxShadow={
+              isActive
+                ? "inset 0 0 0 1px var(--chakra-colors-border-accent)"
+                : undefined
+            }
+            transition="background-color 150ms ease, color 150ms ease"
+            _hover={
+              isActive ? { bg: "bg.brand.subtle" } : { color: "text.primary" }
+            }
+            _focusVisible={{
+              outline: "2px solid",
+              outlineColor: "border.focus",
+              outlineOffset: "1px",
+            }}
+          >
+            <Icon boxSize={3.5}>
+              <ModeIcon />
             </Icon>
-            <Icon
-              boxSize={dims.thumbIcon}
-              position="absolute"
-              top="50%"
-              left="50%"
-              opacity={isDark ? 1 : 0}
-              transform={
-                isDark
-                  ? "translate(-50%, -50%) rotate(0deg) scale(1)"
-                  : "translate(-50%, -50%) rotate(180deg) scale(0.4)"
-              }
-              transition="opacity 0.25s ease, transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1)"
-            >
-              <FiMoon />
-            </Icon>
-          </Box>
-        </Flex>
-      </chakra.button>
-    </Tooltip>
+          </chakra.button>
+        );
+      })}
+    </Flex>
   );
 }
 

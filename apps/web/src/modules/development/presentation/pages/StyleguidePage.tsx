@@ -330,6 +330,7 @@ function ControlSection() {
           <SaveButton isDirty isSaving={false} onClick={() => {}} />
           <SaveButton isDirty={false} isSaving={false} onClick={() => {}} />
           <ColorModeToggle />
+          <ColorModeToggle shape="pill" />
           <LanguageSelector />
         </Flex>
       </Stack>

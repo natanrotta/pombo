@@ -58,7 +58,18 @@
       "changePassword": "Cambiar contraseña",
       "sending": "Enviando...",
       "resetEmailSent": "Enviamos un enlace a {{email}}. El enlace expira en 1 hora.",
-      "resetEmailError": "No fue posible enviar el enlace. Intente nuevamente en unos momentos."
+      "resetEmailError": "No fue posible enviar el enlace. Intente nuevamente en unos momentos.",
+      "title": "Contraseña",
+      "description": "Te enviamos un enlace por correo para crear una nueva contraseña"
+    },
+    "personalDataDescription": "Cómo aparece tu nombre en el panel y en las notificaciones",
+    "preferences": {
+      "title": "Preferencias",
+      "description": "Valen para este navegador",
+      "language": "Idioma",
+      "languageDescription": "Interfaz y mensajes del sistema",
+      "theme": "Tema",
+      "themeDescription": "El oscuro es el estándar de Pombo"
     }
   }
 }

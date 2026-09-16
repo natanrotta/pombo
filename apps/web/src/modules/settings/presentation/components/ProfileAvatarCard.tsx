@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, type ChangeEvent } from "react";
-import { Flex, Icon, Spinner, Text, chakra } from "@chakra-ui/react";
+import { Box, Flex, Icon, Spinner, Text, chakra } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
 import {
   ALLOWED_IMAGE_MIME_TYPES,
@@ -70,56 +70,52 @@ export function ProfileAvatarCard() {
 
   return (
     <SectionCard>
-      <Flex
-        direction={{ base: "column", md: "row" }}
-        align="center"
-        gap={4}
-      >
-        <chakra.button
-          type="button"
-          className="group"
-          position="relative"
-          flexShrink={0}
-          borderRadius="full"
-          cursor="pointer"
-          aria-label={t("profile.changeAvatar")}
-          aria-busy={isUploading}
-          onClick={() => fileInputRef.current?.click()}
-          _focusVisible={{
-            outline: "2px solid",
-            outlineColor: "border.focus",
-            outlineOffset: "2px",
-          }}
-        >
+      <Flex align="center" gap={4.5} wrap="wrap">
+        <Box position="relative" flexShrink={0}>
           <Avatar
             size="xl"
             src={preview || user?.avatarUrl || undefined}
             name={user?.name}
+            bg="bg.brand.subtle"
+            color="text.brand"
+            boxShadow="inset 0 0 0 1px var(--chakra-colors-border-accent)"
+          />
+          {/* The camera sits on the avatar's edge, like a badge. */}
+          <chakra.button
+            type="button"
+            aria-label={t("profile.changeAvatar")}
+            aria-busy={isUploading}
+            onClick={() => fileInputRef.current?.click()}
+            position="absolute"
+            right="-2px"
+            bottom="-2px"
+            w="25px"
+            h="25px"
+            display="grid"
+            placeItems="center"
+            borderRadius="full"
+            borderWidth="2px"
+            borderColor="bg.surface"
             bg="bg.brand.solid"
             color="text.onBrand"
-          />
-          <Flex
-            position="absolute"
-            inset={0}
-            align="center"
-            justify="center"
-            bg="bg.overlay"
-            borderRadius="full"
-            // Always visible while uploading, so the spinner can be seen.
-            opacity={isUploading ? 1 : 0}
-            _groupHover={{ opacity: 1 }}
-            _groupFocusVisible={{ opacity: 1 }}
-            transition="opacity 0.2s"
+            cursor="pointer"
+            transition="background-color 150ms ease"
+            _hover={{ bg: "bg.brand.solid-hover" }}
+            _focusVisible={{
+              outline: "2px solid",
+              outlineColor: "border.focus",
+              outlineOffset: "2px",
+            }}
           >
             {isUploading ? (
-              <Spinner size="sm" color="white" />
+              <Spinner size="xs" />
             ) : (
-              <Icon color="white" boxSize={5}>
+              <Icon boxSize={3}>
                 <FiCamera />
               </Icon>
             )}
-          </Flex>
-        </chakra.button>
+          </chakra.button>
+        </Box>
         <input
           ref={fileInputRef}
           type="file"
@@ -128,17 +124,11 @@ export function ProfileAvatarCard() {
           hidden
         />
 
-        <Flex
-          direction="column"
-          gap={0.5}
-          minW={0}
-          align={{ base: "center", md: "flex-start" }}
-          textAlign={{ base: "center", md: "left" }}
-        >
-          <Text fontSize="lg" fontWeight="700" color="text.primary" lineClamp={1}>
+        <Flex direction="column" gap={1} minW={0} flex="1 1 180px">
+          <Text fontSize="19px" fontWeight="600" color="text.primary" lineClamp={1}>
             {user?.name}
           </Text>
-          <Text fontSize="sm" color="text.secondary" lineClamp={1}>
+          <Text textStyle="mono" fontSize="13px" color="text.muted" lineClamp={1}>
             {user?.email}
           </Text>
         </Flex>
