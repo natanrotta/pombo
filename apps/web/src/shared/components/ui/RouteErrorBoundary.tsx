@@ -39,8 +39,8 @@ export class RouteErrorBoundary extends Component<Props, State> {
       reloadForStaleChunk();
       return;
     }
-    // Every authenticated page renders inside this boundary, so it — not the
-    // global one — is where real page crashes land. Report them.
+    // Every page (authenticated and public) renders inside this boundary, so
+    // it — not the global one — is where real page crashes land. Report them.
     reportRenderError(error, info.componentStack);
   }
 

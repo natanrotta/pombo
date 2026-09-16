@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { AppError } from "@/core/errors/AppError";
+import { AppError, isRateLimitError } from "@/core/errors/AppError";
 import { ErrorCodes } from "@pombo/shared-types";
 import { toaster } from "@/components/ui/toaster";
 
@@ -33,7 +33,12 @@ export function useNotify() {
       if (error instanceof AppError) {
         message = error.message;
 
-        if (error.code === ErrorCodes.VALIDATION_ERROR && error.details) {
+        // A 429 is never a validation error: at most one branch applies.
+        const wait = isRateLimitError(error) ? formatRetryAfter(error) : null;
+        if (wait) {
+          const sentence = /[.!?]$/.test(message) ? message : `${message}.`;
+          message = `${sentence} ${t("notify.retryIn", { time: wait })}`;
+        } else if (error.code === ErrorCodes.VALIDATION_ERROR && error.details) {
           const details = error.details as Record<string, string[]>;
           const fieldErrors = Object.values(details).flat();
           if (fieldErrors.length > 0) {
@@ -63,4 +68,17 @@ export function useNotify() {
   );
 
   return { showSuccess, showAutoSaved, showInfo, showWarning, showError };
+}
+
+/** `Retry-After` seconds as a short wait ("30 s", "15 min"); null when absent
+ *  or not a positive number (the header may also carry an HTTP date). */
+function formatRetryAfter(error: AppError): string | null {
+  const retryAfter = (error.details as { retryAfter?: unknown } | undefined)
+    ?.retryAfter;
+  if (typeof retryAfter !== "number" || !Number.isFinite(retryAfter) || retryAfter <= 0) {
+    return null;
+  }
+  return retryAfter < 60
+    ? `${Math.ceil(retryAfter)} s`
+    : `${Math.ceil(retryAfter / 60)} min`;
 }

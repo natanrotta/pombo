@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { ROUTE_PATHS } from "@/app/router/RoutePaths";
 import { lazyWithRetry } from "@/app/router/lazyWithRetry";
 import { ProtectedRoute } from "@/app/router/guards/ProtectedRoute";
@@ -71,6 +71,20 @@ const StyleguidePage = import.meta.env.DEV
     )
   : null;
 
+// Layout route for the public (auth) screens. They render outside the shell,
+// so without this boundary a render error there would take down the whole app
+// through GlobalErrorBoundary.
+function PublicLayout() {
+  const location = useLocation();
+  return (
+    <RouteErrorBoundary locationKey={location.key}>
+      <Suspense fallback={null}>
+        <Outlet />
+      </Suspense>
+    </RouteErrorBoundary>
+  );
+}
+
 // Single layout route for all protected pages. AppShell + sidebar stay mounted
 // across navigations — only the content inside PageTransition swaps, with a
 // cross-fade (old exits → new enters) via AnimatePresence.
@@ -95,55 +109,43 @@ function ProtectedLayout() {
 export function AppRouter() {
   return (
     <Routes>
-      <Route
-        path={ROUTE_PATHS.signIn}
-        element={
-          <PublicOnlyRoute>
-            <Suspense fallback={null}>
+      <Route element={<PublicLayout />}>
+        <Route
+          path={ROUTE_PATHS.signIn}
+          element={
+            <PublicOnlyRoute>
               <SignInPage />
-            </Suspense>
-          </PublicOnlyRoute>
-        }
-      />
-      <Route
-        path={ROUTE_PATHS.register}
-        element={
-          <PublicOnlyRoute>
-            <Suspense fallback={null}>
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path={ROUTE_PATHS.register}
+          element={
+            <PublicOnlyRoute>
               <RegisterPage />
-            </Suspense>
-          </PublicOnlyRoute>
-        }
-      />
-      {/* E-mail confirmation step (between sign-up and the app). Standalone:
-          the user holds a scoped verify-email token, not a full session, so
-          neither PublicOnlyRoute nor ProtectedRoute applies. */}
-      <Route
-        path={ROUTE_PATHS.verifyEmail}
-        element={
-          <Suspense fallback={null}>
-            <EmailVerificationPage />
-          </Suspense>
-        }
-      />
-      <Route
-        path={ROUTE_PATHS.forgotPassword}
-        element={
-          <PublicOnlyRoute>
-            <Suspense fallback={null}>
+            </PublicOnlyRoute>
+          }
+        />
+        {/* E-mail confirmation step (between sign-up and the app). Standalone:
+            the user holds a scoped verify-email token, not a full session, so
+            neither PublicOnlyRoute nor ProtectedRoute applies. */}
+        <Route
+          path={ROUTE_PATHS.verifyEmail}
+          element={<EmailVerificationPage />}
+        />
+        <Route
+          path={ROUTE_PATHS.forgotPassword}
+          element={
+            <PublicOnlyRoute>
               <ForgotPasswordPage />
-            </Suspense>
-          </PublicOnlyRoute>
-        }
-      />
-      <Route
-        path={ROUTE_PATHS.resetPassword}
-        element={
-          <Suspense fallback={null}>
-            <ResetPasswordPage />
-          </Suspense>
-        }
-      />
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path={ROUTE_PATHS.resetPassword}
+          element={<ResetPasswordPage />}
+        />
+      </Route>
 
       {/* Protected routes share a single AppShell via the layout route below.
           This avoids remounting the shell / sidebar on every navigation. */}

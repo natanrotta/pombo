@@ -26,3 +26,9 @@ export class AppError extends Error {
     this.details = details;
   }
 }
+
+/** A 429 from the API (any limiter); `details.retryAfter` carries the wait in
+ *  seconds when the response exposed a `Retry-After` header. */
+export function isRateLimitError(error: unknown): error is AppError {
+  return error instanceof AppError && error.statusCode === 429;
+}

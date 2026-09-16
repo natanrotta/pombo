@@ -180,7 +180,8 @@
   "notify": {
     "autoSaved": "Salvo automaticamente",
     "defaultError": "Ocorreu um erro inesperado",
-    "errorTitle": "Erro"
+    "errorTitle": "Erro",
+    "retryIn": "Aguarde {{time}}."
   },
   "permissions": {
     "moduleDenied": "Você não tem permissão para acessar este módulo.",
