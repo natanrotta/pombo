@@ -4,6 +4,7 @@ import { IPasswordResetTokenRepository } from "@modules/auth/domain/repository/p
 import { IEmailVerificationPinRepository } from "@modules/auth/domain/repository/email-verification-pin-repository.interface";
 import { PrismaPasswordResetTokenRepository } from "@modules/auth/infrastructure/repository/prisma-password-reset-token-repository";
 import { PrismaEmailVerificationPinRepository } from "@modules/auth/infrastructure/repository/prisma-email-verification-pin-repository";
+import { AuthProfileBuilder } from "@modules/auth/application/service/auth-profile.builder";
 
 /**
  * DI wiring for the auth domain (sign-in/up, password reset, email-pin
@@ -18,5 +19,11 @@ export function registerAuthModule(container: DependencyContainer): void {
   container.registerSingleton<IEmailVerificationPinRepository>(
     DI_TOKENS.EmailVerificationPinRepository,
     PrismaEmailVerificationPinRepository,
+  );
+  // Application service owned by this module — registered here, not in the
+  // composition root, so `core/` never has to know a module's internals.
+  container.registerSingleton<AuthProfileBuilder>(
+    DI_TOKENS.AuthProfileBuilder,
+    AuthProfileBuilder,
   );
 }

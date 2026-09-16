@@ -3,7 +3,7 @@ import { mockUserRepository, mockJwtProvider } from "@test/mocks";
 import { makeUser } from "@test/factories";
 import { UnauthorizedError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
-import { AuthProfileBuilder } from "@modules/auth/application/service/auth/auth-profile.builder";
+import { AuthProfileBuilder } from "@modules/auth/application/service/auth-profile.builder";
 
 const mockVerifyIdToken = vi.fn();
 vi.mock("google-auth-library", () => ({

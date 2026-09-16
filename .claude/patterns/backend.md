@@ -65,22 +65,21 @@ apps/api/src/
     constant/                  # defaults
     policy/                    # (none yet) reusable authz helpers for an explicit post-read check
     provider/                  # generic provider PORTS (ICacheProvider, IJwtProvider, IQueueProvider…)
-    type/                      # cross-module domain primitives (JsonValue, FieldValue, enums)
-    dto/                       # common.dto (pagination/response schemas shared by all modules)
+    dto/                       # common.dto (UuidParamSchema — the /:id route param every module shares)
 
   core/                        # the chassis — boots the app, no business rule
-    http/                      # app.ts, routes/index.ts (aggregator), controllers/index.ts, middlewares/, logger.ts, types/
+    http/                      # app.ts, routes/index.ts (aggregator), middlewares/, logger.ts, types/
     container/                 # tsyringe DI composition root (index.ts) + tokens.ts + boot guards
-    config/                    # Zod-validated env (env.ts)
+    config/                    # Zod-validated env: env.ts (dotenv + parse + exit) over schema/<concern>.schema.ts
     database/                  # prisma/prisma-client.ts, prisma-error-mapper.ts (mapPrismaError)
     provider/                  # concrete generic impls (RedisCache, BullMQQueue, S3Storage, Jwt, Bcrypt…)
-    service/                   # cross-cutting (error-reporter/Sentry, scheduler, aes-gcm-encryption)
+    service/                   # cross-cutting (error-reporter/Bugsnag, scheduler, lifecycle = graceful shutdown, whatsapp boot)
     bootstrap/                 # BullMQ queue + processor registration (called from main.ts)
 
   test/                        # cross-module test kit: mocks/ + factories/ (aggregator barrel)
   scripts/                     # operational tools (seeds) — run by hand / CI
   generated/                   # Prisma client (build artifact, gitignored) — via @generated alias
-  main.ts                      # bootstrap only (listen, cron, queue wiring)
+  main.ts                      # bootstrap only: error reporter → shutdown plan → gateway boot → listen
 ```
 
 **Path aliases:** `@modules/*` `@core/*` `@shared/*` `@test/*` `@generated/*`. The old
@@ -146,7 +145,7 @@ export class Device {
 }
 ```
 
-**Rules:** immutable props, private; only getters; `toJSON()` controls serialization; no business behavior in entities (use cases own logic); nested relations as `Xxx[]` of IDs or nested entities.
+**Rules:** immutable props, private; only getters; `toJSON()` controls serialization — and a projection with a DIFFERENT exposure gets its own named method instead of a flag (`ApiToken.toMetadata()` hides the hash; never a `toJSON(includeSecret)`); no business behavior in entities (use cases own logic) — derived read-only getters over own state (`user.isActive`, `device.isConnected`) are fine and preferred over `status === "ACTIVE"` literals in use cases; nested relations as `Xxx[]` of IDs or nested entities.
 
 ### Repository Interface (`modules/<domain>/domain/repository/{entity}-repository.interface.ts`)
 
@@ -249,7 +248,7 @@ export type UpdateDeviceWebhooksDTO = z.infer<typeof UpdateDeviceWebhooksDTOSche
 export interface DeviceResponseDTO { id: string; accountId: string; name: string; status: DeviceStatus; ... }
 ```
 
-**Reuse first:** `UuidParamSchema`, `PaginationQuerySchema`, `PaginatedResponseDTO<T>`, `BulkDeleteDTOSchema` from `shared/dto/common.dto.ts`. Always `.trim()` strings; use `z.coerce.date()` for date strings, `z.coerce.number()` for query numerics; nullable+optional means `null` clears and omit means unchanged.
+**Reuse first:** `UuidParamSchema` from `shared/dto/common.dto.ts` for every `/:id` route param. **No custom messages on Zod checks** (`.uuid("…")`, `.min(1, "…")`): a schema-level message overrides the per-request error map that localizes validation errors (`validate-request.middleware.ts`) — the plain check is what makes `validation:string.uuid` apply. Always `.trim()` strings; use `z.coerce.date()` for date strings, `z.coerce.number()` for query numerics; nullable+optional means `null` clears and omit means unchanged.
 
 ### Controller (`modules/<domain>/infrastructure/controller/{entity}.controller.ts`)
 
@@ -379,7 +378,7 @@ When adding a new `ErrorCode`: (1) add to `shared/error/error-codes.ts`, (2) add
 
 ### Pagination
 
-Use `PaginationQuerySchema` (`page`, `limit`, `search`, `sortBy`, `sortOrder`) and `buildPaginationMeta(total, limit, page)` from `shared/util/pagination.ts`. Default `limit=20`, max `limit=100`. Offset-based: `skip: (page-1)*limit, take: limit`. Use `Promise.all([findMany, count])` for parallel data + count.
+No list endpoint paginates yet (device lists are per-account and small). The first one that needs it creates `PaginationQuerySchema` (`page`, `limit`, `search`, `sortBy`, `sortOrder`) in `shared/dto/common.dto.ts` and `buildPaginationMeta(total, limit, page)` in `shared/util/pagination.ts`. Default `limit=20`, max `limit=100`. Offset-based: `skip: (page-1)*limit, take: limit`. Use `Promise.all([findMany, count])` for parallel data + count.
 
 ### Queues / Jobs (BullMQ)
 
@@ -457,9 +456,8 @@ Before creating anything new, check this table.
 
 | Token | Class | Purpose |
 |-------|-------|---------|
-| `"AesGcmEncryptionService"` (+ `AesGcmEncryptionConfig`) | `core/service/aes-gcm-encryption.service.ts` | AES-256-GCM for secrets at rest |
-| `"AuthProfileBuilder"` | `modules/auth/application/service/auth/auth-profile.builder.ts` | Builds the `/auth/me` profile |
-| — (called from `main.ts`) | `core/service/error-reporter/` · `core/service/scheduler/cron.service.ts` · `core/service/whatsapp/{advisory-lock,gateway-boot}.ts` | Bugsnag facade · node-cron · single-replica gateway lock + boot |
+| `"AuthProfileBuilder"` | `modules/auth/application/service/auth-profile.builder.ts` (registered in `auth.module.ts`) | Builds the `/auth/me` profile |
+| — (called from `main.ts`) | `core/service/error-reporter/` · `core/service/scheduler/cron.service.ts` · `core/service/whatsapp/{advisory-lock,gateway-boot}.ts` · `core/service/lifecycle/` (SIGTERM/SIGINT + uncaught error → staged teardown → exit) | Bugsnag facade · node-cron · single-replica gateway lock + boot |
 
 ### Shared Utilities
 

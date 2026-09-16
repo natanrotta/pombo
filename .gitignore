@@ -1,5 +1,8 @@
 # Dependencies
 node_modules/
+# yarn is the package manager (see root package.json `packageManager`) — a
+# stray npm lockfile would desync installs.
+package-lock.json
 .pnp
 .pnp.js
 

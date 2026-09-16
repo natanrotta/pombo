@@ -1,6 +1,5 @@
 import {
   RegisterDeviceDTOSchema,
-  DeviceIdParamSchema,
   UpdateDeviceWebhooksDTOSchema,
 } from "./device.dto";
 
@@ -57,17 +56,6 @@ describe("device DTOs", () => {
       expect(() =>
         UpdateDeviceWebhooksDTOSchema.parse({ onWhatever: "https://x" }),
       ).toThrow();
-    });
-  });
-
-  describe("DeviceIdParamSchema", () => {
-    it("accepts a uuid", () => {
-      const id = "11111111-1111-1111-1111-111111111111";
-      expect(DeviceIdParamSchema.parse({ id }).id).toBe(id);
-    });
-
-    it("rejects a non-uuid", () => {
-      expect(() => DeviceIdParamSchema.parse({ id: "nope" })).toThrow();
     });
   });
 });

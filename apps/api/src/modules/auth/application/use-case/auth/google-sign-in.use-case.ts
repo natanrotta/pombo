@@ -7,9 +7,8 @@ import { GoogleSignInDTO, GoogleSignInResponseDTO } from "../../dto/auth.dto";
 import { UnauthorizedError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
 import { DEFAULT_LOCALE } from "@shared/constant/defaults";
-import { UserStatus } from "@shared/type/enums";
 import type { User } from "@modules/user/domain/entity/user.entity";
-import { AuthProfileBuilder } from "@modules/auth/application/service/auth/auth-profile.builder";
+import { AuthProfileBuilder } from "@modules/auth/application/service/auth-profile.builder";
 
 /**
  * Google ID-token sign-in — single-user boilerplate. Find-or-create the user
@@ -108,7 +107,7 @@ export class GoogleSignInUseCase {
     user: User,
     kind: "sign-in" | "sign-up",
   ): Promise<GoogleSignInResponseDTO> {
-    if (user.status !== UserStatus.ACTIVE) {
+    if (!user.isActive) {
       throw new UnauthorizedError(
         "Account is not active",
         undefined,

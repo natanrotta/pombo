@@ -61,10 +61,6 @@ export const DI_TOKENS = {
 
   // ── Application services ──────────────────────────────────────────────
   AuthProfileBuilder: "AuthProfileBuilder",
-  /** AES-256-GCM encryption service (generic infra). */
-  AesGcmEncryptionService: "AesGcmEncryptionService",
-  /** Plain config object `{key: Buffer}` for AesGcmEncryptionService. */
-  AesGcmEncryptionConfig: "AesGcmEncryptionConfig",
 
   // ── Config values ─────────────────────────────────────────────────────
   /** The parsed env object exposed through the `AppConfig` domain port, so

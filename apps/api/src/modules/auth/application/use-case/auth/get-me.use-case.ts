@@ -4,7 +4,7 @@ import { IUserRepository } from "@modules/user/domain/repository/user-repository
 import { MeResponseDTO } from "../../dto/auth.dto";
 import { NotFoundError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
-import { AuthProfileBuilder } from "@modules/auth/application/service/auth/auth-profile.builder";
+import { AuthProfileBuilder } from "@modules/auth/application/service/auth-profile.builder";
 
 /**
  * Returns the authenticated user's profile. The HTTP layer extracts `userId`

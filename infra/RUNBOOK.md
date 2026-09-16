@@ -22,7 +22,11 @@ the deploy via Actions fails fast with **"PRODUCTION UNTOUCHED"** and the fallba
    label, **and grants `ghrunner` read access to `.env.prod`** (group `ghrunner`, `chmod 640`) — the cutover's
    `docker compose` needs to read that `env_file`.
 3. **Verify:** runner shows "Idle" in `Settings → Actions → Runners`.
-4. **Test deploy:** `yarn deploy` → should end in **✅ confirmed** (then `yarn monitor-status` confirms everything is up).
+4. **Repository variable `API_URL`** (`Settings → Secrets and variables → Actions → Variables`): the public API base,
+   e.g. `https://api.your-domain.tld`. `deploy-api.yml` reads `vars.API_URL` for the external `/api/health` check and
+   aborts in pre-flight (**PRODUCTION UNTOUCHED**) when it is unset. No secret is needed by the workflows beyond the
+   automatic `GITHUB_TOKEN` (GHCR push in `build-api.yml`, GHCR pull in `deploy-api.yml`).
+5. **Test deploy:** `yarn deploy` → should end in **✅ confirmed** (then `yarn monitor-status` confirms everything is up).
 
 > ⚠️ **The `.env.prod` grant is LOST if the file is recreated** (a new file inherits `root:root 600`). If you
 > recreate `.env.prod`, re-run `make runner-setup` (or `chgrp ghrunner .env.prod && chmod 640 .env.prod`). The

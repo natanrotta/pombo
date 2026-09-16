@@ -5,8 +5,6 @@ import {
   SendAudioDTOSchema,
   SendVideoDTOSchema,
   SendDocumentDTOSchema,
-  SendMessageParamSchema,
-  MessageIdParamSchema,
 } from "./message.dto";
 
 describe("message DTOs", () => {
@@ -139,14 +137,5 @@ describe("message DTOs", () => {
       });
       expect(parsed.fileName).toBeUndefined();
     });
-  });
-
-  it("SendMessageParamSchema requires a uuid device id", () => {
-    expect(() => SendMessageParamSchema.parse({ id: "nope" })).toThrow();
-  });
-
-  it("MessageIdParamSchema requires a uuid message id", () => {
-    const id = "11111111-1111-1111-1111-111111111111";
-    expect(MessageIdParamSchema.parse({ id }).id).toBe(id);
   });
 });

@@ -57,12 +57,17 @@ export function initErrorReporter(): void {
     // expressRequestHandler + app.ts) — never its errorHandler, which would
     // double-report on top of errorHandlerMiddleware.
     plugins: [BugsnagPluginExpress],
-    // autoDetectErrors stays at its default (true): besides the errors funneled
-    // through errorHandlerMiddleware, this captures process-level
-    // uncaughtException / unhandledRejection from BullMQ workers and cron jobs
-    // that never reach the HTTP error handler. This is parity with the old
-    // Sentry setup — @sentry/node's default integrations installed the same
-    // process-level handlers — kept here by relying on Bugsnag's default.
+    // Process-level capture is OFF on purpose: the SDK's own uncaughtException /
+    // unhandledRejection listeners report and then `process.exit(1)` as soon as
+    // the delivery lands — racing the staged teardown in core/service/lifecycle
+    // (HTTP drain, WhatsApp sockets closed without logout, advisory lock
+    // released). The lifecycle owns those two events: it calls
+    // `errorReporter.notify` (awaited, bounded) and only then exits. Errors
+    // inside HTTP requests still reach Bugsnag through errorHandlerMiddleware.
+    enabledErrorTypes: {
+      unhandledExceptions: false,
+      unhandledRejections: false,
+    },
     // PHI hardening: this API moves patient data. Bugsnag must never collect
     // the caller IP, and any header/metadata key that could carry a bearer
     // token, session cookie, or free-text patient data is redacted before the
@@ -142,11 +147,25 @@ export function expressRequestHandler(): RequestHandler {
 }
 
 export const errorReporter = {
-  notify(error: Error, onError?: (event: ErrorReportEvent) => void): void {
-    if (!started) return;
-    Bugsnag.notify(error, (event) => {
-      onError?.(event);
-      return true;
+  /**
+   * Resolves once the report was delivered (or refused) — never rejects, so a
+   * caller can await it on a crash path without a second failure. Resolves
+   * immediately while the reporter is disabled.
+   */
+  notify(
+    error: Error,
+    onError?: (event: ErrorReportEvent) => void,
+  ): Promise<void> {
+    if (!started) return Promise.resolve();
+    return new Promise((resolve) => {
+      Bugsnag.notify(
+        error,
+        (event) => {
+          onError?.(event);
+          return true;
+        },
+        () => resolve(),
+      );
     });
   },
 

@@ -11,9 +11,10 @@
 #
 # Deploy: docker compose -f docker-compose.prod.yml pull && up -d
 #
-# OBS migrate: o Dockerfile.prod roda `prisma migrate deploy` no CMD/boot.
-# Com 1 réplica está ok. Ao escalar p/ 2+ réplicas, tirar o migrate do CMD e
-# rodá-lo como step único do deploy (corrida de migrations). Ver knowledge.
+# OBS migrate: o entrypoint da imagem (apps/api/docker-entrypoint.sh) roda
+# `prisma migrate deploy` no boot. Com 1 réplica está ok. Ao escalar p/ 2+
+# réplicas, RUN_MIGRATIONS=false nas réplicas e o migrate vira step único do
+# deploy (corrida de migrations). Ver knowledge.
 
 name: pombo-app
 
@@ -27,8 +28,10 @@ services:
       - ../.env.prod
     ports:
       - "127.0.0.1:3333:3333"   # só localhost; o Caddy expõe publicamente
-    # Respeita o graceful shutdown (main.ts: SIGTERM drena filas BullMQ +
-    # eventBus + flowProducer antes de fechar). Sem isso, deploy perde jobs em voo.
+    # Respeita o graceful shutdown (core/service/lifecycle: SIGTERM drena o HTTP,
+    # fecha os sockets do WhatsApp sem logout, filas BullMQ + eventBus +
+    # flowProducer). O app tem seu próprio teto (SHUTDOWN_TIMEOUT_MS, 30 s) —
+    # este valor precisa ficar ACIMA dele. Sem isso, deploy perde jobs em voo.
     stop_grace_period: 60s
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3333/healthz"]

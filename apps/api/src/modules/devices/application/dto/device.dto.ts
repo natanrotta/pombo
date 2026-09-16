@@ -4,10 +4,6 @@ export const RegisterDeviceDTOSchema = z.object({
   name: z.string().trim().min(1).max(100),
 });
 
-export const DeviceIdParamSchema = z.object({
-  id: z.string().uuid("Invalid device ID format"),
-});
-
 // An http(s) URL, or null to clear the hook. Absent key = leave unchanged.
 const webhookUrlField = z
   .string()
@@ -29,7 +25,6 @@ export const UpdateDeviceWebhooksDTOSchema = z
   .strict();
 
 export type RegisterDeviceDTO = z.infer<typeof RegisterDeviceDTOSchema>;
-export type DeviceIdParam = z.infer<typeof DeviceIdParamSchema>;
 export type UpdateDeviceWebhooksDTO = z.infer<
   typeof UpdateDeviceWebhooksDTOSchema
 >;

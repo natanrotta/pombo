@@ -28,9 +28,7 @@ export async function getGatewayHealth(): Promise<GatewayHealth | null> {
   );
   // System probe — aggregates devices across every account (not tenant-scoped).
   const devices = await devicesRepository.listAll();
-  const connected = devices.filter(
-    (device) => device.status === "CONNECTED",
-  ).length;
+  const connected = devices.filter((device) => device.isConnected).length;
 
   return { devices: { total: devices.length, connected } };
 }

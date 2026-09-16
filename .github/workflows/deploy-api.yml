@@ -1,0 +1,96 @@
+# deploy-api.yml — ship an already-published API image to production.
+#
+# Dispatched by `yarn deploy` / `yarn rollback` (scripts/deploy.mjs,
+# scripts/rollback.mjs). The cutover runs ON the APP host through the
+# self-hosted runner registered by `make runner-setup` (infra/app/
+# setup-github-runner.sh) — no inbound SSH. The host keeps the repo checkout at
+# /opt/pombo/app, the real env at /opt/pombo/app/infra/.env.prod (readable by the
+# runner user), and the compose in /opt/pombo/app/infra/app.
+#
+# Verdicts (what the operator sees):
+#   PRODUCTION UNTOUCHED — a pre-flight failed before the container was touched
+#   ❌ after the cutover     — the container was replaced but did not turn
+#                            healthy / did not answer with the version →
+#                            `yarn rollback` (never reverts on its own)
+name: deploy-api
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to ship (vX.Y, or latest)"
+        required: true
+        type: string
+
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  TAG: ${{ inputs.tag }}
+  APP_DIR: /opt/pombo/app/infra/app
+  ENV_PROD: /opt/pombo/app/infra/.env.prod
+  # The public API base (https://api.your-domain.tld) — a repository variable.
+  API_URL: ${{ vars.API_URL }}
+
+jobs:
+  cutover:
+    runs-on: [self-hosted, pombo-app]
+    timeout-minutes: 20
+    steps:
+      - name: "[1/4] Pre-flight (fails = PRODUCTION UNTOUCHED)"
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+$ || "$TAG" == "latest" ]] \
+            || { echo "::error::tag must be vMAJOR.MINOR or latest (got '$TAG') — PRODUCTION UNTOUCHED"; exit 1; }
+          OWNER="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          echo "IMAGE=ghcr.io/${OWNER}/pombo-api:${TAG}" >> "$GITHUB_ENV"
+          [ -n "$API_URL" ] \
+            || { echo "::error::repository variable API_URL is not set — PRODUCTION UNTOUCHED"; exit 1; }
+          [ -f "$APP_DIR/docker-compose.prod.yml" ] \
+            || { echo "::error::$APP_DIR/docker-compose.prod.yml not found on the host — PRODUCTION UNTOUCHED"; exit 1; }
+          [ -r "$ENV_PROD" ] \
+            || { echo "::error::$ENV_PROD is not readable by $(id -un) — PRODUCTION UNTOUCHED. Fix: make runner-setup (chgrp ghrunner + chmod 640)"; exit 1; }
+          docker compose version
+
+      - name: "[2/4] Pull the image (fails = PRODUCTION UNTOUCHED)"
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker pull "$IMAGE" \
+            || { echo "::error::$IMAGE not found in GHCR — PRODUCTION UNTOUCHED (build it with yarn make-tag)"; exit 1; }
+
+      - name: "[3/4] Cutover — compose up --wait"
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          export API_IMAGE="$IMAGE"
+          if ! docker compose -f docker-compose.prod.yml up -d --wait --wait-timeout 300 api; then
+            echo "::error::the new container did not turn healthy — production was touched; consider: yarn rollback"
+            docker compose -f docker-compose.prod.yml logs --no-color --tail=200 api
+            exit 1
+          fi
+
+      - name: "[4/4] Verify from outside (/api/health)"
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6; do
+            BODY="$(curl -fsS --max-time 8 "$API_URL/api/health" || true)"
+            echo "attempt $attempt: ${BODY:-<no answer>}"
+            if [ "$TAG" = "latest" ]; then
+              echo "$BODY" | grep -q '"ok":true' && { echo "✅ confirmed: $BODY"; exit 0; }
+            else
+              echo "$BODY" | grep -q "\"version\":\"$TAG\"" && { echo "✅ confirmed: $BODY"; exit 0; }
+            fi
+            sleep 5
+          done
+          echo "::error::/api/health did not confirm $TAG — production was touched; consider: yarn rollback. Last body: $BODY"
+          exit 1
+
+      - name: Prune dangling images
+        if: always()
+        run: docker image prune -f >/dev/null 2>&1 || true

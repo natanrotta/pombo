@@ -11,7 +11,7 @@ import {
   UnauthorizedError,
 } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
-import { AuthProfileBuilder } from "@modules/auth/application/service/auth/auth-profile.builder";
+import { AuthProfileBuilder } from "@modules/auth/application/service/auth-profile.builder";
 
 /** Wrong-PIN attempts before the code is locked and the user must resend. */
 export const EMAIL_VERIFICATION_MAX_ATTEMPTS = 5;

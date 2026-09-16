@@ -1,0 +1,110 @@
+# build-api.yml — cut a version of the API image: vX.Y.
+#
+# Dispatched by `yarn make-tag` (scripts/make-tag.mjs) — never on push. Order:
+#   1. validate the version and refuse an existing tag
+#   2. backend unit tests
+#   3. docker build (loaded locally, NOT pushed yet)
+#   4. boot smoke-test of that exact image (docker-compose.smoke.yml: ephemeral
+#      Postgres + Redis, `prisma migrate deploy`, /healthz) — a wiring/DI error,
+#      a missing env var or a broken migration fails HERE, not in production
+#   5. push :vX.Y + :latest to GHCR and create the git tag
+# A failure anywhere before step 5 leaves no image and no tag — nothing to deploy.
+name: build-api
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build and tag (vMAJOR.MINOR, e.g. v1.5)"
+        required: true
+        type: string
+
+concurrency:
+  group: build-api
+  cancel-in-progress: false
+
+permissions:
+  contents: write # the git tag
+  packages: write # GHCR push
+
+env:
+  VERSION: ${{ inputs.version }}
+  DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
+  JWT_SECRET: ci-only-jwt-secret-not-a-real-secret-32c
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags
+
+      - name: "[1/5] Validate the version"
+        run: |
+          set -euo pipefail
+          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+$ ]] \
+            || { echo "::error::version must look like vMAJOR.MINOR (got '$VERSION')"; exit 1; }
+          if git ls-remote --exit-code --tags origin "refs/tags/$VERSION" >/dev/null 2>&1; then
+            echo "::error::tag $VERSION already exists — pick the next version"; exit 1
+          fi
+          OWNER="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          echo "IMAGE=ghcr.io/${OWNER}/pombo-api" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: "[2/5] Backend unit tests"
+        run: |
+          yarn install --frozen-lockfile
+          yarn shared:build
+          yarn workspace @pombo/api type-check
+          yarn workspace @pombo/api test
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: "[3/5] Build the image (not pushed yet)"
+        run: |
+          docker buildx build \
+            --file apps/api/Dockerfile --target runtime \
+            --build-arg APP_VERSION="$VERSION" \
+            --build-arg GIT_COMMIT="${{ github.sha }}" \
+            --cache-from type=gha --cache-to type=gha,mode=max \
+            --tag "$IMAGE:$VERSION" --tag "$IMAGE:latest" \
+            --load .
+
+      - name: "[4/5] Boot smoke-test of the exact image"
+        env:
+          API_IMAGE: ${{ env.IMAGE }}:${{ env.VERSION }}
+        run: |
+          set -euo pipefail
+          if ! docker compose -f docker-compose.smoke.yml up --wait --wait-timeout 180; then
+            echo "::error::boot smoke-test failed — the image does not boot, migrate or answer /healthz"
+            docker compose -f docker-compose.smoke.yml logs --no-color api | tail -n 200
+            exit 1
+          fi
+          echo "boot smoke-test: the image boots, migrates and answers /healthz"
+
+      - name: Tear down the smoke stack
+        if: always()
+        run: docker compose -f docker-compose.smoke.yml down -v --remove-orphans || true
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "[5/5] Publish the image and the git tag"
+        run: |
+          set -euo pipefail
+          docker push "$IMAGE:$VERSION"
+          docker push "$IMAGE:latest"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$VERSION" -m "API $VERSION ($IMAGE:$VERSION, ${{ github.sha }})"
+          git push origin "refs/tags/$VERSION"
+          echo "published $IMAGE:$VERSION (+ :latest) and tag $VERSION"

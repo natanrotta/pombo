@@ -8,9 +8,9 @@ import {
 } from "@core/http/middlewares";
 import {
   RegisterDeviceDTOSchema,
-  DeviceIdParamSchema,
   UpdateDeviceWebhooksDTOSchema,
 } from "@modules/devices/application/dto/device.dto";
+import { UuidParamSchema } from "@shared/dto/common.dto";
 
 const deviceRoutes = Router();
 const deviceController = container.resolve(DeviceController);
@@ -31,26 +31,26 @@ deviceRoutes.get(
 
 deviceRoutes.get(
   "/:id",
-  validateRequest({ params: DeviceIdParamSchema }),
+  validateRequest({ params: UuidParamSchema }),
   asyncHandler(deviceController.getById.bind(deviceController)),
 );
 
 deviceRoutes.get(
   "/:id/qr",
-  validateRequest({ params: DeviceIdParamSchema }),
+  validateRequest({ params: UuidParamSchema }),
   asyncHandler(deviceController.getQr.bind(deviceController)),
 );
 
 deviceRoutes.get(
   "/:id/groups",
-  validateRequest({ params: DeviceIdParamSchema }),
+  validateRequest({ params: UuidParamSchema }),
   asyncHandler(deviceController.listGroups.bind(deviceController)),
 );
 
 deviceRoutes.patch(
   "/:id/webhooks",
   validateRequest({
-    params: DeviceIdParamSchema,
+    params: UuidParamSchema,
     body: UpdateDeviceWebhooksDTOSchema,
   }),
   asyncHandler(deviceController.updateWebhooks.bind(deviceController)),
@@ -58,19 +58,19 @@ deviceRoutes.patch(
 
 deviceRoutes.post(
   "/:id/connect",
-  validateRequest({ params: DeviceIdParamSchema }),
+  validateRequest({ params: UuidParamSchema }),
   asyncHandler(deviceController.connect.bind(deviceController)),
 );
 
 deviceRoutes.post(
   "/:id/disconnect",
-  validateRequest({ params: DeviceIdParamSchema }),
+  validateRequest({ params: UuidParamSchema }),
   asyncHandler(deviceController.disconnect.bind(deviceController)),
 );
 
 deviceRoutes.delete(
   "/:id",
-  validateRequest({ params: DeviceIdParamSchema }),
+  validateRequest({ params: UuidParamSchema }),
   asyncHandler(deviceController.remove.bind(deviceController)),
 );
 

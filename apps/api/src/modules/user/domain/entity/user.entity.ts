@@ -1,4 +1,4 @@
-import { type UserStatusType } from "@shared/type/enums";
+import { type UserStatus } from "../value-object/user-status";
 
 export interface UserProps {
   id: string;
@@ -9,7 +9,7 @@ export interface UserProps {
   /** Nullable for Google-only users, who authenticate via `googleId`. */
   password: string | null;
   googleId: string | null;
-  status: UserStatusType;
+  status: UserStatus;
   /** Whether the user proved control of their e-mail. Email+password
    *  self-signups start `false` (gated behind the PIN-confirmation step);
    *  Google signups start `true`. */
@@ -58,8 +58,13 @@ export class User {
     return this.props.googleId;
   }
 
-  get status(): string {
+  get status(): UserStatus {
     return this.props.status;
+  }
+
+  /** The only status allowed to hold a session (see `user-status.ts`). */
+  get isActive(): boolean {
+    return this.props.status === "ACTIVE";
   }
 
   get emailVerified(): boolean {

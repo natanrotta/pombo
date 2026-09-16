@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
+import { DEFAULT_LOCALE } from "@shared/constant/defaults";
 
 const SUPPORTED_LOCALES = ["en", "pt-BR", "es"];
-const DEFAULT_LOCALE = "pt-BR";
 
 function parseAcceptLanguage(header: string): string {
   const languages = header

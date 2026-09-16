@@ -205,7 +205,8 @@ describe("errorHandlerMiddleware", () => {
     ["403", () => new ForbiddenError("denied")],
     [
       "429",
-      () => new TooManyRequestsError("too many", undefined, "AI_RATE_LIMIT"),
+      () =>
+        new TooManyRequestsError("too many", undefined, "PUBLIC_RATE_LIMIT"),
     ],
   ])("should report %s AppError with warning severity", (_, factory) => {
     const { req, res, next } = mockReqRes();

@@ -2,7 +2,7 @@
 #
 # Boots the SAME image that ships to production (${API_IMAGE}) against an
 # ephemeral Postgres + Redis, runs the `prisma migrate deploy` from the
-# Dockerfile.prod CMD and waits for /healthz to answer.
+# image entrypoint (apps/api/docker-entrypoint.sh) and waits for /healthz to answer.
 #
 # WHY: unit tests never import the real DI container (it resolves eagerly on
 # boot), so a wiring/DI error, a missing required env var or a broken migration

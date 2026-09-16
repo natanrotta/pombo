@@ -5,8 +5,7 @@ import { IUserRepository } from "@modules/user/domain/repository/user-repository
 import { IPasswordResetTokenRepository } from "@modules/auth/domain/repository/password-reset-token-repository.interface";
 import { IMailProvider, ILoggerProvider, AppConfig } from "@shared/provider";
 import { RequestPasswordResetDTO } from "../../dto/auth.dto";
-import { UserStatus } from "@shared/type/enums";
-import { renderPasswordResetEmail } from "@modules/auth/application/service/auth/password-reset-email.template";
+import { renderPasswordResetEmail } from "@modules/auth/application/service/password-reset-email.template";
 
 /**
  * Requests a password-reset link via email.
@@ -38,10 +37,18 @@ export class RequestPasswordResetUseCase {
   async execute(data: RequestPasswordResetDTO): Promise<void> {
     const user = await this.userRepository.findByEmail(data.email);
 
-    if (!user || !user.password || user.status !== UserStatus.ACTIVE) {
-      // Silently succeed to avoid leaking whether the account exists.
+    if (!user || !user.password || !user.isActive) {
+      // Silently succeed to avoid leaking whether the account exists. The
+      // address itself is PII and must not reach the logs either (SEC-C7) —
+      // the reason is enough to correlate an incident.
       this.logger.info(
-        { email: data.email },
+        {
+          reason: !user
+            ? "unknown-email"
+            : !user.password
+              ? "no-password"
+              : "inactive",
+        },
         "Password reset requested for non-eligible account (noop)",
       );
       return;

@@ -44,7 +44,7 @@ A arquitetura de referência: **frontends estáticos atrás de um CDN + API e da
 | 4 | Compose do banco (host de dados) | `infra/data/docker-compose.data.yml` |
 | 5 | CI/CD | `.github/workflows/build-api.yml` · `deploy-api.yml` |
 | 6 | Operações | `Makefile` · `infra/status.sh` · `infra/status-app.sh` |
-| 8 | Dockerfile de produção | `apps/api/Dockerfile.prod` |
+| 8 | Dockerfile da API (multi-stage: `runtime` = produção, `dev` = compose local) | `apps/api/Dockerfile` + `apps/api/docker-entrypoint.sh` |
 | 9 | Bootstrap do processo (crons + workers + shutdown) | `apps/api/src/main.ts` |
 | 10 | Schema de env (vars de produção) | `apps/api/src/core/config/env.ts` · `infra/.env.prod.example` |
 

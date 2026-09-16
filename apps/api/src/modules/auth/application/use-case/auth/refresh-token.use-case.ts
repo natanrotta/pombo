@@ -42,7 +42,7 @@ export class RefreshTokenUseCase {
       );
     }
 
-    if (user.status !== "ACTIVE") {
+    if (!user.isActive) {
       throw new UnauthorizedError(
         "Account is not active",
         undefined,

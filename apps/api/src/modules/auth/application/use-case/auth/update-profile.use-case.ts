@@ -4,7 +4,7 @@ import { IUserRepository } from "@modules/user/domain/repository/user-repository
 import { UpdateProfileDTO, MeResponseDTO } from "../../dto/auth.dto";
 import { ConflictError, NotFoundError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
-import { AuthProfileBuilder } from "@modules/auth/application/service/auth/auth-profile.builder";
+import { AuthProfileBuilder } from "@modules/auth/application/service/auth-profile.builder";
 
 /**
  * Updates the authenticated user's own profile. Single-user boilerplate:

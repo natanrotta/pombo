@@ -12,7 +12,7 @@ import {
 import { makeUser } from "@test/factories";
 import { TooManyRequestsError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
-import { AuthProfileBuilder } from "@modules/auth/application/service/auth/auth-profile.builder";
+import { AuthProfileBuilder } from "@modules/auth/application/service/auth-profile.builder";
 
 const VALID_PIN = "123456";
 const hashPin = (pin: string) => createHash("sha256").update(pin).digest("hex");
