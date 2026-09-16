@@ -389,8 +389,15 @@ onMutate: async (deletedId) => {
   queryClient.setQueryData<T[]>(keys.list(), (prev) => prev?.filter((x) => x.id !== deletedId) ?? []);
   return { previous };
 },
-onError: (_err, _id, ctx) => { if (ctx?.previous) queryClient.setQueryData(keys.list(), ctx.previous); },
+onError: (_err, deletedId, ctx) => {
+  // Restore ONLY the failed item into the current cache — resetting the whole
+  // snapshot resurrects items a concurrent optimistic delete already removed.
+  if (ctx?.previous) queryClient.setQueryData<T[]>(keys.list(), (current) => restoreItem(current, ctx.previous, deletedId));
+},
+onSettled: () => queryClient.invalidateQueries({ queryKey: keys.list() }),
 ```
+
+`restoreItem` re-inserts the item at its old position relative to the items still listed (see `restoreDevice` in `modules/devices/presentation/hooks/useDevices.ts`). A `useConfirm` dialog closes before its mutation resolves, so two deletes can overlap.
 
 Use this pattern only when the operation is fast and rollback is cheap; otherwise prefer `invalidate-then-refetch` for correctness.
 
@@ -562,7 +569,7 @@ Global font-size: `sm` (14px). FormLabel: `xs`, `600`, `gray.600`. Section headi
 
 **Styleguide:** every primitive above renders, in every state, on the DEV-only route `/dev/styleguide` (`modules/development`, mounted only when `import.meta.env.DEV`; the `pombo:dev-only-modules-excluded` Vite plugin fails a production build that bundles any of its modules). A new or changed shared primitive gets a spot there, and the visual baselines in `e2e/tests/design-system/` get updated in the same change. Interactive primitives without a unique semantic selector carry a `data-cy` (the app's test-id attribute).
 
-**Custom button variants:** the recipe's `danger` variant is not in Chakra's generated types, and the `solid` variant paints brand tokens regardless of `colorPalette` — `colorPalette="red"` renders green. For a destructive action use `variant={"danger" as "solid"}` — the cast only bridges the missing typegen (see `ConfirmDialog`, pinned by `AppModal.spec.tsx`).
+**Custom button variants:** the recipe's `danger` and `dangerOutline` variants are not in Chakra's generated types, and every recipe variant paints explicit tokens regardless of `colorPalette` — `colorPalette="red"` renders green, so don't pass `colorPalette` to a `Button`. A destructive primary action uses `variant={"danger" as "solid"}` (see `ConfirmDialog`, pinned by `AppModal.spec.tsx`); a destructive secondary action uses `variant={"dangerOutline" as "outline"}` (see `DeviceDetailPage`). The cast only bridges the missing typegen.
 
 ### Skeletons (`shared/components/skeletons/`)
 

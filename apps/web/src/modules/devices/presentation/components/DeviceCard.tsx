@@ -11,6 +11,8 @@ import type { Device } from "@/modules/devices/domain/entities/Device";
 interface DeviceCardProps {
   device: Device;
   onOpen: (id: string) => void;
+  /** Hover/focus: pre-warm the detail page. */
+  onHover: (id: string) => void;
   onDelete: (id: string) => void;
   onDisconnect: (id: string) => void;
 }
@@ -18,12 +20,17 @@ interface DeviceCardProps {
 export const DeviceCard = memo(function DeviceCard({
   device,
   onOpen,
+  onHover,
   onDelete,
   onDisconnect,
 }: DeviceCardProps) {
   const { t } = useTranslation("devices");
 
   const handleOpen = useCallback(() => onOpen(device.id), [onOpen, device.id]);
+  const handleHover = useCallback(
+    () => onHover(device.id),
+    [onHover, device.id],
+  );
   const handleDelete = useCallback(
     () => onDelete(device.id),
     [onDelete, device.id],
@@ -65,6 +72,7 @@ export const DeviceCard = memo(function DeviceCard({
       badges={[<DeviceStatusBadge key="status" status={device.status} />]}
       metaItems={[{ icon: FiClock, label: lastSeen }]}
       onClick={handleOpen}
+      onHover={handleHover}
       actionItems={actionItems}
     />
   );

@@ -69,6 +69,17 @@ export const buttonRecipe = defineRecipe({
         },
         _active: { filter: "brightness(0.95)", transform: "translateY(0)" },
       },
+      // Destructive secondary action (e.g. "Delete" next to a primary CTA):
+      // the `outline` shape in the error palette. `colorPalette="red"` on
+      // `outline` does nothing — that variant paints the brand explicitly.
+      dangerOutline: {
+        border: "1px solid",
+        borderColor: "status.error.border",
+        color: "status.error.fg",
+        bg: "bg.surface",
+        _hover: { bg: "status.error.bg", transform: "translateY(-1px)" },
+        _active: { filter: "brightness(0.95)", transform: "translateY(0)" },
+      },
       danger: {
         bg: "red.500",
         // White in both modes — the danger button is always red (not brand), so

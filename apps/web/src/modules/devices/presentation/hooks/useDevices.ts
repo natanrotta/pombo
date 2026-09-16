@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { repositories } from "@/core/di/repositories";
 import { queryKeys } from "@/core/query/queryKeys";
@@ -5,6 +6,7 @@ import { STALE_TIMES } from "@/core/query/staleTimes";
 import { useErrorHandler } from "@/core/query/useErrorHandler";
 import type {
   CreateDeviceInput,
+  Device,
   UpdateDeviceWebhooksInput,
 } from "@/modules/devices/domain/entities/Device";
 
@@ -40,14 +42,97 @@ export function useCreateDevice() {
   });
 }
 
+/** Pre-warms a device's detail cache (card hover/focus → detail page). */
+export function usePrefetchDevice() {
+  const queryClient = useQueryClient();
+  return useCallback(
+    (id: string) =>
+      queryClient.prefetchQuery({
+        queryKey: queryKeys.devices.detail(id),
+        queryFn: () => repositories.devices.getById(id),
+      }),
+    [queryClient],
+  );
+}
+
+/** Refetches a device's detail and the list after an out-of-band change
+ *  (e.g. the pairing QR reported CONNECTED). */
+export function useRefreshDevice() {
+  const queryClient = useQueryClient();
+  return useCallback(
+    (id: string) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.devices.detail(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.devices.list() });
+    },
+    [queryClient],
+  );
+}
+
+/** Re-inserts `id` (taken from `previous`) into `current` right after the
+ *  devices that preceded it; no-op when it is already there or unknown. */
+function restoreDevice(
+  current: Device[],
+  previous: Device[],
+  id: string,
+): Device[] {
+  const position = previous.findIndex((device) => device.id === id);
+  if (position === -1 || current.some((device) => device.id === id)) {
+    return current;
+  }
+  const precedingIds = new Set(
+    previous.slice(0, position).map((device) => device.id),
+  );
+  let insertAt = 0;
+  current.forEach((device, index) => {
+    if (precedingIds.has(device.id)) insertAt = index + 1;
+  });
+  return [
+    ...current.slice(0, insertAt),
+    previous[position],
+    ...current.slice(insertAt),
+  ];
+}
+
+/** Optimistic: the device leaves the list at once and comes back on failure. */
 export function useDeleteDevice() {
   const queryClient = useQueryClient();
   const { handleError } = useErrorHandler();
   return useMutation({
     mutationFn: (id: string) => repositories.devices.delete(id),
-    onSuccess: () =>
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.devices.list() });
+      const previous = queryClient.getQueryData<Device[]>(
+        queryKeys.devices.list(),
+      );
+      queryClient.setQueryData<Device[]>(queryKeys.devices.list(), (devices) =>
+        devices?.filter((device) => device.id !== id),
+      );
+      return { previous };
+    },
+    onError: (error, id, context) => {
+      // Put back only the failed device: restoring the whole snapshot would
+      // also resurrect a device another in-flight delete already removed.
+      const previous = context?.previous;
+      if (previous) {
+        queryClient.setQueryData<Device[]>(queryKeys.devices.list(), (current) =>
+          current ? restoreDevice(current, previous, id) : previous,
+        );
+      }
+      handleError(error);
+    },
+    onSuccess: (_result, id) => {
+      // Inactive only: an observer still mounted (the detail page navigating
+      // away) would refetch a removed query and hit a 404.
+      for (const queryKey of [
+        queryKeys.devices.detail(id),
+        queryKeys.devices.qr(id),
+        queryKeys.devices.groups(id),
+      ]) {
+        queryClient.removeQueries({ queryKey, type: "inactive" });
+      }
+    },
+    onSettled: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.devices.list() }),
-    onError: (error) => handleError(error),
   });
 }
 

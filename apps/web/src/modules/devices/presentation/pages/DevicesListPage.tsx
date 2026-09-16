@@ -32,6 +32,7 @@ import {
   useDevicesList,
   useDeleteDevice,
   useDisconnectDevice,
+  usePrefetchDevice,
 } from "@/modules/devices/presentation/hooks/useDevices";
 
 type StatusFilter = "all" | "connected" | "disconnected";
@@ -44,6 +45,7 @@ export function DevicesListPage() {
   const { data: devices = [], isLoading, isFetching } = useDevicesList();
   const deleteDevice = useDeleteDevice();
   const disconnectDevice = useDisconnectDevice();
+  const prefetchDevice = usePrefetchDevice();
   const createModal = useDisclosure();
   const deleteConfirm = useConfirm();
   const disconnectConfirm = useConfirm();
@@ -116,7 +118,7 @@ export function DevicesListPage() {
         title={t("list.title")}
         description={t("list.description")}
         actions={
-          <Button colorPalette="brand" onClick={createModal.onOpen}>
+          <Button onClick={createModal.onOpen}>
             <Icon>
               <FiPlus />
             </Icon>
@@ -172,7 +174,6 @@ export function DevicesListPage() {
                   (value) => (
                     <Button
                       key={value}
-                      colorPalette={statusFilter === value ? "brand" : "gray"}
                       variant={statusFilter === value ? "solid" : "outline"}
                       onClick={() => setStatusFilter(value)}
                     >
@@ -207,6 +208,7 @@ export function DevicesListPage() {
                     key={device.id}
                     device={device}
                     onOpen={handleOpen}
+                    onHover={prefetchDevice}
                     onDelete={handleDelete}
                     onDisconnect={handleDisconnect}
                   />

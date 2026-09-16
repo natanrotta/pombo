@@ -72,7 +72,11 @@
     "waiting": "Generating the QR code...",
     "connected": "Device connected.",
     "error": "Couldn't start the connection. Please try again.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "gatewayDisabled": {
+      "title": "Connection unavailable in this environment",
+      "description": "The WhatsApp gateway is turned off on this server, so no device can be paired here."
+    }
   },
   "webhooks": {
     "title": "Webhooks",
