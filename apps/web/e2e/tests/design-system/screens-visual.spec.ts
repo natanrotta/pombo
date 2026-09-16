@@ -144,6 +144,20 @@ for (const scheme of SCHEMES) {
       await expect(page).toHaveScreenshot(`sandbox-${scheme}.png`);
     });
 
+    test("the api screen matches its baseline", async ({ page }) => {
+      // The account may or may not have a token in the e2e database; the
+      // screen is pinned to the "has a token" state.
+      await page.route("**/api/account/api-token", (route) =>
+        fulfillData(route, {
+          prefix: "pmb_b57c",
+          createdAt: "2026-03-01T12:00:00.000Z",
+          lastUsedAt: null,
+        }),
+      );
+      await openSettled(page, "/api", /^api$/i);
+      await expect(page).toHaveScreenshot(`api-${scheme}.png`);
+    });
+
     test("the profile page matches its baseline", async ({ page }) => {
       await openSettled(page, "/perfil", /^perfil$/i);
       await expect(page).toHaveScreenshot(`profile-${scheme}.png`);

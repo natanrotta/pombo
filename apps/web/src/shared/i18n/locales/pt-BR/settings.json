@@ -41,7 +41,11 @@
     "regenerateConfirm": {
       "title": "Gerar novo token",
       "description": "O token atual é revogado e para de funcionar em até 60 segundos. Esta ação não pode ser desfeita."
-    }
+    },
+    "title": "Token público",
+    "createdAtValue": "Criado em {{date}}",
+    "lastUsedAtValue": "Último uso em {{date}}",
+    "rotationNote": "Gerar um novo token revoga o atual — ele para de funcionar em até 60 segundos. Guarde o token em variável de ambiente: ele só aparece uma vez, logo depois de gerado."
   },
   "profile": {
     "changeAvatar": "Alterar foto de perfil",

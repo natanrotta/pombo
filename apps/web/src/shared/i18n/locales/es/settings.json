@@ -41,7 +41,11 @@
     "regenerateConfirm": {
       "title": "Generar nuevo token",
       "description": "El token actual se revoca y deja de funcionar en hasta 60 segundos. Esta acción no se puede deshacer."
-    }
+    },
+    "title": "Token público",
+    "createdAtValue": "Creado el {{date}}",
+    "lastUsedAtValue": "Último uso el {{date}}",
+    "rotationNote": "Generar un nuevo token revoca el actual — deja de funcionar en hasta 60 segundos. Guarda el token en una variable de entorno: solo aparece una vez, justo después de generarlo."
   },
   "profile": {
     "changeAvatar": "Cambiar foto de perfil",

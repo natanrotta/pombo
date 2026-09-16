@@ -41,7 +41,11 @@
     "regenerateConfirm": {
       "title": "Generate new token",
       "description": "The current token is revoked and stops working within 60 seconds. This action cannot be undone."
-    }
+    },
+    "title": "Public token",
+    "createdAtValue": "Created on {{date}}",
+    "lastUsedAtValue": "Last used on {{date}}",
+    "rotationNote": "Generating a new token revokes the current one — it stops working within 60 seconds. Keep the token in an environment variable: it is shown once, right after it is generated."
   },
   "profile": {
     "changeAvatar": "Change profile picture",
