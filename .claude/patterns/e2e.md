@@ -111,22 +111,23 @@ apps/web/
       auth.fixture.ts                     # base `test` re-export (extensible; do not duplicate `test`/`expect`)
       preflight.ts                        # fail-fast env check (web up? API up? seed account?)
       api-client.ts                       # authenticated fetch client + per-module domain helpers
-      test-data.ts                        # `createUniqueXxx()` factories, `uniqueName()` helper (create on first use)
-    pages/                                # Page Objects — one class per routable page
-      <Module>ListPage.ts
-      <Module>DetailPage.ts
-      components/                         # OPTIONAL — Page Objects for shared widgets (created when reused)
+      test-data.ts                        # `createUniqueXxx()` factories, `uniqueName()` helper
+      visual.ts                           # `waitForSettledUi()` — shared by the visual specs
+    pages/                                # Page Objects — one class per routable page (or the shell)
+      <module>/<Name>.page.ts             # e.g. devices/DevicesList.page.ts, settings/ProfilePage.page.ts
     tests/
-      <module>/                           # one folder per module (mirrors apps/web/src/modules/)
-        <module>-<flow>.spec.ts           # one flow per file — see "Naming"
+      <module>/                           # one folder per module (mirrors apps/web/src/modules/) + shell/
+        <flow>.spec.ts                    # one flow per file — see "Naming"
+      design-system/                      # visual specs (gallery + app screens)
+      __screenshots__/                    # versioned baselines, `<name>-<platform>.png`
 ```
 
-**Reference today:** the suite ships a single `e2e/tests/auth.spec.ts` (UI sign-in from a signed-out context + an authenticated session reaching the protected shell) and no Page Objects yet — it is the template for the spec skeleton and the bilingual-assertion style. The first module suite (`devices` is the obvious candidate: register → QR modal → webhooks section → delete) creates `e2e/pages/DevicesListPage.ts` + `e2e/tests/devices/` following the layout above, and becomes the canonical reference from then on. The index route redirects to `/devices` (there is no `/dashboard`).
+**Reference today:** one Page Object per screen under `e2e/pages/{auth,shell,devices,messaging,account,settings}/`, and specs under `e2e/tests/{auth,shell,devices,messaging,account,settings}/` plus the older flat `auth.spec.ts` (UI sign-in). `devices/` is the canonical reference (API-seeded data, best-effort cleanup, a negative path per flow). The index route redirects to `/devices` (there is no `/dashboard`).
 
 **Hard rules:**
 - Never create a parallel `e2e/__tests__/`, `apps/web/__e2e__/`, or `cypress/` folder.
 - Never co-locate `*.spec.ts` E2E specs inside `apps/web/src/` — those are reserved for Vitest unit tests (`patterns/frontend.md` § Testing).
-- Specs run against the real backend (no request mocks). If a flow genuinely cannot run against the real backend (third-party redirects, etc.) discuss before adding a mock project — the default answer is "use a signed synthetic-webhook fixture or `api-client.ts` instead".
+- Specs run against the real backend by default. A `page.route(...)` mock is allowed only for a state the e2e backend cannot produce — a connected WhatsApp device (the runner forces `WHATSAPP_ENABLED=false`), a valid e-mail PIN (stored hashed), a 429, or the fixed data of a visual spec — and the spec says why in a comment. Everything else goes through `api-client.ts`.
 
 ---
 
@@ -139,7 +140,7 @@ The config defines three projects and one web server. The e2e-test-writer agent 
 | `setup` | `./e2e` (matches `global.setup.ts`) | n/a — writes auth | Implicit dependency of `chromium`. Never targeted directly. |
 | `chromium` | `./e2e/tests` | `e2e/.auth/user.json` | Default project. Real backend. **All module specs go here.** |
 
-The single `webServer` entry spawns a **dedicated E2E Vite on `:3001`** (`VITE_PORT=3001 VITE_API_PROXY_TARGET=http://localhost:3334 yarn dev`, with `reuseExistingServer: false` — `scripts/e2e-run.ts` sweeps the port first). It is fully isolated from the dev pair on `:3000/:3333`, including the dep-optimizer cache: `vite.config.ts` gives the E2E instance its own `cacheDir` (`node_modules/.vite-e2e`) so its optimizer runs never rewrite the dev server's `node_modules/.vite/deps`. Never point a webServer at `:3000`. If you ever need an isolated project for a mock-based flow, add a project + webServer block but justify it in the PR.
+The single `webServer` entry spawns a **dedicated E2E Vite on `:3001`** (`VITE_PORT=3001 VITE_API_PROXY_TARGET=http://localhost:3334 yarn dev`, with `reuseExistingServer: false` — `scripts/e2e-run.ts` sweeps the port first). It is fully isolated from the dev pair on `:4000/:4444`, including the dep-optimizer cache: `vite.config.ts` gives the E2E instance its own `cacheDir` (`node_modules/.vite-e2e`) so its optimizer runs never rewrite the dev server's `node_modules/.vite/deps`. Never point a webServer at `:4000`. If you ever need an isolated project for a mock-based flow, add a project + webServer block but justify it in the PR.
 
 ---
 
@@ -169,7 +170,7 @@ The single `webServer` entry spawns a **dedicated E2E Vite on `:3001`** (`VITE_P
 | Toast / success message | `getByText(/criado com sucesso\|created successfully/i)` (Chakra toasts have inconsistent roles) |
 | Menu item | `getByRole("menuitem", { name: /.../ })` |
 | Heading (page title) | `getByRole("heading", { name: /dispositivos\|devices/i, level: 1 })` |
-| Card row in a list | `page.getByRole("group").filter({ has: page.getByRole("button", { name: /ações\|actions/i }) })` |
+| Card row in a list | `page.getByTestId("entity-card").filter({ hasText: name })` |
 
 ---
 
@@ -289,7 +290,7 @@ test.afterEach(async () => {
 });
 ```
 
-Mocks (`page.route(...)`) are **not** part of the current model — re-introduce that pattern only when no real-backend path exists, and document the reason in the PR.
+Mocks (`page.route(...)`) follow the rule in § File layout: only for a state the e2e backend cannot produce, with the reason in a comment.
 
 ---
 
@@ -418,7 +419,7 @@ await expect(modal).not.toBeVisible({ timeout: 10000 });
 2. `page.waitForURL("**/dashboard", { timeout: 15000 })` — after navigation.
 3. `page.waitForLoadState("networkidle")` — **legacy in this project**; tolerated only because TanStack Query background refetches confuse simpler waits in lists with infinite scroll. New POMs should prefer `expect(itemCards.first()).toBeVisible()` and add `networkidle` only when a real race is observed. Document the reason in a code comment when you keep it. → `E-M3`
 4. `page.waitForTimeout(<n>)` — **only** for two project-tolerated cases:
-   - **`500`** — search debounce. The dominant pattern (`waitForTimeout(500)` after `search()`). Source of truth: `apps/web/src/shared/hooks/useDebouncedValue.ts` (verify the value before changing the test convention). → `E-C3` if any other value appears in a fresh search-debounce context.
+   - **`500`** — search debounce. The dominant pattern (`waitForTimeout(500)` after `search()`). Source of truth: `apps/web/src/shared/hooks/useDebounce.ts` (verify the value before changing the test convention). → `E-C3` if any other value appears in a fresh search-debounce context.
    - **`300`** — popover/animation settle after a Chakra popover/modal closes. Must come with a one-line comment explaining the race (the hook does not enforce that, the reviewer does). → `E-M3` if introduced without the comment.
 
    Any other value (`200`, `1000`, `1700`, `2000`...) is forbidden in new code. → `E-C3`
@@ -491,8 +492,10 @@ When iterating, prefer `--ui` — it gives you the locator picker, time-travel, 
 
 `e2e/tests/design-system/styleguide-visual.spec.ts` screenshots every section of the DEV-only `/dev/styleguide` gallery (plus the modal, the confirmation dialog and the four toasts) in light and dark, against baselines versioned in `e2e/tests/__screenshots__/…/<name>-<platform>.png`. The config pins `animations: "disabled"`, a tight `threshold: 0.02` / `maxDiffPixelRatio: 0.002` (the 0.2 default lets a subtle token change pass) and a `stylePath` that hides the TanStack devtools button. Wait for finite animations with `document.getAnimations()` — never a sleep.
 
-- A design change is **expected** to fail it: review the diff in the HTML report, then `yarn test:e2e --update-snapshots`, and commit the new PNGs with the change.
-- Baselines are per platform: the `darwin` files come from a Mac; CI needs its own `linux` set generated in the Playwright Docker image.
+`e2e/tests/design-system/screens-visual.spec.ts` does the same for the app screens (the device list inside the shell on desktop and mobile, and the profile). The seeded account is shared with specs that rename it and create devices, so it answers `/auth/me` and `/devices` with fixed data and pins the clock (`page.clock.setFixedTime`).
+
+- A design change is **expected** to fail these specs: review the diff in the HTML report, then `yarn test:e2e --update-snapshots`, and commit the new PNGs with the change.
+- Baselines are per platform: the `darwin` files come from a Mac. Until a `linux` set exists (generated in the Playwright Docker image), `ignoreSnapshots` is on outside macOS, so CI drives these specs without comparing pixels.
 
 ---
 

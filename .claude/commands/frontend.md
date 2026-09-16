@@ -166,7 +166,7 @@ For a new CRUD module, follow `.claude/patterns/frontend.md` § "Adding a New CR
 3. List page (`PageHeader` + `FilterBar` + cards + `ListPageSkeleton` + `EmptyState`)
 4. Create modal (`AppModal` + `useFormState` or RHF)
 5. Detail page (`useDetailPageController` + `SectionCard` + `DetailPageGuard`)
-6. Route paths → AppRouter (`withAppShell()` + `lazy()`)
+6. Route paths → AppRouter (a `<Route>` under `ProtectedLayout`, page via `lazyWithRetry()`)
 7. i18n (3 locales)
 8. Sidebar nav
 

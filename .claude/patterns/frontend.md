@@ -280,10 +280,10 @@ export const EntityRow = memo(function EntityRow({ title, onAction }: EntityRowP
 
 ### Routing (`app/router/AppRouter.tsx`, `RoutePaths.ts`)
 
-- **Config-based** with `lazy()` + `Suspense` for every route
+- Every page is a `lazyWithRetry()` chunk (a stale chunk after a deploy reloads once instead of crashing)
 - Guards: `ProtectedRoute` (requires auth), `PublicOnlyRoute` (redirects authenticated)
 - All paths in `RoutePaths.ts` — never hardcode `"/devices/:id"` in a component; use `ROUTE_PATHS.deviceDetail.replace(":id", id)`
-- Wrap protected routes in `withAppShell()` (applies `AppShell` + `ProtectedRoute` + `RouteErrorBoundary`)
+- Two layout routes in `AppRouter.tsx`: `ProtectedLayout` (`ProtectedRoute` → `AppShell` → `RouteErrorBoundary` → `Suspense`) holds every authenticated page, so the shell stays mounted across navigation; `PublicLayout` (`RouteErrorBoundary`) holds the auth pages. A new page is a `<Route>` under the right layout
 
 ### HTTP Client (`core/http/httpClient.ts`)
 
@@ -348,7 +348,7 @@ const { formData, setField, errors, validate, reset } = useFormState(
 | Session check / route chunk | handled by the shell: `ProtectedRoute` renders `<AppShellSkeleton />`, the route `Suspense` renders `<RouteContentSkeleton />` — pages never add their own |
 | Manual empty | `<EmptyState icon title description actionLabel onAction />` |
 | Manual error | `useNotify().showError(error, fallback)` toast |
-| Render error | `<RouteErrorBoundary>` (per route via `withAppShell`); `<GlobalErrorBoundary>` (root) |
+| Render error | `<RouteErrorBoundary>` (in both layout routes of `AppRouter.tsx`); `<GlobalErrorBoundary>` (root) |
 
 **Never** use a bare `<Spinner />` for primary content — always a skeleton matching the target layout. **Never** show a blank area when there's no data — always `<EmptyState>` with helpful CTA.
 
@@ -636,7 +636,7 @@ See `/test-e2e` skill for the full template.
 8. **Create modal** — `components/{Entity}CreateModal.tsx` (`AppModal` + `useFormState` or RHF)
 9. **Detail page** — `pages/{Feature}DetailPage.tsx` (`useDetailPageController` + `SectionCard` + `DetailPageGuard`)
 10. **Route paths** — add to `app/router/RoutePaths.ts`
-11. **Router** — add to `AppRouter.tsx` with `withAppShell()` + `lazy()`
+11. **Router** — a `<Route>` under `ProtectedLayout` in `AppRouter.tsx`, with the page as a `lazyWithRetry()` chunk
 12. **i18n** — create `shared/i18n/locales/{pt-BR,en,es}/{feature}.json`; register namespace in `shared/i18n/index.ts`
 13. **Sidebar** — add nav item
 14. **Barrel** — `modules/{feature}/index.ts` exporting the entity types + public hooks + pages (MANDATORY)

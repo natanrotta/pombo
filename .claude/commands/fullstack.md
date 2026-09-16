@@ -329,7 +329,7 @@ Frontend mutation
 - [ ] core/di/repositories.ts                                 → register
 - [ ] core/query/queryKeys.ts                                 → factory
 - [ ] app/router/RoutePaths.ts
-- [ ] app/router/AppRouter.tsx                                → withAppShell + lazy
+- [ ] app/router/AppRouter.tsx                                → <Route> under ProtectedLayout + lazyWithRetry
 - [ ] shared/i18n/locales/{pt-BR,en,es}/{feature}.json
 - [ ] shared/i18n/index.ts                                    → register namespace
 - [ ] sidebar nav item (if top-level)

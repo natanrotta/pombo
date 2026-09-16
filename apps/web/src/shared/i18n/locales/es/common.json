@@ -2,43 +2,16 @@
   "actions": {
     "save": "Guardar",
     "cancel": "Cancelar",
-    "delete": "Eliminar",
-    "edit": "Editar",
-    "create": "Crear",
-    "add": "Agregar",
-    "search": "Buscar",
-    "filter": "Filtrar",
     "clear": "Limpiar",
     "back": "Volver",
     "confirm": "Confirmar",
     "close": "Cerrar",
-    "copy": "Copiar",
     "copied": "¡Copiado!",
-    "share": "Compartir",
-    "shared": "¡Compartido!",
     "signOut": "Cerrar sesión",
-    "continue": "Continuar",
     "send": "Enviar",
-    "remove": "Eliminar",
-    "select": "Seleccionar",
-    "upload": "Subir archivo",
-    "download": "Descargar",
     "retry": "Intentar de nuevo",
-    "link": "Vincular",
-    "unlink": "Desvincular",
     "reload": "Recargar página",
-    "selectAll": "Seleccionar todo",
     "actions": "Acciones"
-  },
-  "avatar": {
-    "change": "Cambiar foto",
-    "remove": "Eliminar foto",
-    "updated": "Foto actualizada",
-    "updateError": "No se pudo actualizar la foto",
-    "removed": "Foto eliminada",
-    "removeError": "No se pudo eliminar la foto",
-    "removeConfirmTitle": "Eliminar foto",
-    "removeConfirmDescription": "¿Estás seguro de que deseas eliminar esta foto? Esta acción no se puede deshacer."
   },
   "status": {
     "active": "Activo",
@@ -50,18 +23,6 @@
     "empty": "No hay elementos aún",
     "pending": "Pendiente"
   },
-  "entities": {
-    "item": "elemento",
-    "items": "elementos",
-    "tag": "etiqueta",
-    "tags": "etiquetas",
-    "member": "miembro",
-    "members": "miembros",
-    "field": "campo",
-    "fields": "campos",
-    "document": "documento",
-    "documents": "documentos"
-  },
   "nav": {
     "devices": "Dispositivos",
     "sandbox": "Sandbox",
@@ -72,39 +33,6 @@
     "title": "Página no encontrada",
     "description": "La página que buscas no existe o fue movida.",
     "backHome": "Volver al inicio"
-  },
-  "crud": {
-    "createError": "Error al crear {{entity}}",
-    "updateError": "Error al actualizar {{entity}}",
-    "deleteError": "Error al eliminar {{entity}}",
-    "bulkDeleteError": "Error al eliminar {{entity}}s",
-    "created": "{{entity}} creado exitosamente",
-    "updated": "{{entity}} actualizado exitosamente",
-    "deleted": "{{entity}} eliminado",
-    "bulkDeleted_one": "{{count}} {{singular}} eliminado",
-    "bulkDeleted_other": "{{count}} {{plural}} eliminados",
-    "actionError": "Error al {{action}} {{entity}}"
-  },
-  "confirm": {
-    "delete": "¿Está seguro de que desea eliminar {{entity}}? Todos los datos relacionados se perderán.",
-    "bulkDelete": "¿Está seguro de que desea eliminar {{count}} {{entity}}? Todos los datos relacionados se perderán."
-  },
-  "autoSave": {
-    "saving": "Guardando…",
-    "saved": "Guardado",
-    "error": "Error al guardar",
-    "retry": "Reintentar"
-  },
-  "unsavedChanges": {
-    "warning": "Tiene cambios sin guardar. ¿Desea salir sin guardar?"
-  },
-  "roles": {
-    "ADMIN": "Administrador",
-    "SECRETARY": "Secretario(a)"
-  },
-  "memberStatus": {
-    "ACTIVE": "Activo",
-    "PENDING": "Pendiente"
   },
   "age": {
     "year_one": "{{count}} año",
@@ -122,60 +50,21 @@
     "unexpectedError": "Error inesperado en el servidor.",
     "rateLimited": "Demasiadas solicitudes. Espere un momento e intente nuevamente.",
     "somethingWentWrong": "Algo salió mal",
-    "tryAgainLater": "Intente nuevamente más tarde",
     "reloadDescription": "Ocurrió un error inesperado. Intente recargar la página.",
     "pageLoadError": "Error al cargar la página",
     "pageLoadDescription": "Ocurrió un error inesperado. Intente nuevamente o vuelva a la página anterior.",
     "loadError": "Error al cargar datos. Intente nuevamente.",
-    "notFound": "Registro no encontrado",
-    "createFailed": "Error al crear {{entity}}",
-    "updateFailed": "Error al actualizar {{entity}}",
-    "deleteFailed": "Error al eliminar {{entity}}",
-    "bulkDeleteFailed": "Error al eliminar {{entity}}s",
-    "actionFailed": "Error al {{action}} {{entity}}"
+    "notFound": "Registro no encontrado"
   },
   "language": {
-    "label": "Idioma",
-    "changed": "Idioma cambiado a {{language}}",
-    "en": "English",
-    "pt-BR": "Português",
-    "es": "Español"
-  },
-  "pagination": {
-    "previous": "Anterior",
-    "next": "Siguiente",
-    "previousPage": "Página anterior",
-    "nextPage": "Página siguiente",
-    "itemsPerPage": "Elementos por página",
-    "page": "Página {{page}} de {{total}}",
-    "showing": "Mostrando {{from}}-{{to}} de {{total}}",
-    "endOfList": "Fin de los resultados"
+    "changed": "Idioma cambiado a {{language}}"
   },
   "confirmDialog": {
     "defaultTitle": "Confirmar acción",
     "defaultDescription": "¿Está seguro de que desea continuar? Esta acción no se puede deshacer."
   },
   "filter": {
-    "searchPlaceholder": "Buscar...",
-    "tags": "Etiquetas",
-    "tagsLabel": "Filtrar por etiquetas",
-    "tagSearch": "Buscar etiqueta...",
-    "noTagsFound": "No se encontraron etiquetas",
-    "noTagsAvailable": "No hay etiquetas disponibles",
-    "clearFilters": "Limpiar filtros"
-  },
-  "list": {
-    "deleteTitle": "Confirmar eliminación",
-    "deleteDescription": "¿Está seguro de que desea continuar? Esta acción no se puede deshacer.",
-    "noResultsHint": "Intente buscar con otros términos o limpie los filtros."
-  },
-  "bulk": {
-    "selected_one": "{{count}} seleccionado",
-    "selected_other": "{{count}} seleccionados",
-    "maxSelectionReached": "Límite de {{max}} elementos a la vez"
-  },
-  "tags": {
-    "removeTag": "Eliminar etiqueta {{name}}"
+    "searchPlaceholder": "Buscar..."
   },
   "notify": {
     "autoSaved": "Guardado automáticamente",
@@ -183,87 +72,24 @@
     "errorTitle": "Error",
     "retryIn": "Espera {{time}}."
   },
-  "permissions": {
-    "moduleDenied": "No tienes permiso para acceder a este módulo.",
-    "moduleDeniedNamed": "No tienes permiso para acceder a \"{{module}}\"."
-  },
   "layout": {
     "openMenu": "Abrir menú",
     "mainNavigation": "Navegación principal"
   },
   "forms": {
     "showPassword": "Mostrar contraseña",
-    "hidePassword": "Ocultar contraseña",
-    "clearSearch": "Limpiar búsqueda",
-    "selectPlaceholder": "Seleccione...",
-    "datePlaceholder": "dd/mm/aaaa",
-    "timeCaption": "Hora",
-    "timePlaceholder": "HH:mm",
-    "monetaryPlaceholder": "0,00",
-    "currencySymbol": "$",
-    "documentPlaceholder": "DNI o número fiscal",
-    "phonePlaceholder": "(00) 00000-0000",
-    "countryLabel": "País",
-    "colorLabel": "Color",
-    "fileUpload": {
-      "invalidType": "Uno o más archivos fueron ignorados por tipo inválido.",
-      "exceedsSize": "El archivo excede el límite de {{size}}.",
-      "exceedsLimit": "Límite máximo de {{max}} archivo(s) alcanzado.",
-      "addFile": "Agregar archivo",
-      "dragMultiple": "Haga clic o arrastre archivos",
-      "dragSingle": "Haga clic o arrastre un archivo",
-      "anyType": "Cualquier tipo",
-      "remove": "Eliminar"
-    }
+    "hidePassword": "Ocultar contraseña"
   },
   "platform": {
     "name": "Pombo",
     "tagline": "Tu gateway de mensajería"
   },
-  "topbar": {
-    "myProfile": "Mi perfil",
-    "signOut": "Cerrar sesión"
-  },
   "sidebar": {
     "expand": "Expandir menú",
-    "collapse": "Contraer menú",
-    "copyCode": "Copiar mi código",
-    "shareCode": "¡Encuéntrame en Pombo! Agrega por código: #{{code}}",
-    "devOpenWelcome": "Abrir modal de bienvenida (dev)"
+    "collapse": "Contraer menú"
   },
   "theme": {
-    "light": "Claro",
-    "dark": "Oscuro",
     "switchToLight": "Cambiar a tema claro",
     "switchToDark": "Cambiar a tema oscuro"
-  },
-  "address": {
-    "title": "Dirección",
-    "fields": {
-      "street": "Calle",
-      "number": "Número",
-      "complement": "Apto / Suite",
-      "district": "Barrio",
-      "city": "Ciudad",
-      "state": "Estado / Provincia",
-      "postalCode": "Código postal",
-      "countryCode": "País"
-    },
-    "placeholder": {
-      "street": "Calle principal",
-      "number": "1000",
-      "complement": "Apto 12B",
-      "district": "",
-      "city": "",
-      "state": "",
-      "postalCode": "",
-      "countryCode": "Selecciona un país",
-      "countrySearch": "Buscar país..."
-    },
-    "actions": {
-      "remove": "Eliminar dirección",
-      "add": "Agregar dirección"
-    },
-    "noCountryResults": "Ningún país encontrado"
   }
 }

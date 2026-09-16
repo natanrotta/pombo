@@ -2,43 +2,16 @@
   "actions": {
     "save": "Salvar",
     "cancel": "Cancelar",
-    "delete": "Excluir",
-    "edit": "Editar",
-    "create": "Criar",
-    "add": "Adicionar",
-    "search": "Buscar",
-    "filter": "Filtrar",
     "clear": "Limpar",
     "back": "Voltar",
     "confirm": "Confirmar",
     "close": "Fechar",
-    "copy": "Copiar",
     "copied": "Copiado!",
-    "share": "Compartilhar",
-    "shared": "Compartilhado!",
     "signOut": "Sair",
-    "continue": "Continuar",
     "send": "Enviar",
-    "remove": "Remover",
-    "select": "Selecionar",
-    "upload": "Enviar arquivo",
-    "download": "Baixar",
     "retry": "Tentar novamente",
-    "link": "Vincular",
-    "unlink": "Desvincular",
     "reload": "Recarregar página",
-    "selectAll": "Selecionar tudo",
     "actions": "Ações"
-  },
-  "avatar": {
-    "change": "Alterar foto",
-    "remove": "Remover foto",
-    "updated": "Foto atualizada",
-    "updateError": "Não foi possível atualizar a foto",
-    "removed": "Foto removida",
-    "removeError": "Não foi possível remover a foto",
-    "removeConfirmTitle": "Remover foto",
-    "removeConfirmDescription": "Tem certeza que deseja remover esta foto? Esta ação não pode ser desfeita."
   },
   "status": {
     "active": "Ativo",
@@ -50,18 +23,6 @@
     "empty": "Nenhum item ainda",
     "pending": "Pendente"
   },
-  "entities": {
-    "item": "item",
-    "items": "itens",
-    "tag": "tag",
-    "tags": "tags",
-    "member": "membro",
-    "members": "membros",
-    "field": "campo",
-    "fields": "campos",
-    "document": "documento",
-    "documents": "documentos"
-  },
   "nav": {
     "devices": "Dispositivos",
     "sandbox": "Sandbox",
@@ -72,39 +33,6 @@
     "title": "Página não encontrada",
     "description": "A página que você procura não existe ou foi movida.",
     "backHome": "Voltar ao início"
-  },
-  "crud": {
-    "createError": "Falha ao criar {{entity}}",
-    "updateError": "Falha ao atualizar {{entity}}",
-    "deleteError": "Falha ao excluir {{entity}}",
-    "bulkDeleteError": "Falha ao excluir {{entity}}s",
-    "created": "{{entity}} criado com sucesso",
-    "updated": "{{entity}} atualizado com sucesso",
-    "deleted": "{{entity}} removido",
-    "bulkDeleted_one": "{{count}} {{singular}} removido",
-    "bulkDeleted_other": "{{count}} {{plural}} removidos",
-    "actionError": "Falha ao {{action}} {{entity}}"
-  },
-  "confirm": {
-    "delete": "Tem certeza que deseja excluir {{entity}}? Todos os dados relacionados serão perdidos.",
-    "bulkDelete": "Tem certeza que deseja excluir {{count}} {{entity}}? Todos os dados relacionados serão perdidos."
-  },
-  "autoSave": {
-    "saving": "Salvando…",
-    "saved": "Salvo",
-    "error": "Erro ao salvar",
-    "retry": "Tentar novamente"
-  },
-  "unsavedChanges": {
-    "warning": "Você tem alterações não salvas. Deseja sair sem salvar?"
-  },
-  "roles": {
-    "ADMIN": "Administrador",
-    "SECRETARY": "Secretário(a)"
-  },
-  "memberStatus": {
-    "ACTIVE": "Ativo",
-    "PENDING": "Pendente"
   },
   "age": {
     "year_one": "{{count}} ano",
@@ -122,60 +50,21 @@
     "unexpectedError": "Erro inesperado no servidor.",
     "rateLimited": "Muitas requisições. Aguarde um momento e tente novamente.",
     "somethingWentWrong": "Algo deu errado",
-    "tryAgainLater": "Tente novamente mais tarde",
     "reloadDescription": "Ocorreu um erro inesperado. Tente recarregar a página.",
     "pageLoadError": "Erro ao carregar a página",
     "pageLoadDescription": "Ocorreu um erro inesperado. Tente novamente ou volte para a página anterior.",
     "loadError": "Erro ao carregar dados. Tente novamente.",
-    "notFound": "Registro não encontrado",
-    "createFailed": "Falha ao criar {{entity}}",
-    "updateFailed": "Falha ao atualizar {{entity}}",
-    "deleteFailed": "Falha ao excluir {{entity}}",
-    "bulkDeleteFailed": "Falha ao excluir {{entity}}s",
-    "actionFailed": "Falha ao {{action}} {{entity}}"
+    "notFound": "Registro não encontrado"
   },
   "language": {
-    "label": "Idioma",
-    "changed": "Idioma alterado para {{language}}",
-    "en": "English",
-    "pt-BR": "Português",
-    "es": "Español"
-  },
-  "pagination": {
-    "previous": "Anterior",
-    "next": "Próximo",
-    "previousPage": "Página anterior",
-    "nextPage": "Próxima página",
-    "itemsPerPage": "Itens por página",
-    "page": "Página {{page}} de {{total}}",
-    "showing": "Mostrando {{from}}-{{to}} de {{total}}",
-    "endOfList": "Fim dos resultados"
+    "changed": "Idioma alterado para {{language}}"
   },
   "confirmDialog": {
     "defaultTitle": "Confirmar ação",
     "defaultDescription": "Tem certeza que deseja continuar? Esta ação não pode ser desfeita."
   },
   "filter": {
-    "searchPlaceholder": "Buscar...",
-    "tags": "Tags",
-    "tagsLabel": "Filtrar por tags",
-    "tagSearch": "Buscar tag...",
-    "noTagsFound": "Nenhuma tag encontrada",
-    "noTagsAvailable": "Nenhuma tag disponível",
-    "clearFilters": "Limpar filtros"
-  },
-  "list": {
-    "deleteTitle": "Confirmar exclusão",
-    "deleteDescription": "Tem certeza que deseja continuar? Esta ação não pode ser desfeita.",
-    "noResultsHint": "Tente buscar com outros termos ou limpe os filtros."
-  },
-  "bulk": {
-    "selected_one": "{{count}} selecionado",
-    "selected_other": "{{count}} selecionados",
-    "maxSelectionReached": "Limite de {{max}} itens por vez"
-  },
-  "tags": {
-    "removeTag": "Remover tag {{name}}"
+    "searchPlaceholder": "Buscar..."
   },
   "notify": {
     "autoSaved": "Salvo automaticamente",
@@ -183,87 +72,24 @@
     "errorTitle": "Erro",
     "retryIn": "Aguarde {{time}}."
   },
-  "permissions": {
-    "moduleDenied": "Você não tem permissão para acessar este módulo.",
-    "moduleDeniedNamed": "Você não tem permissão para acessar \"{{module}}\"."
-  },
   "layout": {
     "openMenu": "Abrir menu",
     "mainNavigation": "Navegação principal"
   },
   "forms": {
     "showPassword": "Mostrar senha",
-    "hidePassword": "Ocultar senha",
-    "clearSearch": "Limpar busca",
-    "selectPlaceholder": "Selecione...",
-    "datePlaceholder": "dd/mm/aaaa",
-    "timeCaption": "Hora",
-    "timePlaceholder": "HH:mm",
-    "monetaryPlaceholder": "0,00",
-    "currencySymbol": "R$",
-    "documentPlaceholder": "CPF ou CNPJ",
-    "phonePlaceholder": "(00) 00000-0000",
-    "countryLabel": "País",
-    "colorLabel": "Cor",
-    "fileUpload": {
-      "invalidType": "Um ou mais arquivos foram ignorados por tipo inválido.",
-      "exceedsSize": "Arquivo excede o limite de {{size}}.",
-      "exceedsLimit": "Limite máximo de {{max}} arquivo(s) atingido.",
-      "addFile": "Adicionar arquivo",
-      "dragMultiple": "Clique ou arraste arquivos",
-      "dragSingle": "Clique ou arraste um arquivo",
-      "anyType": "Qualquer tipo",
-      "remove": "Remover"
-    }
+    "hidePassword": "Ocultar senha"
   },
   "platform": {
     "name": "Pombo",
     "tagline": "Seu gateway de mensagens"
   },
-  "topbar": {
-    "myProfile": "Meu perfil",
-    "signOut": "Sair da conta"
-  },
   "sidebar": {
     "expand": "Expandir menu",
-    "collapse": "Recolher menu",
-    "copyCode": "Copiar meu código",
-    "shareCode": "Me encontre no Pombo! Adicione pelo código: #{{code}}",
-    "devOpenWelcome": "Abrir modal de boas-vindas (dev)"
+    "collapse": "Recolher menu"
   },
   "theme": {
-    "light": "Claro",
-    "dark": "Escuro",
     "switchToLight": "Mudar para tema claro",
     "switchToDark": "Mudar para tema escuro"
-  },
-  "address": {
-    "title": "Endereço",
-    "fields": {
-      "street": "Rua",
-      "number": "Número",
-      "complement": "Complemento",
-      "district": "Bairro",
-      "city": "Cidade",
-      "state": "Estado / Província",
-      "postalCode": "CEP / Código postal",
-      "countryCode": "País"
-    },
-    "placeholder": {
-      "street": "Av. Paulista",
-      "number": "1000",
-      "complement": "Apto 12B",
-      "district": "Bela Vista",
-      "city": "São Paulo",
-      "state": "SP",
-      "postalCode": "01310-100",
-      "countryCode": "Selecione um país",
-      "countrySearch": "Buscar país..."
-    },
-    "actions": {
-      "remove": "Remover endereço",
-      "add": "Adicionar endereço"
-    },
-    "noCountryResults": "Nenhum país encontrado"
   }
 }

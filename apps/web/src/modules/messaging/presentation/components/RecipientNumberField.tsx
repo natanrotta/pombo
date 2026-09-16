@@ -83,6 +83,8 @@ function RecipientNumberFieldComponent({
         lazyMount
         unmountOnExit
       >
+        {/* F-H6 exception: `FormField` can't host an input wrapped in
+            `PopoverAnchor`, so this composes `Field` + `Input` directly. */}
         <PopoverAnchor>
           <Input
             value={value}

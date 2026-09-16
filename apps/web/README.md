@@ -18,7 +18,7 @@ apps/web
 ├── assets/                     # bundled assets (imported via @assets)
 ├── public/                     # static files served as-is — pombo-icon.svg is also
 │                               #   linked by the API's transactional e-mails
-├── e2e/                        # Playwright: global.setup, fixtures, tests
+├── e2e/                        # Playwright: global.setup, fixtures, page objects (pages/), specs + visual baselines (tests/)
 └── src
     ├── main.tsx                # error reporter + stale-chunk listener + i18n → <App/>
     ├── app/
@@ -99,7 +99,7 @@ yarn dev           # vite dev (:4000)
 yarn build         # tsc + vite build
 yarn test          # Vitest unit tests
 yarn test:e2e      # Playwright — boots its own stack (Postgres :5433, Redis :6380, API :3334, web :3001)
-yarn test:e2e --update-snapshots   # accept an intended visual change (design-system baselines)
+yarn test:e2e --update-snapshots   # accept an intended visual change (gallery + screen baselines)
 ```
 
 > Authenticated flows need the API (`yarn backend:up-d`). Seeded login: `demo@example.com` / `Demo1234!`.
@@ -111,4 +111,4 @@ A static build on a CDN / static host (Cloudflare Pages), deployed on push to `m
 ## Testing
 
 - **Unit:** Vitest, co-located `*.spec.{ts,tsx}`.
-- **E2E:** Playwright in `apps/web/e2e` (fixtures + api client + specs), orchestrated by `scripts/e2e-run.ts`. Conventions: [`.claude/patterns/e2e.md`](../../.claude/patterns/e2e.md). The HTML report lands in `.playwright/` (git-ignored) — `yarn test:e2e:report`.
+- **E2E:** Playwright in `apps/web/e2e` (fixtures + api client + page objects + specs), orchestrated by `scripts/e2e-run.ts`. Visual baselines (the `/dev/styleguide` gallery and the app screens, light and dark) live in `e2e/tests/__screenshots__/` and are compared on macOS only. Conventions: [`.claude/patterns/e2e.md`](../../.claude/patterns/e2e.md). The HTML report lands in `.playwright/` (git-ignored) — `yarn test:e2e:report`.
