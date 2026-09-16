@@ -1,73 +1,71 @@
 import { defineRecipe } from "@chakra-ui/react";
 
-// Single-slot component recipes, ported from the v2 single-part style configs.
-// `createSystem` merges them over Chakra v3's default recipes (default sizes and
-// states are preserved; these override the visual variants the app relies on).
+// Single-slot component recipes. `createSystem` merges them over Chakra v3's
+// default recipes (default sizes and states are preserved; these override the
+// visual variants the app relies on).
 //
-// The multi-part v2 configs (menu, modal→dialog, popover, select, number-input)
-// are deliberately NOT re-declared as slotRecipes: those components render
-// exclusively through the v3 snippets in `src/components/ui/*`, which apply the
-// same chrome via style props. One definition point, no config-merge surprises.
-// The v2 `tabs` config was dropped outright — the app has no Tabs consumer.
+// The multi-part v3 components (menu, dialog, popover, select, number-input)
+// are deliberately NOT re-declared as slotRecipes: those render exclusively
+// through the snippets in `src/components/ui/*`, which apply the same chrome
+// via style props. One definition point, no config-merge surprises.
+//
+// The design moves in color, not in space: 150ms on color/background/border,
+// no lift on hover, no colored drop shadows. Continuous animation is reserved
+// for a live state (the online device's glow, the pairing pulse).
+const TRANSITION = {
+  transitionProperty: "background-color, border-color, color, box-shadow",
+  transitionDuration: "150ms",
+  transitionTimingFunction: "ease",
+} as const;
 
 export const buttonRecipe = defineRecipe({
   base: {
-    borderRadius: "sm",
+    borderRadius: "md",
     fontWeight: "500",
-    transitionProperty: "all",
-    transitionDuration: "200ms",
-    transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+    ...TRANSITION,
     // Chakra's default button ring binds to `colorPalette.focusRing` (grey).
-    // Overriding the outline color here beats it deterministically regardless of
-    // a call site's `colorPalette`, so every button focuses emerald.
+    // Overriding the outline color here beats it deterministically regardless
+    // of a call site's `colorPalette`, so every button focuses on the accent.
     _focusVisible: { outlineColor: "border.focus" },
   },
   variants: {
     variant: {
+      // Primary action: a flat accent fill with near-black ink (dark) or the
+      // deep emerald with white ink (light). Radius 9–10px per the handoff.
       solid: {
         bg: "bg.brand.solid",
         color: "text.onBrand",
-        // Emerald-tinted shadow to match the green brand (mirrors the colored
-        // shadow the `danger` variant uses for red).
-        boxShadow: "0 1px 2px rgba(4, 120, 87, 0.28)",
-        _hover: {
-          bg: "bg.brand.solid-hover",
-          transform: "translateY(-1px)",
-          boxShadow: "0 4px 12px rgba(4, 120, 87, 0.36)",
-        },
-        _active: {
-          bg: "bg.brand.solid-active",
-          transform: "translateY(0)",
-          boxShadow: "0 1px 2px rgba(4, 120, 87, 0.28)",
-        },
+        borderRadius: "lg",
+        fontWeight: "600",
+        _hover: { bg: "bg.brand.solid-hover" },
+        _active: { bg: "bg.brand.solid-active" },
       },
+      // Secondary action ("+ novo device"): the green wash with a green edge
+      // and mono type — the handoff's most common button.
       subtle: {
         bg: "bg.brand.subtle",
         color: "text.brand",
-        _hover: {
-          bg: "bg.brand.subtle",
-          filter: "brightness(0.97)",
-          transform: "translateY(-1px)",
-        },
-        _active: { filter: "brightness(0.94)", transform: "translateY(0)" },
+        border: "1px solid",
+        borderColor: "border.accent",
+        fontFamily: "mono",
+        _hover: { bg: "bg.brand.subtle-hover", borderColor: "border.brand" },
+        _active: { bg: "bg.brand.subtle-hover" },
       },
       ghost: {
-        color: "text.primary",
+        color: "text.secondary",
         bg: "transparent",
-        _hover: { bg: "bg.hover" },
+        _hover: { bg: "bg.hover", color: "text.primary" },
         _active: { bg: "bg.active" },
       },
+      // Quiet action ("limpar"): canvas fill, neutral edge, mono type.
       outline: {
         border: "1px solid",
         borderColor: "border.default",
-        color: "text.brand",
-        bg: "bg.surface",
-        _hover: {
-          bg: "bg.brand.subtle",
-          borderColor: "border.brand",
-          transform: "translateY(-1px)",
-        },
-        _active: { filter: "brightness(0.95)", transform: "translateY(0)" },
+        color: "text.secondary",
+        bg: "bg.canvas",
+        fontFamily: "mono",
+        _hover: { color: "text.primary", borderColor: "border.strong" },
+        _active: { bg: "bg.hover" },
       },
       // Destructive secondary action (e.g. "Delete" next to a primary CTA):
       // the `outline` shape in the error palette. `colorPalette="red"` on
@@ -76,29 +74,26 @@ export const buttonRecipe = defineRecipe({
         border: "1px solid",
         borderColor: "status.error.border",
         color: "status.error.fg",
-        bg: "bg.surface",
-        _hover: { bg: "status.error.bg", transform: "translateY(-1px)" },
-        _active: { filter: "brightness(0.95)", transform: "translateY(0)" },
+        bg: "bg.canvas",
+        fontFamily: "mono",
+        _hover: { bg: "status.error.bg" },
+        _active: { bg: "status.error.bg" },
       },
       danger: {
-        bg: "red.500",
+        bg: "status.error.solid",
         // White in both modes — the danger button is always red (not brand), so
         // it must NOT follow `text.onBrand` (near-black in dark, which would
         // fail contrast on red).
         color: "white",
-        boxShadow: "0 1px 2px rgba(239, 68, 68, 0.20)",
-        _hover: {
-          bg: "red.600",
-          transform: "translateY(-1px)",
-          boxShadow: "0 4px 12px rgba(239, 68, 68, 0.30)",
-        },
-        _active: { bg: "red.700", transform: "translateY(0)" },
+        borderRadius: "lg",
+        fontWeight: "600",
+        _hover: { filter: "brightness(0.94)" },
+        _active: { filter: "brightness(0.88)" },
       },
     },
     // Sizes mirror Chakra v3's defaults verbatim; they are declared locally only
-    // so the recipe can set `size: "sm"` as the default — matching the v2
-    // theme's `defaultProps: { size: "sm" }`. v3's built-in recipe defaults to
-    // "md", which would silently grow every unsized Button in the app.
+    // so the recipe can set `size: "sm"` as the default. v3's built-in recipe
+    // defaults to "md", which would silently grow every unsized Button.
     size: {
       "2xs": {
         h: "6",
@@ -125,12 +120,12 @@ export const buttonRecipe = defineRecipe({
         _icon: { width: "4", height: "4" },
       },
       md: {
-        h: "10",
-        minW: "10",
+        h: "38px",
+        minW: "38px",
         textStyle: "sm",
         px: "4",
-        gap: "2",
-        _icon: { width: "5", height: "5" },
+        gap: "2.5",
+        _icon: { width: "4", height: "4" },
       },
       lg: {
         h: "11",
@@ -164,12 +159,16 @@ export const buttonRecipe = defineRecipe({
   },
 });
 
+// Status pill: a mono label with a 6px radius, not a rounded capsule.
 export const badgeRecipe = defineRecipe({
   base: {
-    borderRadius: "full",
-    fontWeight: "600",
+    borderRadius: "sm",
+    fontFamily: "mono",
+    fontWeight: "400",
+    fontSize: "11.5px",
+    lineHeight: "1.2",
     px: 2.5,
-    py: 1,
+    py: 1.5,
   },
 });
 
@@ -179,28 +178,29 @@ export const badgeRecipe = defineRecipe({
  * and the NumberInput input). The snippets spread this so a select and a text
  * input sitting in the same form are pixel-identical.
  *
- * `fontSize: { base: "16px", md: "sm" }` is deliberate, not a rounding: iOS
+ * `fontSize: { base: "16px", md: "13.5px" }` is deliberate, not a rounding: iOS
  * Safari zooms the page in when a focused input renders below 16px.
  */
 export const fieldBase = {
-  borderRadius: "sm",
-  bg: "bg.surface",
+  borderRadius: "md",
+  bg: "bg.field",
   borderColor: "border.default",
-  borderWidth: "1.5px",
+  borderWidth: "1px",
   color: "text.primary",
-  fontSize: { base: "16px", md: "sm" },
-  transition: "all 0.2s cubic-bezier(0.22, 1, 0.36, 1)",
+  fontFamily: "mono",
+  fontSize: { base: "16px", md: "13.5px" },
+  ...TRANSITION,
   _hover: { borderColor: "border.strong" },
   _focusVisible: {
     borderColor: "border.focus",
     boxShadow: "input-focus",
-    bg: "bg.surface",
+    bg: "bg.field",
   },
   _invalid: {
     borderColor: "status.error.fg",
     boxShadow: "input-error",
   },
-  _placeholder: { color: "text.muted", fontSize: "sm" },
+  _placeholder: { color: "text.muted", fontSize: "13.5px" },
   _disabled: {
     borderColor: "border.subtle",
     bg: "bg.muted",
@@ -218,8 +218,8 @@ export const fieldBase = {
 // Chakra v3's DEFAULT input/textarea recipe ships `outline` with
 // `focusVisibleRing: "inside"` bound to `colorPalette.focusRing` (grey). A
 // recipe that overrides only `base` loses: that grey ring survives the config
-// merge and beats `fieldBase`'s emerald `_focusVisible`. Re-asserting fieldBase
-// in the variant AND setting `focusVisibleRing: "none"` keeps the emerald ring.
+// merge and beats `fieldBase`'s accent `_focusVisible`. Re-asserting fieldBase
+// in the variant AND setting `focusVisibleRing: "none"` keeps the accent ring.
 const fieldOutlineVariant = { ...fieldBase, focusVisibleRing: "none" } as const;
 
 export const inputRecipe = defineRecipe({

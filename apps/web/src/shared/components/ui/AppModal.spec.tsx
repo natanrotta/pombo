@@ -169,7 +169,7 @@ describe("ConfirmDialog", () => {
     const css = injectedCssFor(
       await screen.findByRole("button", { name: "Excluir" }),
     );
-    expect(css).toContain("background:var(--chakra-colors-red-500)");
+    expect(css).toContain("background:var(--chakra-colors-status-error-solid)");
     expect(css).not.toContain("background:var(--chakra-colors-bg-brand-solid)");
   });
 
@@ -188,7 +188,7 @@ describe("ConfirmDialog", () => {
       await screen.findByRole("button", { name: "Confirmar" }),
     );
     expect(css).toContain("background:var(--chakra-colors-bg-brand-solid)");
-    expect(css).not.toContain("background:var(--chakra-colors-red-");
+    expect(css).not.toContain("background:var(--chakra-colors-status-error-");
   });
 });
 

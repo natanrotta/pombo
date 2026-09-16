@@ -5,50 +5,54 @@ import { defineTokens } from "@chakra-ui/react";
 // `{colors.<palette>.<step>}` syntax. Palettes NOT defined here (gray, red,
 // green, blue, purple, blackAlpha, whiteAlpha, …) come from `defaultConfig`.
 
-// Emerald ramp — the single brand color of the platform. Anchored on #10B981
-// (the accent identity) with #059669 as the button-safe "deep" emerald. 50 =
-// lightest, 900 = near-black forest. A messaging-gateway green that fits the
-// Pombo mascot and the "communication" domain (WhatsApp lineage), tuned for
-// contrast: white text sits on 600+, and 700 is the readable "green text".
+// Emerald ramp — the single brand color of the platform, anchored on the
+// handoff's accent (#3FE08A at 400) and its hover (#6BF0AB at 300). The dark
+// theme uses the bright end (the accent glows on a near-black canvas); the
+// light theme uses 700, the first step that clears WCAG AA with white text.
 const emerald = {
-  50: { value: "#ecfdf5" },
-  100: { value: "#d1fae5" },
-  200: { value: "#a7f3d0" },
-  300: { value: "#6ee7b7" },
-  400: { value: "#34d399" },
-  500: { value: "#10b981" }, // Emerald — the accent identity color
-  600: { value: "#059669" }, // Deep emerald — the primary button fill (light mode)
-  700: { value: "#047857" },
-  800: { value: "#065f46" },
-  900: { value: "#064e3b" },
+  50: { value: "#e9fbf2" },
+  100: { value: "#cff6e1" },
+  200: { value: "#a3eec6" },
+  300: { value: "#6bf0ab" }, // Accent hover (dark)
+  400: { value: "#3fe08a" }, // THE accent — brand identity
+  500: { value: "#22c776" },
+  600: { value: "#12a45e" },
+  700: { value: "#0c7f49" }, // Primary button fill and brand text (light)
+  800: { value: "#0a5b36" },
+  900: { value: "#07301e" },
 };
 
 export const colors = defineTokens.colors({
-  // `brand` and `accent` intentionally share ONE emerald ramp. The platform has
-  // a single, confident green identity — `brand.*` carries the strong usages
-  // (primary button, links, active nav) and `accent.*` the soft highlights
-  // (subtle washes, stat cards); keeping them the same hue is what makes the UI
-  // feel cohesive ("orna") instead of two-toned.
+  // `brand` and `accent` intentionally share ONE emerald ramp: the product has
+  // a single green identity. `brand.*` carries the strong usages (primary
+  // action, active nav, focus) and `accent.*` the soft washes.
   brand: emerald,
   accent: emerald,
-  // Faintly green-slate neutrals — a desaturated cool gray with a whisper of
-  // emerald so surfaces, text and borders read as part of the same family
-  // instead of a flat gray next to the green.
+  // Green-tinted neutrals. The dark steps are the handoff's own surfaces, so a
+  // panel next to the accent reads as the same family instead of flat grey.
   neutral: {
-    50: { value: "#f5f7f6" },
-    100: { value: "#e9edeb" },
-    200: { value: "#d6deda" },
-    300: { value: "#bcc7c1" },
-    400: { value: "#8f9c96" },
-    500: { value: "#647069" },
-    600: { value: "#4a564f" },
-    700: { value: "#39433d" },
-    800: { value: "#262f2a" },
-    900: { value: "#171d1a" },
+    50: { value: "#f4f7f5" },
+    100: { value: "#e8edea" }, // Primary ink on dark
+    200: { value: "#d5ded9" },
+    300: { value: "#b3c0ba" },
+    400: { value: "#8b9a93" }, // Metadata ink
+    500: { value: "#6e7c76" },
+    600: { value: "#5a6862" }, // Disabled ink on dark
+    700: { value: "#2e3a35" }, // Border hover on dark
+    800: { value: "#1c2220" }, // Border on dark
+    900: { value: "#141a18" }, // Hover surface on dark
+    950: { value: "#0e1211" }, // Panel on dark
   },
   surface: {
     DEFAULT: { value: "#ffffff" },
-    subtle: { value: "#f5f7f6" },
-    muted: { value: "#eef1f0" },
+    subtle: { value: "#f7f9f8" },
+    muted: { value: "#edf1ef" },
+    // The handoff's two dark anchors, named so the semantic layer reads well.
+    canvas: { value: "#0b0e0d" },
+    panel: { value: "#0e1211" },
+    // Green-washed surface behind an active nav item, a badge or a soft button.
+    active: { value: "#16211b" },
+    // The resting green border (an online device, a secondary button).
+    line: { value: "#223a2c" },
   },
 });

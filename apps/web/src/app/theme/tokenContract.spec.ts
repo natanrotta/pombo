@@ -43,17 +43,11 @@ function collectLeaves(node: unknown, prefix: string, out: Leaf[]): Leaf[] {
 
 const semanticLeaves = collectLeaves(semanticTokens, "", []);
 
-/** Tokens whose light and dark values are identical ON PURPOSE (decorative
- *  light on the canvas). Any other identical pair is treated as a forgotten
- *  dark value. */
-const SAME_IN_BOTH_MODES = new Set([
-  "colors.bg.glow.primary",
-  "colors.bg.glow.secondary",
-  "colors.bg.glow.tertiary",
-  "shadows.shadow.brandMark",
-  "shadows.shadow.brandMarkSm",
-  "shadows.shadow.authCard",
-]);
+/** Tokens whose light and dark values are identical ON PURPOSE. Empty since
+ *  the design handoff landed: every semantic value, including the decorative
+ *  glows, now differs between modes. Any identical pair is a forgotten dark
+ *  value. */
+const SAME_IN_BOTH_MODES = new Set<string>([]);
 
 function rawStrings(value: unknown): string[] {
   if (typeof value === "string") return [value];

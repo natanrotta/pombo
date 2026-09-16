@@ -1,9 +1,10 @@
 import { defineTokens } from "@chakra-ui/react";
 
 export const fonts = defineTokens.fonts({
-  // Pombo tech/programmer identity: JetBrains Mono for headings & brand,
-  // Inter for body copy, JetBrains Mono for code/mono contexts.
-  heading: { value: "'JetBrains Mono', monospace" },
-  body: { value: "'Inter', sans-serif" },
-  mono: { value: "'JetBrains Mono', 'Fira Code', monospace" },
+  // The handoff's terminal identity: IBM Plex Mono for every heading, field
+  // label, number, phone and token; IBM Plex Sans for body copy. Both are
+  // bundled with the app (`@fontsource/*`), so nothing is fetched at runtime.
+  heading: { value: "'IBM Plex Mono', ui-monospace, monospace" },
+  body: { value: "'IBM Plex Sans', system-ui, sans-serif" },
+  mono: { value: "'IBM Plex Mono', ui-monospace, monospace" },
 });

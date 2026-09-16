@@ -16,21 +16,34 @@ const config = defineConfig({
     body: {
       bg: "bg.canvas",
       color: "text.primary",
-      fontSize: "sm",
+      textStyle: "body",
       minH: "100vh",
-      // A faint forest wash top-left + a soft emerald radial top-right give the
-      // light canvas some life. Dark mode drops the forest wash (it would just
-      // muddy the dark canvas) and keeps only a subtle emerald glow so the green
-      // identity carries through on both themes.
+      // The one texture in the system: a faint accent dot grid, 22px apart,
+      // over the whole canvas (design foundation § "Textura").
       backgroundImage:
-        "radial-gradient(ellipse 60% 40% at 10% -10%, rgba(6, 78, 59, 0.05) 0%, transparent 60%), radial-gradient(ellipse 50% 35% at 90% 5%, rgba(16, 185, 129, 0.07) 0%, transparent 55%)",
+        "radial-gradient(rgba(18, 164, 94, 0.05) 1px, transparent 0)",
+      backgroundSize: "22px 22px",
       _dark: {
         backgroundImage:
-          "radial-gradient(ellipse 70% 50% at 12% -10%, rgba(16, 185, 129, 0.06) 0%, transparent 65%)",
+          "radial-gradient(rgba(63, 224, 138, 0.055) 1px, transparent 0)",
       },
     },
     "*::placeholder": {
       color: "text.muted",
+    },
+  },
+  theme: {
+    keyframes: {
+      // A live device breathes; nothing else in the UI glows.
+      livePulse: {
+        "0%, 100%": { boxShadow: "var(--chakra-shadows-shadow-live-low)" },
+        "50%": { boxShadow: "var(--chakra-shadows-shadow-live-high)" },
+      },
+      // A transient state (pairing, sending) blinks its dot.
+      statusBlink: {
+        "0%, 100%": { opacity: "1" },
+        "50%": { opacity: "0.35" },
+      },
     },
   },
 });

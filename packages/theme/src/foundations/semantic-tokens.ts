@@ -3,390 +3,259 @@ import { defineSemanticTokens } from "@chakra-ui/react";
 // Semantic aliases (Chakra v3). `base` = light value, `_dark` overrides in dark
 // mode. Palette references use the `{colors.<palette>.<step>}` syntax; raw
 // hex/rgba values are literal.
+//
+// The DARK values are the design handoff verbatim (near-black canvas #0B0E0D,
+// panel #0E1211, border #1C2220, accent #3FE08A). The handoff defines no light
+// theme, so the LIGHT values are derived here from the same families: white
+// panels on an off-white canvas, the same green-tinted neutrals for ink and
+// borders, and the emerald ramp's dark end (700) wherever green has to read on
+// white. Both directions keep WCAG AA on body text and on the primary action.
 export const semanticTokens = defineSemanticTokens({
   colors: {
     bg: {
-      canvas: { value: { base: "#fafbfb", _dark: "#0b0f0e" } },
-      surface: { value: { base: "#ffffff", _dark: "#121917" } },
-      elevated: { value: { base: "#ffffff", _dark: "#17201c" } },
-      sunken: { value: { base: "#eef1f0", _dark: "#080b0a" } },
-      muted: {
-        value: {
-          base: "{colors.neutral.50}",
-          _dark: "rgba(255, 255, 255, 0.04)",
-        },
-      },
-      hover: {
-        value: {
-          base: "{colors.neutral.100}",
-          _dark: "rgba(255, 255, 255, 0.07)",
-        },
-      },
-      active: {
-        value: {
-          base: "{colors.neutral.200}",
-          _dark: "rgba(255, 255, 255, 0.11)",
-        },
-      },
+      canvas: { value: { base: "{colors.surface.subtle}", _dark: "{colors.surface.canvas}" } },
+      surface: { value: { base: "#ffffff", _dark: "{colors.surface.panel}" } },
+      elevated: { value: { base: "#ffffff", _dark: "{colors.neutral.900}" } },
+      sunken: { value: { base: "{colors.surface.muted}", _dark: "#080b0a" } },
+      // Field interior. Dark inputs sit BELOW the panel (the handoff draws them
+      // on the canvas), light ones stay white like the surface around them.
+      field: { value: { base: "#ffffff", _dark: "{colors.surface.canvas}" } },
+      muted: { value: { base: "{colors.surface.subtle}", _dark: "#121716" } },
+      hover: { value: { base: "{colors.surface.muted}", _dark: "{colors.neutral.900}" } },
+      active: { value: { base: "#e1e8e4", _dark: "#1a211f" } },
       glass: {
         value: {
-          base: "rgba(255, 255, 255, 0.80)",
-          _dark: "rgba(18, 25, 23, 0.78)",
+          base: "rgba(255, 255, 255, 0.82)",
+          _dark: "rgba(14, 18, 17, 0.82)",
         },
       },
       // Pill switch (ColorModeToggle): the track gradient ends and the thumb.
       switch: {
-        track: { value: { base: "{colors.bg.muted}", _dark: "{colors.gray.800}" } },
-        trackEnd: { value: { base: "{colors.bg.sunken}", _dark: "{colors.gray.900}" } },
-        thumb: { value: { base: "{colors.white}", _dark: "{colors.gray.900}" } },
+        track: { value: { base: "{colors.surface.muted}", _dark: "{colors.neutral.900}" } },
+        trackEnd: { value: { base: "#e1e8e4", _dark: "#080b0a" } },
+        thumb: { value: { base: "#ffffff", _dark: "{colors.surface.active}" } },
       },
       // Decorative ambient glows behind the auth screens (radial gradients).
       // Same in both modes — they sit on the canvas as light, not as surface.
       glow: {
-        primary: {
-          value: { base: "rgba(16, 185, 129, 0.22)", _dark: "rgba(16, 185, 129, 0.22)" },
-        },
-        secondary: {
-          value: { base: "rgba(4, 120, 87, 0.20)", _dark: "rgba(4, 120, 87, 0.20)" },
-        },
-        tertiary: {
-          value: { base: "rgba(110, 231, 183, 0.12)", _dark: "rgba(110, 231, 183, 0.12)" },
-        },
+        primary: { value: { base: "rgba(63, 224, 138, 0.20)", _dark: "rgba(63, 224, 138, 0.16)" } },
+        secondary: { value: { base: "rgba(12, 127, 73, 0.16)", _dark: "rgba(34, 199, 118, 0.12)" } },
+        tertiary: { value: { base: "rgba(107, 240, 171, 0.14)", _dark: "rgba(107, 240, 171, 0.10)" } },
       },
       topbar: {
         value: {
           base: "rgba(255, 255, 255, 0.92)",
-          _dark: "rgba(18, 25, 23, 0.88)",
+          _dark: "rgba(14, 18, 17, 0.88)",
         },
       },
       brand: {
-        // Faint emerald wash on the dark canvas.
-        subtle: {
-          value: {
-            base: "{colors.brand.50}",
-            _dark: "rgba(16, 185, 129, 0.14)",
-          },
-        },
-        emphasis: {
-          value: { base: "{colors.brand.800}", _dark: "{colors.brand.200}" },
-        },
-        // Primary action ("solid" button) — the emerald. Light mode uses the
-        // button-safe deep emerald (600) with WHITE text; dark mode flips to a
-        // bright emerald (500) with near-black emerald-ink text, so the CTA pops
-        // on the dark canvas while staying legible in both modes. Hover/active
-        // deepen (light) or brighten (dark) for press feedback.
-        solid: {
-          value: { base: "{colors.brand.600}", _dark: "{colors.brand.500}" },
-        },
-        "solid-hover": {
-          value: { base: "{colors.brand.700}", _dark: "{colors.brand.400}" },
-        },
-        "solid-active": {
-          value: { base: "{colors.brand.800}", _dark: "{colors.brand.600}" },
-        },
+        // The green wash behind an active nav item, a soft button or a badge.
+        subtle: { value: { base: "{colors.brand.50}", _dark: "{colors.surface.active}" } },
+        "subtle-hover": { value: { base: "{colors.brand.100}", _dark: "#1b2c22" } },
+        emphasis: { value: { base: "{colors.brand.800}", _dark: "{colors.brand.300}" } },
+        // Primary action. Light mode fills with the deep emerald (700) under
+        // white text; dark mode is the accent itself under near-black ink.
+        solid: { value: { base: "{colors.brand.700}", _dark: "{colors.brand.400}" } },
+        "solid-hover": { value: { base: "{colors.brand.800}", _dark: "{colors.brand.300}" } },
+        "solid-active": { value: { base: "{colors.brand.900}", _dark: "{colors.brand.500}" } },
       },
       accent: {
-        subtle: {
-          value: {
-            base: "{colors.accent.50}",
-            _dark: "rgba(16, 185, 129, 0.14)",
-          },
-        },
+        subtle: { value: { base: "{colors.accent.50}", _dark: "{colors.surface.active}" } },
       },
       overlay: {
-        value: {
-          base: "{colors.blackAlpha.400}",
-          _dark: "rgba(0, 0, 0, 0.72)",
-        },
+        value: { base: "rgba(14, 22, 20, 0.45)", _dark: "rgba(0, 0, 0, 0.72)" },
       },
     },
     text: {
-      primary: { value: { base: "#0f1a17", _dark: "#ecf5f1" } },
-      secondary: { value: { base: "#47554f", _dark: "#a5b2ac" } },
-      // ≈ 4.5:1 contrast on bg.surface (#121917) in dark — meets WCAG AA for body text
-      muted: { value: { base: "{colors.neutral.400}", _dark: "#7e8b85" } },
-      disabled: { value: { base: "{colors.neutral.300}", _dark: "#495049" } },
-      inverse: { value: { base: "#ffffff", _dark: "#0b0f0e" } },
-      // Links / brand text use the readable "deep emerald" (700 ≈ 5.5:1 on white);
-      // dark mode lifts to a bright emerald (300) on the dark canvas.
-      link: {
-        value: { base: "{colors.brand.700}", _dark: "{colors.brand.300}" },
-      },
-      brand: {
-        value: { base: "{colors.brand.700}", _dark: "{colors.brand.300}" },
-      },
-      accent: {
-        value: { base: "{colors.accent.700}", _dark: "{colors.accent.300}" },
-      },
-      // Text/icon color that sits ON the primary emerald button — white in light
-      // mode (on deep emerald), near-black emerald-ink in dark mode (on bright
-      // emerald). Both directions clear WCAG AA.
-      onBrand: { value: { base: "#ffffff", _dark: "#052e21" } },
+      primary: { value: { base: "#0e1614", _dark: "{colors.neutral.100}" } },
+      secondary: { value: { base: "#46554f", _dark: "#9aa8a2" } },
+      // Metadata (timestamps, phone numbers, field labels).
+      muted: { value: { base: "#6b7a74", _dark: "{colors.neutral.400}" } },
+      disabled: { value: { base: "{colors.neutral.300}", _dark: "{colors.neutral.600}" } },
+      inverse: { value: { base: "#ffffff", _dark: "{colors.surface.canvas}" } },
+      // Green ink: the accent on dark, the AA-safe deep emerald on white.
+      link: { value: { base: "{colors.brand.700}", _dark: "{colors.brand.400}" } },
+      brand: { value: { base: "{colors.brand.700}", _dark: "{colors.brand.400}" } },
+      accent: { value: { base: "{colors.accent.700}", _dark: "{colors.accent.400}" } },
+      // Text/icon ON the primary action: white over the deep emerald (light),
+      // the handoff's near-black green over the accent (dark).
+      onBrand: { value: { base: "#ffffff", _dark: "#07130c" } },
       // Icon on the ColorModeToggle thumb (`bg.switch.thumb`).
-      switchThumb: { value: { base: "{colors.text.primary}", _dark: "{colors.white}" } },
+      switchThumb: { value: { base: "{colors.text.primary}", _dark: "{colors.brand.400}" } },
     },
     border: {
-      subtle: {
-        value: {
-          base: "rgba(15, 26, 23, 0.07)",
-          _dark: "rgba(255, 255, 255, 0.06)",
-        },
-      },
-      default: {
-        value: {
-          base: "rgba(15, 26, 23, 0.12)",
-          _dark: "rgba(255, 255, 255, 0.11)",
-        },
-      },
-      strong: {
-        value: {
-          base: "rgba(15, 26, 23, 0.20)",
-          _dark: "rgba(255, 255, 255, 0.20)",
-        },
-      },
-      brand: {
-        value: { base: "{colors.brand.400}", _dark: "{colors.brand.500}" },
-      },
-      // Emerald callout border. Pairs with `bg.accent.subtle`: the dark value is
-      // a translucent emerald (16,185,129 + 0.32 alpha) so it reads as a soft
-      // outline over the dark surface instead of a solid slab.
-      accent: {
-        value: {
-          base: "{colors.accent.300}",
-          _dark: "rgba(16, 185, 129, 0.32)",
-        },
-      },
-      // Focus ring color — emerald, so every focused control carries the brand
-      // (paired with the `outline`/`input-focus` shadows below).
-      focus: {
-        value: { base: "{colors.brand.500}", _dark: "{colors.brand.400}" },
-      },
+      subtle: { value: { base: "#e6ece9", _dark: "{colors.neutral.900}" } },
+      default: { value: { base: "#dce4e0", _dark: "{colors.neutral.800}" } },
+      strong: { value: { base: "#c3cec8", _dark: "{colors.neutral.700}" } },
+      // The bright green edge: card hover, active control.
+      brand: { value: { base: "{colors.brand.500}", _dark: "{colors.brand.400}" } },
+      // The resting green edge: an online device, a soft button, a green badge.
+      accent: { value: { base: "{colors.brand.200}", _dark: "{colors.surface.line}" } },
+      focus: { value: { base: "{colors.brand.600}", _dark: "{colors.brand.400}" } },
     },
     status: {
       success: {
-        fg: {
-          value: { base: "{colors.green.600}", _dark: "{colors.green.300}" },
-        },
-        // Filled badge behind a status icon (e.g. the toast glyph).
-        solid: {
-          value: { base: "{colors.green.500}", _dark: "{colors.green.400}" },
-        },
-        bg: {
-          value: {
-            base: "{colors.green.50}",
-            _dark: "rgba(34, 197, 94, 0.12)",
-          },
-        },
-        border: {
-          value: {
-            base: "{colors.green.200}",
-            _dark: "rgba(34, 197, 94, 0.30)",
-          },
-        },
+        fg: { value: { base: "{colors.brand.700}", _dark: "{colors.brand.400}" } },
+        solid: { value: { base: "{colors.brand.600}", _dark: "{colors.brand.400}" } },
+        bg: { value: { base: "{colors.brand.50}", _dark: "{colors.surface.active}" } },
+        border: { value: { base: "{colors.brand.200}", _dark: "{colors.surface.line}" } },
       },
-      // Warning deliberately maps to a purple/caution palette (not yellow/orange) —
-      // project rule: never use yellow/orange tones in the UI.
+      // Warning is purple, never yellow/orange/amber (project rule R11). The
+      // handoff painted "pairing" amber; that state moved to `info` (blue), so
+      // purple is left for real warnings — a toast the user must notice.
       warning: {
-        fg: {
-          value: { base: "{colors.purple.600}", _dark: "{colors.purple.300}" },
-        },
-        solid: {
-          value: { base: "{colors.purple.500}", _dark: "{colors.purple.400}" },
-        },
-        bg: {
-          value: {
-            base: "{colors.purple.50}",
-            _dark: "rgba(168, 85, 247, 0.12)",
-          },
-        },
-        border: {
-          value: {
-            base: "{colors.purple.200}",
-            _dark: "rgba(168, 85, 247, 0.30)",
-          },
-        },
+        fg: { value: { base: "#6d28d9", _dark: "#b58cff" } },
+        solid: { value: { base: "#7c3aed", _dark: "#a273f5" } },
+        bg: { value: { base: "#f4efff", _dark: "#171327" } },
+        border: { value: { base: "#ddd0fa", _dark: "#2e2545" } },
       },
       error: {
-        fg: { value: { base: "{colors.red.600}", _dark: "{colors.red.300}" } },
-        solid: { value: { base: "{colors.red.500}", _dark: "{colors.red.400}" } },
-        bg: {
-          value: { base: "{colors.red.50}", _dark: "rgba(239, 68, 68, 0.12)" },
-        },
-        border: {
-          value: { base: "{colors.red.200}", _dark: "rgba(239, 68, 68, 0.30)" },
-        },
+        fg: { value: { base: "#c0392b", _dark: "#ff7a6b" } },
+        solid: { value: { base: "#e05548", _dark: "#ff7a6b" } },
+        bg: { value: { base: "#fdedea", _dark: "#1f1413" } },
+        border: { value: { base: "#f5ccc5", _dark: "#3a211e" } },
       },
-      // Info maps to BLUE (not the brand) — the brand is green, so an emerald
-      // "info" would be indistinguishable from the green "success". Blue is the
-      // conventional information hue and keeps the two semantics apart.
+      // Blue — the handoff's live-work hue: a device pairing, a message being
+      // sent, an informational toast.
       info: {
-        fg: {
-          value: { base: "{colors.blue.600}", _dark: "{colors.blue.300}" },
-        },
-        solid: {
-          value: { base: "{colors.blue.500}", _dark: "{colors.blue.400}" },
-        },
-        bg: {
-          value: {
-            base: "{colors.blue.50}",
-            _dark: "rgba(59, 130, 246, 0.12)",
-          },
-        },
-        border: {
-          value: {
-            base: "{colors.blue.200}",
-            _dark: "rgba(59, 130, 246, 0.30)",
-          },
-        },
+        fg: { value: { base: "#2e6fb8", _dark: "#7ab8ff" } },
+        solid: { value: { base: "#3b82f6", _dark: "#7ab8ff" } },
+        bg: { value: { base: "#eaf2fd", _dark: "#101725" } },
+        border: { value: { base: "#c6dbf7", _dark: "#22314a" } },
       },
       neutral: {
-        fg: { value: { base: "{colors.neutral.600}", _dark: "#a5b2ac" } },
-        bg: {
-          value: {
-            base: "{colors.neutral.100}",
-            _dark: "rgba(255, 255, 255, 0.06)",
-          },
-        },
-        border: {
-          value: {
-            base: "{colors.neutral.200}",
-            _dark: "rgba(255, 255, 255, 0.12)",
-          },
-        },
+        fg: { value: { base: "#6e7c76", _dark: "#9aa8a2" } },
+        bg: { value: { base: "{colors.neutral.50}", _dark: "{colors.neutral.900}" } },
+        border: { value: { base: "{colors.neutral.200}", _dark: "{colors.neutral.800}" } },
       },
-      // Blue — count/total emphasis (e.g. the Devices "Total" stat card). Shares
-      // the blue family with `status.info`; they never collide in the same view.
+      // Count/total emphasis (the Devices "registrados" stat). Same family as
+      // `info`; they never collide in one view.
       blue: {
-        fg: {
-          value: { base: "{colors.blue.600}", _dark: "{colors.blue.300}" },
-        },
-        bg: {
-          value: {
-            base: "{colors.blue.50}",
-            _dark: "rgba(59, 130, 246, 0.12)",
-          },
-        },
-        border: {
-          value: {
-            base: "{colors.blue.200}",
-            _dark: "rgba(59, 130, 246, 0.30)",
-          },
-        },
+        fg: { value: { base: "#2e6fb8", _dark: "#7ab8ff" } },
+        bg: { value: { base: "#eaf2fd", _dark: "#101725" } },
+        border: { value: { base: "#c6dbf7", _dark: "#22314a" } },
       },
     },
   },
   shadows: {
-    // Surface separation is carried by borders + a soft green-ink shadow
-    // (rgba 13,26,22 ≈ the #0f1a17 emerald-ink text color). Cards rely on a 1px
-    // border + tiny shadow; only panels and overlays get a real, soft shadow.
+    // The design separates surfaces with 1px borders, not elevation: dark mode
+    // has effectively no shadow, and light mode keeps a whisper of one so a
+    // white card still detaches from the off-white canvas.
     shadow: {
       card: {
         value: {
-          base: "0px 1px 2px rgba(13, 26, 22, 0.06), 0px 4px 12px -2px rgba(13, 26, 22, 0.08)",
-          _dark: "0px 1px 0 rgba(0, 0, 0, 0.20)",
+          base: "0px 1px 2px rgba(14, 22, 20, 0.05)",
+          _dark: "none",
         },
       },
       cardHover: {
         value: {
-          base: "0px 4px 8px rgba(13, 26, 22, 0.06), 0px 12px 28px -4px rgba(13, 26, 22, 0.12)",
-          _dark:
-            "0px 0 0 1px rgba(255, 255, 255, 0.04), 0px 8px 24px -8px rgba(0, 0, 0, 0.55)",
+          base: "0px 6px 20px -8px rgba(14, 22, 20, 0.14)",
+          _dark: "0 0 0 1px rgba(63, 224, 138, 0.10), 0 0 26px rgba(63, 224, 138, 0.05)",
         },
       },
       panel: {
         value: {
-          base: "0px 8px 24px -4px rgba(13, 26, 22, 0.14), 0px 2px 6px rgba(13, 26, 22, 0.06)",
-          _dark:
-            "0px 12px 32px -8px rgba(0, 0, 0, 0.55), 0px 2px 6px rgba(0, 0, 0, 0.35)",
+          base: "0px 8px 24px -8px rgba(14, 22, 20, 0.14)",
+          _dark: "0px 12px 32px -8px rgba(0, 0, 0, 0.60)",
         },
       },
       lg: {
         value: {
-          base: "0px 16px 40px -8px rgba(13, 26, 22, 0.16), 0px 4px 12px rgba(13, 26, 22, 0.06)",
-          _dark:
-            "0px 20px 48px -12px rgba(0, 0, 0, 0.60), 0px 4px 12px rgba(0, 0, 0, 0.35)",
+          base: "0px 16px 40px -12px rgba(14, 22, 20, 0.18)",
+          _dark: "0px 20px 48px -12px rgba(0, 0, 0, 0.66)",
         },
       },
       inner: {
         value: {
-          base: "inset 0 2px 4px 0 rgba(13, 26, 22, 0.06)",
-          _dark: "inset 0 1px 2px 0 rgba(0, 0, 0, 0.30)",
+          base: "inset 0 2px 4px 0 rgba(14, 22, 20, 0.06)",
+          _dark: "inset 0 1px 2px 0 rgba(0, 0, 0, 0.35)",
         },
       },
-      // Pill switch (ColorModeToggle). The dark thumb carries a brand halo.
+      // Pill switch (ColorModeToggle).
       switchTrack: {
         value: {
-          base: "inset 0 1px 2px rgba(15, 23, 42, 0.06)",
-          _dark: "inset 0 1px 2px rgba(0, 0, 0, 0.40)",
+          base: "inset 0 1px 2px rgba(14, 22, 20, 0.06)",
+          _dark: "inset 0 1px 2px rgba(0, 0, 0, 0.45)",
         },
       },
       switchThumb: {
         value: {
-          base: "0 1px 3px rgba(15, 23, 42, 0.20), 0 0 6px rgba(15, 23, 42, 0.05)",
-          _dark: "0 2px 6px rgba(0, 0, 0, 0.50), 0 0 12px rgba(52, 211, 153, 0.35)",
+          base: "0 1px 3px rgba(14, 22, 20, 0.20)",
+          _dark: "0 1px 0 rgba(0, 0, 0, 0.45), inset 0 0 0 1px #223a2c",
         },
       },
-      // Brand mark (logo tile) and the floating card on the auth screens.
-      // Same value in both modes on purpose: they sit on the canvas as light.
+      // Brand mark (logo tile) and the auth card. The handoff's only continuous
+      // light is the online-device glow, so these stay flat and green-tinted.
       brandMark: {
         value: {
-          base: "0 24px 48px -16px rgba(16, 185, 129, 0.45), 0 8px 24px -8px rgba(4, 120, 87, 0.25)",
-          _dark: "0 24px 48px -16px rgba(16, 185, 129, 0.45), 0 8px 24px -8px rgba(4, 120, 87, 0.25)",
+          base: "0 12px 28px -12px rgba(12, 127, 73, 0.40)",
+          _dark: "0 12px 28px -12px rgba(63, 224, 138, 0.30)",
         },
       },
       brandMarkSm: {
         value: {
-          base: "0 12px 28px -10px rgba(16, 185, 129, 0.45)",
-          _dark: "0 12px 28px -10px rgba(16, 185, 129, 0.45)",
+          base: "0 8px 18px -10px rgba(12, 127, 73, 0.35)",
+          _dark: "0 8px 18px -10px rgba(63, 224, 138, 0.28)",
         },
       },
       authCard: {
         value: {
-          base: "0 24px 64px -24px rgba(15, 23, 42, 0.18), 0 8px 24px -16px rgba(15, 23, 42, 0.12)",
-          _dark: "0 24px 64px -24px rgba(15, 23, 42, 0.18), 0 8px 24px -16px rgba(15, 23, 42, 0.12)",
+          base: "0 24px 64px -28px rgba(14, 22, 20, 0.20)",
+          _dark: "0 24px 64px -28px rgba(0, 0, 0, 0.70)",
+        },
+      },
+      // The one continuous animation in the system: the online device breathing.
+      // Kept here so the keyframes in `globalCss` interpolate between tokens.
+      liveLow: {
+        value: {
+          base: "0 0 0 1px rgba(12, 127, 73, 0.14), 0 0 26px rgba(12, 127, 73, 0.06)",
+          _dark: "0 0 0 1px rgba(63, 224, 138, 0.10), 0 0 26px rgba(63, 224, 138, 0.05)",
+        },
+      },
+      liveHigh: {
+        value: {
+          base: "0 0 0 1px rgba(12, 127, 73, 0.26), 0 0 34px rgba(12, 127, 73, 0.12)",
+          _dark: "0 0 0 1px rgba(63, 224, 138, 0.22), 0 0 34px rgba(63, 224, 138, 0.11)",
         },
       },
     },
     // Focus-related shadows use bare keys (no `shadow.` prefix) so existing
-    // consumers like `boxShadow="input-focus"` keep working without edits. All
-    // focus rings carry the emerald (16,185,129); dark lifts alpha so it still reads.
+    // consumers like `boxShadow="input-focus"` keep working without edits.
     outline: {
       value: {
-        base: "0 0 0 3px rgba(16, 185, 129, 0.40)",
-        _dark: "0 0 0 3px rgba(16, 185, 129, 0.45)",
+        base: "0 0 0 3px rgba(18, 164, 94, 0.34)",
+        _dark: "0 0 0 3px rgba(63, 224, 138, 0.32)",
       },
     },
     "input-focus": {
       value: {
-        base: "0 0 0 3px rgba(16, 185, 129, 0.20)",
-        _dark: "0 0 0 3px rgba(16, 185, 129, 0.28)",
+        base: "0 0 0 3px rgba(18, 164, 94, 0.16)",
+        _dark: "0 0 0 3px rgba(63, 224, 138, 0.18)",
       },
     },
     "input-error": {
       value: {
-        base: "0 0 0 3px rgba(245, 101, 101, 0.12)",
-        _dark: "0 0 0 3px rgba(252, 165, 165, 0.22)",
+        base: "0 0 0 3px rgba(192, 57, 43, 0.12)",
+        _dark: "0 0 0 3px rgba(255, 122, 107, 0.18)",
       },
     },
     "input-error-focus": {
       value: {
-        base: "0 0 0 3px rgba(245, 101, 101, 0.20)",
-        _dark: "0 0 0 3px rgba(252, 165, 165, 0.32)",
+        base: "0 0 0 3px rgba(192, 57, 43, 0.20)",
+        _dark: "0 0 0 3px rgba(255, 122, 107, 0.28)",
       },
     },
     "brand-glow": {
-      // Emerald glow to match the primary action.
       value: {
-        base: "0px 0px 0px 3px rgba(16, 185, 129, 0.20), 0px 4px 12px rgba(16, 185, 129, 0.15)",
-        _dark:
-          "0px 0px 0px 3px rgba(16, 185, 129, 0.18), 0px 4px 12px rgba(16, 185, 129, 0.20)",
+        base: "0 0 0 3px rgba(18, 164, 94, 0.18)",
+        _dark: "0 0 0 3px rgba(63, 224, 138, 0.20)",
       },
     },
     "accent-glow": {
       value: {
-        base: "0px 0px 0px 3px rgba(16, 185, 129, 0.20), 0px 4px 12px rgba(16, 185, 129, 0.15)",
-        _dark:
-          "0px 0px 0px 3px rgba(16, 185, 129, 0.16), 0px 4px 12px rgba(16, 185, 129, 0.18)",
+        base: "0 0 0 3px rgba(18, 164, 94, 0.18)",
+        _dark: "0 0 0 3px rgba(63, 224, 138, 0.18)",
       },
     },
   },
