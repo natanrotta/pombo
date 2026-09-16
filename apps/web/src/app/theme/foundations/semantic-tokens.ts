@@ -242,15 +242,6 @@ export const semanticTokens = defineSemanticTokens({
         },
       },
     },
-    accent: {
-      // Gold — INTENTIONAL, SCOPED exception to the project's no-yellow/orange/amber
-      // rule. A favorite/primary "star" is conventionally gold and reads wrong in any
-      // other color; per explicit product request this is the ONE place gold is
-      // allowed. Use ONLY for the primary/favorite star affordance — never for
-      // status, warnings, or general accents (warnings stay purple). Dark uses a
-      // brighter gold for contrast on the dark surface.
-      gold: { value: { base: "#E0A500", _dark: "#FACC15" } },
-    },
   },
   shadows: {
     // Surface separation is carried by borders + a soft green-ink shadow

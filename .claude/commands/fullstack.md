@@ -282,7 +282,7 @@ Frontend mutation
 ### Bulk Operations
 
 - **Backend:** `DELETE /entities/bulk` with `{ ids: string[] }`; processor handles partial failures
-- **Frontend:** `useBulkSelection` for the selection state + `ConfirmDialog` for the destructive step
+- **Frontend:** selection state in the page's module hook (a `Set<string>` of ids) + `ConfirmDialog` for the destructive step
 
 ### File Uploads
 

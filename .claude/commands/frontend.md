@@ -103,7 +103,6 @@ Open/close state for a modal/drawer?                     → useDisclosure()  (v
 Validated form (login, register, complex)?                → useForm (RHF) + zodResolver(buildXSchema())
 Modal/standalone simple form?                             → useFormState
 Toast notification?                                        → useNotify
-Bulk selection?                                            → useBulkSelection
 Confirm dialog?                                            → useConfirm
 Unsaved changes guard?                                     → useUnsavedChangesGuard(isDirty)
 Debounce a value?                                          → useDebounce(value, 300)
@@ -122,7 +121,7 @@ Before creating any component, check `.claude/patterns/frontend.md` § "Reuse-Fi
 - **Cards / display:** `EntityCard`, `StatCard`, `StatusBadge`, `InfoRow`, `EmptyState`
 - **Actions:** `ActionMenu`, `ConfirmDialog`, `AppModal`, `SaveButton`
 - **Data display:** `FilterBar`, `CopyButton`
-- **Forms:** `FormField`, `SelectField`, `TextAreaField`, `NumberField`, `PasswordField`, `RichTextField`
+- **Forms:** `FormField`, `SelectField`, `TextAreaField`, `NumberField`, `PasswordField`
 - **Chakra v3 primitives (`src/components/ui/*`):** `dialog`, `drawer`, `menu`, `popover`, `field`, `native-select`, `number-input`, `pin-input`, `tooltip`, `avatar`, `toaster`, `color-mode` — assemble a compound component ONLY through these
 - **Skeletons:** `ListPageSkeleton`, `DetailPageSkeleton` (variants), `EntityCardSkeleton`, `FilterBarSkeleton`, `SectionCardSkeleton`
 - **Animations:** `PageTransition` (route-level); per-element entrances are inline `motion.create(...)`

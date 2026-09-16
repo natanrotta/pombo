@@ -24,7 +24,7 @@ const STORAGE_KEY_LANGUAGE = "@pombo-web:language";
  * The browser context needs three things to look authenticated:
  *   - `pombo_at` httpOnly cookie   → session JWT
  *   - `pombo_csrf` cookie          → CSRF double-submit (JS-readable)
- *   - a protected route (/dashboard) reachable → guards aren't blocking
+ *   - a protected route (/devices) reachable → guards aren't blocking
  *
  * The user object is intentionally NOT seeded — the SPA's `getCurrentUser()`
  * lazily fetches /auth/me on first mount (cookie-authenticated) and rehydrates
@@ -70,8 +70,10 @@ setup("authenticate", async ({ page }) => {
 
   // Sanity check — hit a protected route. Catches stale seed / token-version
   // drift before it manifests as cryptic failures downstream.
-  await page.goto("/dashboard");
-  await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
+  // `/devices` is a real route: a broken session redirects to /sign-in and the
+  // URL assertion fails (an unknown path would render the 404 and still pass).
+  await page.goto("/devices");
+  await expect(page).toHaveURL(/\/devices$/, { timeout: 10000 });
 
   await page.context().storageState({ path: AUTH_FILE });
 });

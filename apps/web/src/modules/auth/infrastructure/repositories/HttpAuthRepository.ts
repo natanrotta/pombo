@@ -12,6 +12,7 @@ import type {
   ResetPasswordInput,
 } from "@/modules/auth/domain/entities/AuthUser";
 import { STORAGE_KEYS } from "@/shared/constants/storageKeys";
+import { clearSessionScopedStorage } from "@/shared/utils/sessionStorageCleanup";
 
 /** Wire shape of the authenticated user returned by `/auth/me`, sign-in,
  *  and verify-email. Single-user: no account/membership fields. */
@@ -118,7 +119,8 @@ export class HttpAuthRepository implements AuthRepository {
       // The server clears the httpOnly access + refresh cookies here.
       await httpClient.post("/auth/sign-out");
     } finally {
-      sessionStorage.removeItem(STORAGE_KEYS.emailVerifyToken);
+      // A shared device must never hand one account's browser data to the next.
+      clearSessionScopedStorage();
     }
   }
 

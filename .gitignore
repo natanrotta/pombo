@@ -31,6 +31,7 @@ yarn-error.log*
 # Test / coverage
 coverage/
 playwright-report/
+.playwright/
 test-results/
 apps/web/e2e/.auth/
 e2e/.auth/

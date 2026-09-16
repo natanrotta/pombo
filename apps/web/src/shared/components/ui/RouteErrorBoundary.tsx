@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Box, Button, Flex, Icon, Text } from "@chakra-ui/react";
 import { FiAlertTriangle, FiRefreshCw } from "@/shared/components/icons";
+import { reportRenderError } from "@/shared/lib/error-reporter";
 import { isChunkLoadError } from "@/shared/utils/chunkError";
 import { reloadForStaleChunk } from "@/shared/utils/chunkReload";
 import i18n from "@/shared/i18n";
@@ -36,7 +37,11 @@ export class RouteErrorBoundary extends Component<Props, State> {
     // and the user can still force a reload with "Tentar novamente".
     if (isChunkLoadError(error)) {
       reloadForStaleChunk();
+      return;
     }
+    // Every authenticated page renders inside this boundary, so it — not the
+    // global one — is where real page crashes land. Report them.
+    reportRenderError(error, info.componentStack);
   }
 
   componentDidUpdate(prevProps: Props) {

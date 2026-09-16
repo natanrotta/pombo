@@ -75,18 +75,17 @@ modules/{feature}/                # Feature modules (one per domain — account,
 shared/                           # Cross-module reuse
   components/
     ui/                           # AppModal, EntityCard, EmptyState, PageHeader, SectionCard, ...
-    forms/                        # FormField, SelectField, TextAreaField, NumberField, PasswordField, RichTextField
+    forms/                        # FormField, SelectField, TextAreaField, NumberField, PasswordField
     layout/                       # AppShell, SidebarNav, MobileHeader, MobileBottomNav, AppVersion
     skeletons/                    # ListPageSkeleton, DetailPageSkeleton, ...
     animations/                   # PageTransition
   hooks/                          # useDetailPageController, useFormState, useAutoSave, useNotify,
-                                  #   useBulkSelection, useConfirm, useDebounce,
-                                  #   useUnsavedChangesGuard, useInfiniteScrollSentinel
+                                  #   useConfirm, useDebounce, useUnsavedChangesGuard
   contexts/                       # SidebarContext (global UI state)
   i18n/locales/{pt-BR,en,es}/     # One JSON per namespace
-  utils/                          # date, phone, document, mergeEdits, pagination
+  utils/                          # date, phone, passwordValidation, download, chunk reload, storage cleanup
   constants/                      # Animation constants (EASE_ORGANIC, TRANSITION_*), enums
-  types/                          # PaginationParams, PaginatedResponse, ...
+  types/                          # phone
 ```
 
 **Dependency rule:** `domain` ← `infrastructure` ← `presentation`. Components never import from `infrastructure` directly — always go through `core/di/repositories.ts` and a hook.
@@ -217,11 +216,9 @@ devices: {
 | Modal/standalone form (simple) | `useFormState` | `shared/hooks/useFormState.ts` |
 | Validated form (login, register, complex) | `useForm` (RHF) + `zodResolver(buildXSchema())` | direct |
 | Toast | `useNotify` (`showSuccess`, `showError`, `showInfo`, `showWarning`, `showAutoSaved`) | `shared/hooks/useNotify.ts` |
-| Bulk selection state | `useBulkSelection` | `shared/hooks/useBulkSelection.ts` |
 | Confirm dialog state | `useConfirm` | `shared/hooks/useConfirm.ts` |
 | Unsaved-changes nav guard | `useUnsavedChangesGuard(isDirty)` | `shared/hooks/useUnsavedChangesGuard.ts` |
 | Debounce a value | `useDebounce(value, 300)` | `shared/hooks/useDebounce.ts` |
-| Infinite-scroll sentinel | `useInfiniteScrollSentinel` | `shared/hooks/useInfiniteScrollSentinel.ts` |
 | Open/close state for a modal or drawer | `useDisclosure()` from `@chakra-ui/react` — **v3 returns `open`, not `isOpen`** | direct |
 | Centralized error handling | `useErrorHandler()` → `handleError(error, fallback)` | `core/query/useErrorHandler.ts` |
 
@@ -334,7 +331,7 @@ const { formData, setField, errors, validate, reset } = useFormState(
 );
 ```
 
-**Form primitives (`shared/components/forms/`):** Always reuse `FormField`, `SelectField`, `TextAreaField`, `NumberField`, `PasswordField`, `RichTextField` — **do not** wrap raw Chakra `<Input>` in feature code. Each one composes the `Field` snippet (`components/ui/field`), so label/error/invalid wiring is identical everywhere. The one sanctioned exception is an RHF `register()` input, which needs a ref-spread and therefore uses `<Field>` + `<Input>` directly (see `SignInPage`).
+**Form primitives (`shared/components/forms/`):** Always reuse `FormField`, `SelectField`, `TextAreaField`, `NumberField`, `PasswordField` — **do not** wrap raw Chakra `<Input>` in feature code. Each one composes the `Field` snippet (`components/ui/field`), so label/error/invalid wiring is identical everywhere. The one sanctioned exception is an RHF `register()` input, which needs a ref-spread and therefore uses `<Field>` + `<Input>` directly (see `SignInPage`).
 
 ### Modals
 
@@ -444,7 +441,7 @@ Use this pattern only when the operation is fast and rollback is cheap; otherwis
 - `useAuth()` to read; the session JWT lives in the httpOnly `pombo_at` cookie — JS never sees or stores it (closes XSS→session theft). `AuthSession` carries only `{ user }`.
 - After login, `i18n.changeLanguage(user.language)` is called automatically
 - Token refresh handled transparently by `httpClient` interceptor (cookie-only)
-- **Session-termination hygiene:** every sign-out path — explicit `signOut()` AND the token-expiry handler (`setAuthExpiredHandler`) — must both `queryClient.clear()` and wipe any browser-persisted, session-scoped data (localStorage/sessionStorage keys under the `@pombo-web:` prefix, except the language). A shared device must never leak one account's data to the next.
+- **Session-termination hygiene:** every sign-out path — explicit `signOut()` AND the token-expiry handler (`setAuthExpiredHandler`) — must both `queryClient.clear()` and wipe any browser-persisted, session-scoped data (localStorage/sessionStorage keys under the `@pombo-web:` prefix, except the device preferences in `DEVICE_PREFERENCE_KEYS` — language and sidebar). Both paths call `clearSessionScopedStorage()` (`shared/utils/sessionStorageCleanup.ts`). A shared device must never leak one account's data to the next.
 
 ### i18n
 

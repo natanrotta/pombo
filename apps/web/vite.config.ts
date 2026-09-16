@@ -1,8 +1,8 @@
 import { defineConfig, type ViteDevServer } from "vite";
 import react from "@vitejs/plugin-react";
 import basicSsl from "@vitejs/plugin-basic-ssl";
-import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
+import { aliases } from "./aliases";
 
 const enableHttps = process.env.VITE_HTTPS === "true";
 // `VITE_PORT` + `VITE_API_PROXY_TARGET` let the Playwright webServer (see
@@ -93,20 +93,12 @@ export default defineConfig(({ command }) => ({
     },
   },
   resolve: {
-    alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
-      "@/app": fileURLToPath(new URL("./src/app", import.meta.url)),
-      "@/core": fileURLToPath(new URL("./src/core", import.meta.url)),
-      "@/shared": fileURLToPath(new URL("./src/shared", import.meta.url)),
-      "@/modules": fileURLToPath(new URL("./src/modules", import.meta.url)),
-      "@assets": fileURLToPath(new URL("./assets", import.meta.url)),
-    },
+    alias: aliases,
   },
   // shared-types ships as CommonJS via `__exportStar(require(...))` chains;
-  // Vite's CJS lexer can't surface nested named exports like
-  // `buildPatientDocumentFilename`, so force the dep optimizer to pre-bundle
-  // it into a single ESM blob where every named export is statically
-  // reachable from the browser.
+  // Vite's CJS lexer can't surface nested named exports, so force the dep
+  // optimizer to pre-bundle it into a single ESM blob where every named export
+  // is statically reachable from the browser.
   optimizeDeps: {
     include: ["@pombo/shared-types"],
   },
@@ -126,9 +118,8 @@ export default defineConfig(({ command }) => ({
         // Stable vendor chunks: app deploys (route-chunk churn) no longer
         // invalidate the big framework payloads in the browser cache.
         // framer-motion rides with Chakra (hard peer dep — same graph).
-        // Heavy leaf libs (jspdf, tiptap, qrcode) are NOT
-        // listed: they reach the browser only via dynamic import / React.lazy
-        // and must keep their own lazy chunks.
+        // Heavy leaf libs (qrcode) are NOT listed: they reach the browser only
+        // through lazy route chunks and must keep their own chunks.
         manualChunks: {
           "vendor-react": ["react", "react-dom", "react-router-dom"],
           "vendor-chakra": ["@chakra-ui/react", "@emotion/react", "framer-motion"],

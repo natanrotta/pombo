@@ -4,9 +4,10 @@ import type { ErrorCode } from "./errorCodes";
  * Domain-shaped error class for the frontend. Wraps any backend or network
  * failure with a typed `code` field that pages/hooks can branch on.
  *
- * `code` is typed as `ErrorCode | string` because the backend emits ~110
- * codes and the frontend only catalogs the ones it cares about. Unknown
- * codes still flow through — they just don't auto-complete in `===` checks.
+ * `code` is typed as `ErrorCode | string` because the backend emits many more
+ * codes than the frontend catalogs — the frontend only tracks the ones it
+ * branches on. Unknown codes still flow through; they just don't
+ * auto-complete in `===` checks.
  */
 export class AppError extends Error {
   public readonly code: ErrorCode | string;

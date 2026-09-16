@@ -3,12 +3,13 @@ import i18n from "@/shared/i18n";
 import { AppError } from "@/core/errors/AppError";
 import { ErrorCodes } from "@/core/errors/errorCodes";
 import { STORAGE_KEYS } from "@/shared/constants/storageKeys";
+import { clearSessionScopedStorage } from "@/shared/utils/sessionStorageCleanup";
 
 // Per-request opt-out from the global session-expired redirect. The silent
 // `/auth/me` session probe (AuthContext boot + refreshUser) sets this flag: a
 // 401 there only means "not signed in", so getCurrentUser maps it to a null
 // user and the route guards own any redirect. Without it, an unauthenticated
-// visitor on a PUBLIC page (/register, /invite, /forgot-password) gets bounced
+// visitor on a PUBLIC page (/register, /forgot-password) gets bounced
 // to /sign-in by clearAuthAndRedirect.
 declare module "axios" {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
@@ -19,9 +20,8 @@ declare module "axios" {
 
 const CSRF_COOKIE = "pombo_csrf";
 
-/** Double-submit CSRF cookie reader — exported for the one non-axios
- *  transport (the copilot SSE fetch in HttpCopilotRepository). */
-export function getCsrfToken(): string | null {
+/** Double-submit CSRF cookie reader (`pombo_csrf` → `X-CSRF-Token`). */
+function getCsrfToken(): string | null {
   const match = document.cookie.match(new RegExp(`(?:^|; )${CSRF_COOKIE}=([^;]*)`));
   return match ? decodeURIComponent(match[1]) : null;
 }
@@ -102,8 +102,8 @@ export function setAuthExpiredHandler(handler: () => void) {
 function clearAuthAndRedirect() {
   // The session lives in the httpOnly access cookie, which the server clears on
   // sign-out / refresh failure — JS can't touch it. Here we only drop the
-  // client-side flags.
-  sessionStorage.removeItem(STORAGE_KEYS.emailVerifyToken);
+  // session-scoped browser data (scoped verify token, sandbox recents, ...).
+  clearSessionScopedStorage();
 
   if (onAuthExpired) {
     onAuthExpired();
@@ -146,7 +146,7 @@ httpClient.interceptors.response.use(
       // no clearAuthAndRedirect. A 401 here just means "not signed in"; the
       // caller maps the rejection to a null user and the route guards
       // (ProtectedRoute) own any redirect. This keeps unauthenticated visitors
-      // on public pages (/register, /invite, /forgot-password) from being
+      // on public pages (/register, /forgot-password) from being
       // bounced to /sign-in by the boot probe.
       if (originalRequest.skipSessionExpiredRedirect) {
         const apiError = (data as { error?: { message?: string; code?: string } })?.error;

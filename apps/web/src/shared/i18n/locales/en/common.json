@@ -212,17 +212,6 @@
       "dragSingle": "Click or drag a file",
       "anyType": "Any type",
       "remove": "Remove"
-    },
-    "richText": {
-      "placeholder": "Type here...",
-      "bold": "Bold",
-      "italic": "Italic",
-      "underline": "Underline",
-      "heading": "Heading",
-      "bulletList": "Bullet list",
-      "orderedList": "Numbered list",
-      "blockquote": "Quote",
-      "code": "Code"
     }
   },
   "platform": {

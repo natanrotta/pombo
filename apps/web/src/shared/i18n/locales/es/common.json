@@ -212,17 +212,6 @@
       "dragSingle": "Haga clic o arrastre un archivo",
       "anyType": "Cualquier tipo",
       "remove": "Eliminar"
-    },
-    "richText": {
-      "placeholder": "Escriba aquí...",
-      "bold": "Negrita",
-      "italic": "Cursiva",
-      "underline": "Subrayado",
-      "heading": "Título",
-      "bulletList": "Lista",
-      "orderedList": "Lista numerada",
-      "blockquote": "Cita",
-      "code": "Código"
     }
   },
   "platform": {
