@@ -28,10 +28,14 @@
 - [Medium] framer-motion 12 types a cubic-bezier easing as a 4-tuple; a plain `number[]` (or a `readonly` tuple from `as const`) no longer satisfies it. Declare `EASE_ORGANIC: [number, number, number, number]`.
 - [Medium] `motion.create(ChakraComponent)` collides with Chakra on `transition` and `style`. Re-type the wrapper (`Omit<BoxProps, keyof MotionProps> & Pick<MotionProps, "initial" | "animate" | "exit" | "transition" | "style">`) **and** narrow the component's own props the same way — otherwise a `...rest` spread widens `transition` right back.
 
+- [Medium] **Renaming a persisted web-storage key is a silent one-time UX regression** (tests always start from empty storage). Read the old key as a `??` fallback (`??`, not `||`, so a stored `"false"` survives) and remove it on the next write — see `SidebarContext` (`sidebar-collapsed` → `@pombo-web:sidebar-collapsed`).
+
 ## Testing Gotchas
 - [High] jsdom ships no `PointerEvent`. Chakra v3's press tracking constructs one on blur, so any zag control that is clicked and then loses focus throws out of an event listener: Vitest reports an unhandled error and exits non-zero **even though every assertion passed**. Stub it in `test/setup.ts` (subclassing `MouseEvent` is enough).
 - [High] Polyfill `window.matchMedia` as a **plain function**, not a `vi.fn()` — a test calling `vi.clearAllMocks()` wipes the implementation and `next-themes` then reads `.matches` off `undefined`.
 - [Medium] v3 dialogs portal in through zag's presence machine, so they land a tick after the render that opened them: use `await screen.findByText(...)`, not `getByText`.
+
+- [Medium] **Visual verification from the desktop app:** the preview process can't read `.env` files (sandboxed), so start the API from Bash (a Node loader that parses `apps/api/.env` + `.env.e2e`, with `WHATSAPP_ENABLED=false` so no real session reconnects) on the e2e ports and only Vite through the preview. Never type credentials into the browser: authenticate with the Playwright `global.setup.ts` storage state and capture pages from a local-only spec (`git`-excluded) in light/dark × desktop/mobile.
 
 ## Dead Ends
 - [High] Do **not** reach for a generic CRUD layer (`CrudRepository`, `useEntityList`, `useEntityDetail`, `useListPageController`, `ListPageLayout`) in Pombo. It shipped with the template, no module ever used it, and it sat unreachable for the whole life of the app until this migration deleted it. Pombo's domains are not uniform CRUD (`create` returns a one-time secret, `update` is webhook-only, pairing has `connect`/`getQr`). Build the module hook directly on TanStack Query; extract a shared one the day a **second** module genuinely needs the same shape. `cuidda` keeps v3 versions of all of these if one is ever wanted back.

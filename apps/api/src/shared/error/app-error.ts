@@ -1,3 +1,4 @@
+import type { ApiErrorBody } from "@pombo/shared-types";
 import { ErrorCodes, type ErrorCode } from "./error-codes";
 
 export abstract class AppError extends Error {
@@ -24,17 +25,14 @@ export abstract class AppError extends Error {
     Error.captureStackTrace(this, this.constructor);
   }
 
-  public toJSON(): Record<string, unknown> {
-    const json: Record<string, unknown> = {
+  /** The `error` body of the wire envelope (the handler swaps in the
+   *  translated message). */
+  public toJSON(): ApiErrorBody {
+    return {
       message: this.message,
       code: this.code,
+      ...(this.details ? { details: this.details } : {}),
     };
-
-    if (this.details) {
-      json["details"] = this.details;
-    }
-
-    return json;
   }
 }
 

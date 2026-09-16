@@ -117,23 +117,20 @@ For "user opens device detail" (illustrative — mirrors `modules/devices`):
 
 ```typescript
 // modules/devices/domain/entities/Device.ts
-export type DeviceStatus = "DISCONNECTED" | "QR_PENDING" | "CONNECTED" | /* ... mirror the API enum */ string;
+import type {
+  DeviceResponseDTO,
+  RegisterDeviceRequestDTO,
+  UpdateDeviceWebhooksRequestDTO,
+} from "@pombo/shared-types";
 
-export interface Device {
-  id: string;
-  accountId: string;
-  name: string;
-  status: DeviceStatus;
-  identifier: string | null;    // paired WhatsApp number once CONNECTED
-  createdAt: string;            // ISO string from API; convert to Date only at render boundary
-  updatedAt: string;
-}
+export type { DeviceStatus, DeviceWebhooks } from "@pombo/shared-types";
 
-export interface CreateDeviceInput { name: string; }
-export interface UpdateDeviceWebhooksInput { /* one nullable URL per event */ }
+export type Device = DeviceResponseDTO;               // dates are ISO strings; convert only at render
+export type CreateDeviceInput = RegisterDeviceRequestDTO;
+export type UpdateDeviceWebhooksInput = UpdateDeviceWebhooksRequestDTO;
 ```
 
-**Rules:** plain TS interfaces (not classes); dates as ISO strings (matches API DTO exactly); separate `Create*Input` (required) and `Update*Input` (all-optional with `| null` for clearable). Field names mirror backend response DTO 1:1.
+**Rules:** the wire contract (request/response DTOs, status/type unions, the `ErrorCodes` catalog, the `{ ok, data }` / `{ ok: false, error }` envelope) is declared **once** in `packages/shared-types` and the API types its projections with it. A module entity file only **aliases** those DTOs into the module's vocabulary — never redeclare a wire field. Types that exist only in the UI (`SandboxMessageType`, `AuthUser`) are declared in the entity file. A new endpoint adds its DTOs to the package first. The web reads the package from its TypeScript source (alias in `apps/web/aliases.ts` + `tsconfig` paths) — never add it back to `optimizeDeps`.
 
 ### Repository Interface (Domain)
 

@@ -1,3 +1,8 @@
+import type { z } from "zod";
+import type {
+  RegisterDeviceRequestDTO,
+  UpdateDeviceWebhooksRequestDTO,
+} from "@pombo/shared-types";
 import {
   RegisterDeviceDTOSchema,
   UpdateDeviceWebhooksDTOSchema,
@@ -57,5 +62,18 @@ describe("device DTOs", () => {
         UpdateDeviceWebhooksDTOSchema.parse({ onWhatever: "https://x" }),
       ).toThrow();
     });
+  });
+});
+
+describe("device request DTOs ↔ @pombo/shared-types", () => {
+  it("accept exactly the body the shared contract declares", () => {
+    // Type-level — enforced by `yarn type-check`: a schema that drifts from
+    // the contract the web client sends breaks the build.
+    expectTypeOf<
+      z.input<typeof RegisterDeviceDTOSchema>
+    >().toEqualTypeOf<RegisterDeviceRequestDTO>();
+    expectTypeOf<
+      z.input<typeof UpdateDeviceWebhooksDTOSchema>
+    >().toEqualTypeOf<UpdateDeviceWebhooksRequestDTO>();
   });
 });

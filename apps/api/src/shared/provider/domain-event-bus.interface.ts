@@ -1,3 +1,5 @@
+import type { MessageStatus } from "@pombo/shared-types";
+
 /**
  * The cross-module domain event bus (pombo WhatsApp gateway).
  *
@@ -16,8 +18,9 @@
  *    webhook never regresses and `webhooks` never touches the outbox.
  */
 
-export type DomainMessageStatus =
-  "PENDING" | "SERVER_ACK" | "DELIVERY_ACK" | "READ" | "FAILED";
+/** The delivery-status vocabulary of the wire contract (it also rides the
+ *  `message.status` webhook payload). */
+export type DomainMessageStatus = MessageStatus;
 
 export type DomainEvent =
   | { type: "session.qr"; deviceId: string; qr: string }

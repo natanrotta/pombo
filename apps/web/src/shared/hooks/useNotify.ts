@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { AppError } from "@/core/errors/AppError";
-import { ErrorCodes } from "@/core/errors/errorCodes";
+import { ErrorCodes } from "@pombo/shared-types";
 import { toaster } from "@/components/ui/toaster";
 
 export function useNotify() {

@@ -1,6 +1,14 @@
 import { Request, Response } from "express";
 import { container } from "tsyringe";
 import { randomUUID } from "crypto";
+import type {
+  ApiSuccessResponse,
+  GoogleSignInResponseDTO,
+  RefreshTokenResponseDTO,
+  SignInResponseDTO,
+  SignUpResponseDTO,
+  VerifyEmailPinResponseDTO,
+} from "@pombo/shared-types";
 import {
   SignInUseCase,
   SignUpUseCase,
@@ -42,7 +50,7 @@ export class AuthController {
         token: result.token,
         csrfToken,
       },
-    });
+    } satisfies ApiSuccessResponse<SignInResponseDTO>);
   }
 
   async signUp(req: Request, res: Response): Promise<Response> {
@@ -59,7 +67,7 @@ export class AuthController {
     return res.status(201).json({
       ok: true,
       data: { ...result, csrfToken },
-    });
+    } satisfies ApiSuccessResponse<SignUpResponseDTO>);
   }
 
   async sendEmailVerificationPin(
@@ -99,7 +107,7 @@ export class AuthController {
     return res.status(200).json({
       ok: true,
       data: { user: result.user, token: result.token, csrfToken },
-    });
+    } satisfies ApiSuccessResponse<VerifyEmailPinResponseDTO>);
   }
 
   async signOut(req: Request, res: Response): Promise<Response> {
@@ -146,7 +154,7 @@ export class AuthController {
         token: result.token,
         csrfToken,
       },
-    });
+    } satisfies ApiSuccessResponse<GoogleSignInResponseDTO>);
   }
 
   async refresh(req: Request, res: Response): Promise<Response> {
@@ -173,7 +181,7 @@ export class AuthController {
     return res.status(200).json({
       ok: true,
       data: { token: result.token, csrfToken },
-    });
+    } satisfies ApiSuccessResponse<RefreshTokenResponseDTO>);
   }
 
   async requestPasswordReset(req: Request, res: Response): Promise<Response> {

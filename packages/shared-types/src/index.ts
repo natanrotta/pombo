@@ -1,8 +1,9 @@
+// The wire contract shared by @pombo/api (which requires the CommonJS `dist`)
+// and @pombo/web (which compiles this TypeScript source directly). Keep the
+// explicit `.js` specifiers: the package's own `node16` build requires them.
+export * from "./api.js";
+export * from "./error-codes.js";
 export * from "./auth.js";
-export * from "./user.js";
-
-// Runtime values — re-exported explicitly so Vite's CommonJS lexer can
-// statically resolve the named export without traversing the
-// `__exportStar(require(...))` chain. Type-only re-exports above don't need
-// this because they vanish at compile time.
-export { EMAIL_VERIFY_JWT_SCOPE } from "./auth.js";
+export * from "./devices.js";
+export * from "./messaging.js";
+export * from "./account.js";

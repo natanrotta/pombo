@@ -123,7 +123,7 @@ For full architectural context, see `.claude/patterns/backend.md` and `.claude/p
 | F-H10 | Component rendered inside `.map()` without `memo()` | Wrap with `memo()`; pass stable handlers via `useCallback` |
 | F-H11 | Handler defined inline in render and passed to memoized child | Move to `useCallback` |
 | F-H12 | Date received from API as string but passed straight to `Date` math without conversion | Convert at the render boundary; entity type stays `string` (ISO) |
-| F-H13 | Frontend entity field name diverges from API DTO (e.g., `birth_date` instead of `birthDate`) | Mirror the API DTO 1:1 |
+| F-H13 | Frontend entity redeclares a wire shape (or diverges from it) instead of aliasing the DTO from `@pombo/shared-types` | Alias the shared DTO; add missing DTOs to the package first |
 | F-H14 | Repository method missing explicit return type | Add `: Promise<X>` so consumers don't infer wrong types |
 | F-H15 | i18n key added to one locale only | Add to all 3 (pt-BR, en, es) |
 | F-H16 | Color-mode conditional in component (`useColorMode().colorMode === "dark" ? ... : ...`) | Use semantic token with `_dark` variant |

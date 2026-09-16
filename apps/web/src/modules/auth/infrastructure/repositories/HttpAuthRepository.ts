@@ -1,3 +1,10 @@
+import type {
+  GoogleSignInResponseDTO,
+  MeResponseDTO,
+  SignInResponseDTO,
+  SignUpResponseDTO,
+  VerifyEmailPinResponseDTO,
+} from "@pombo/shared-types";
 import { httpClient } from "@/core/http/httpClient";
 import type { AuthRepository } from "@/modules/auth/domain/repositories/AuthRepository";
 import type {
@@ -14,55 +21,21 @@ import type {
 import { STORAGE_KEYS } from "@/shared/constants/storageKeys";
 import { clearSessionScopedStorage } from "@/shared/utils/sessionStorageCleanup";
 
-/** Wire shape of the authenticated user returned by `/auth/me`, sign-in,
- *  and verify-email. Single-user: no account/membership fields. */
-interface ApiMeResponse {
-  id: string;
-  name: string;
-  email: string;
-  emailVerified?: boolean;
-  avatarUrl?: string;
-  language?: string;
-}
-
-interface ApiAuthResponse {
-  user: ApiMeResponse;
-  /**
-   * Legacy field: the server still echoes the JWT in the body, but the FE
-   * ignores it — the httpOnly cookie is the only session credential.
-   */
-  token?: string;
-  csrfToken?: string;
-}
-
-/** Wire shape of `POST /auth/sign-up`. The account is unverified: the backend
- *  returns a scoped `email:verify` token plus the registered e-mail instead
- *  of a full session. */
-interface ApiSignUpResponse {
-  requiresEmailVerification: true;
-  token: string;
-  email: string;
-}
-
-/** `POST /auth/google` discriminated response. */
-type ApiGoogleSignInResponse =
-  | ({ kind: "sign-in" } & ApiAuthResponse)
-  | ({ kind: "sign-up" } & ApiAuthResponse);
-
-function mapToAuthUser(data: ApiMeResponse): AuthUser {
+/** The API profile → the UI's user (the UI renders no avatar as `""`). */
+function mapToAuthUser(data: MeResponseDTO): AuthUser {
   return {
     id: data.id,
     name: data.name,
     email: data.email,
-    emailVerified: data.emailVerified ?? true,
+    emailVerified: data.emailVerified,
     avatarUrl: data.avatarUrl ?? "",
-    language: data.language ?? "pt-BR",
+    language: data.language,
   };
 }
 
 export class HttpAuthRepository implements AuthRepository {
   async signIn(input: SignInInput): Promise<AuthSession> {
-    const data = await httpClient.post<never, ApiAuthResponse>("/auth/sign-in", {
+    const data = await httpClient.post<never, SignInResponseDTO>("/auth/sign-in", {
       email: input.email,
       password: input.password,
     });
@@ -70,7 +43,7 @@ export class HttpAuthRepository implements AuthRepository {
   }
 
   async signUp(input: SignUpInput): Promise<SignUpResult> {
-    const data = await httpClient.post<never, ApiSignUpResponse>("/auth/sign-up", {
+    const data = await httpClient.post<never, SignUpResponseDTO>("/auth/sign-up", {
       name: input.name,
       email: input.email,
       password: input.password,
@@ -98,7 +71,7 @@ export class HttpAuthRepository implements AuthRepository {
   }
 
   async verifyEmailPin(pin: string): Promise<AuthSession> {
-    const data = await httpClient.post<never, ApiAuthResponse>("/auth/email-verification/verify", {
+    const data = await httpClient.post<never, VerifyEmailPinResponseDTO>("/auth/email-verification/verify", {
       pin,
     });
     // The full session cookie is now set by the server — drop the scoped token.
@@ -107,7 +80,7 @@ export class HttpAuthRepository implements AuthRepository {
   }
 
   async signInWithGoogle(input: GoogleSignInInput): Promise<AuthSession> {
-    const data = await httpClient.post<never, ApiGoogleSignInResponse>("/auth/google", {
+    const data = await httpClient.post<never, GoogleSignInResponseDTO>("/auth/google", {
       credential: input.credential,
       ...(input.language && { language: input.language }),
     });
@@ -134,7 +107,7 @@ export class HttpAuthRepository implements AuthRepository {
       // Cookie-authenticated; resolves only with a valid session. A 401 here
       // means "not signed in" — flag the probe so the interceptor doesn't run
       // the session-expired redirect on public pages.
-      const data = await httpClient.get<never, ApiMeResponse>("/auth/me", {
+      const data = await httpClient.get<never, MeResponseDTO>("/auth/me", {
         skipSessionExpiredRedirect: true,
       });
       return mapToAuthUser(data);
@@ -144,7 +117,7 @@ export class HttpAuthRepository implements AuthRepository {
   }
 
   async updateProfile(input: UpdateProfileInput): Promise<AuthUser> {
-    const data = await httpClient.put<never, ApiMeResponse>("/auth/profile", input);
+    const data = await httpClient.put<never, MeResponseDTO>("/auth/profile", input);
     return mapToAuthUser(data);
   }
 
@@ -152,7 +125,7 @@ export class HttpAuthRepository implements AuthRepository {
     const formData = new FormData();
     formData.append("file", file);
 
-    const data = await httpClient.put<never, ApiMeResponse>("/auth/profile/avatar", formData);
+    const data = await httpClient.put<never, MeResponseDTO>("/auth/profile/avatar", formData);
     return mapToAuthUser(data);
   }
 

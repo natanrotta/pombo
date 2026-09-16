@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { AppError } from "@/core/errors/AppError";
-import { ErrorCodes } from "@/core/errors/errorCodes";
+import { ErrorCodes } from "@pombo/shared-types";
 
 const createMock = vi.fn();
 const isVisibleMock = vi.fn((_id: string) => false);

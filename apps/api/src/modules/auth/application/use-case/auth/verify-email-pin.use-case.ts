@@ -4,7 +4,7 @@ import { DI_TOKENS } from "@core/container/tokens";
 import { IUserRepository } from "@modules/user/domain/repository/user-repository.interface";
 import { IEmailVerificationPinRepository } from "@modules/auth/domain/repository/email-verification-pin-repository.interface";
 import { IJwtProvider, ILoggerProvider } from "@shared/provider";
-import { AuthResponseDTO, VerifyEmailPinDTO } from "../../dto/auth.dto";
+import { AuthSessionResult, VerifyEmailPinDTO } from "../../dto/auth.dto";
 import {
   BadRequestError,
   TooManyRequestsError,
@@ -57,7 +57,7 @@ export class VerifyEmailPinUseCase {
     private readonly logger: ILoggerProvider,
   ) {}
 
-  async execute(data: VerifyEmailPinDTO): Promise<AuthResponseDTO> {
+  async execute(data: VerifyEmailPinDTO): Promise<AuthSessionResult> {
     let user = await this.userRepository.findById(data.userId);
     if (!user) {
       throw new UnauthorizedError(

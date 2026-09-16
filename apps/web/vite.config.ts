@@ -95,24 +95,10 @@ export default defineConfig(({ command }) => ({
   resolve: {
     alias: aliases,
   },
-  // shared-types ships as CommonJS via `__exportStar(require(...))` chains;
-  // Vite's CJS lexer can't surface nested named exports, so force the dep
-  // optimizer to pre-bundle it into a single ESM blob where every named export
-  // is statically reachable from the browser.
-  optimizeDeps: {
-    include: ["@pombo/shared-types"],
-  },
-  // The dev fix above (optimizeDeps) only applies to the dev server. For the
-  // production `vite build`, @pombo/shared-types is a linked workspace dep that
-  // resolves OUTSIDE node_modules (packages/shared-types/dist/index.js), so
-  // Rollup treats its CommonJS output as ESM source and can't see its runtime
-  // value exports (EMAIL_VERIFY_JWT_SCOPE, IMPORT_MAX_ROWS, ...). Including it in
-  // commonjsOptions makes Rollup run the CJS→ESM interop on it. `/node_modules/`
-  // must stay so the default behaviour for real node_modules deps is preserved.
+  // `@pombo/shared-types` is aliased to its TypeScript source (see aliases.ts),
+  // so it is compiled like app code: no CJS interop and no dep pre-bundle that
+  // goes stale when the package changes.
   build: {
-    commonjsOptions: {
-      include: [/packages\/shared-types/, /node_modules/],
-    },
     rollupOptions: {
       output: {
         // Stable vendor chunks: app deploys (route-chunk churn) no longer

@@ -3,7 +3,7 @@ import { DI_TOKENS } from "@core/container/tokens";
 import { IDevicesRepository } from "@modules/devices/domain/repository/devices-repository.interface";
 import { IWhatsAppGateway } from "@modules/devices/domain/provider/whatsapp-gateway.interface";
 import { IOutboxRepository } from "@modules/messaging/domain/repository/outbox-repository.interface";
-import { type MessageStatus } from "@modules/messaging/domain/value-object/message-status";
+import type { SendMessageResponseDTO } from "@pombo/shared-types";
 import { AppConfig } from "@shared/provider/app-config.interface";
 import { ConflictError, NotFoundError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
@@ -13,11 +13,6 @@ import {
   buildGroupJid,
 } from "@modules/messaging/domain/value-object/wa-jid";
 import { DrainOutboxUseCase } from "./drain-outbox.use-case";
-
-export interface SendTextOutput {
-  messageId: string;
-  status: MessageStatus;
-}
 
 /**
  * The core send path. `202` means accepted — NOT delivered. Every send is
@@ -44,7 +39,7 @@ export class SendTextMessageUseCase {
     private readonly drainOutbox: DrainOutboxUseCase,
   ) {}
 
-  async execute(input: SendTextInput): Promise<SendTextOutput> {
+  async execute(input: SendTextInput): Promise<SendMessageResponseDTO> {
     const device = await this.devicesRepository.findById(
       input.accountId,
       input.deviceId,

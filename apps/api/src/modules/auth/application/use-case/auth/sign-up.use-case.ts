@@ -2,7 +2,7 @@ import { inject, injectable } from "tsyringe";
 import { DI_TOKENS } from "@core/container/tokens";
 import { IUserRepository } from "@modules/user/domain/repository/user-repository.interface";
 import { IHashProvider, IJwtProvider } from "@shared/provider";
-import { SignUpDTO, SignUpResponseDTO } from "../../dto/auth.dto";
+import { SignUpDTO, SignUpResult } from "../../dto/auth.dto";
 import { ConflictError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
 import { DEFAULT_LOCALE } from "@shared/constant/defaults";
@@ -35,7 +35,7 @@ export class SignUpUseCase {
     private readonly jwtProvider: IJwtProvider,
   ) {}
 
-  async execute(data: SignUpDTO): Promise<SignUpResponseDTO> {
+  async execute(data: SignUpDTO): Promise<SignUpResult> {
     const existingUser = await this.userRepository.findByEmail(data.email);
 
     if (existingUser) {

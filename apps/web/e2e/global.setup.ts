@@ -71,9 +71,13 @@ setup("authenticate", async ({ page }) => {
   // Sanity check — hit a protected route. Catches stale seed / token-version
   // drift before it manifests as cryptic failures downstream.
   // `/devices` is a real route: a broken session redirects to /sign-in and the
-  // URL assertion fails (an unknown path would render the 404 and still pass).
+  // URL assertion fails. The heading check catches the other silent failure —
+  // an app that crashes on load keeps the URL but renders nothing.
   await page.goto("/devices");
   await expect(page).toHaveURL(/\/devices$/, { timeout: 10000 });
+  await expect(page.getByRole("heading", { level: 1, name: /dispositivos|devices/i })).toBeVisible({
+    timeout: 15000,
+  });
 
   await page.context().storageState({ path: AUTH_FILE });
 });

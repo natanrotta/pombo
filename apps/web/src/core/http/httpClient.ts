@@ -1,7 +1,7 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
+import { ErrorCodes, type ApiErrorResponse } from "@pombo/shared-types";
 import i18n from "@/shared/i18n";
 import { AppError } from "@/core/errors/AppError";
-import { ErrorCodes } from "@/core/errors/errorCodes";
 import { STORAGE_KEYS } from "@/shared/constants/storageKeys";
 import { clearSessionScopedStorage } from "@/shared/utils/sessionStorageCleanup";
 
@@ -87,10 +87,10 @@ function processQueue(error: unknown) {
  * out on those is a bug — the user must stay logged in and see the error inline.
  */
 const SESSION_REFRESH_CODES = new Set<string>([
-  "AUTH_TOKEN_EXPIRED",
-  "AUTH_TOKEN_INVALID",
-  "AUTH_TOKEN_REVOKED",
-  "AUTH_NO_TOKEN",
+  ErrorCodes.AUTH_TOKEN_EXPIRED,
+  ErrorCodes.AUTH_TOKEN_INVALID,
+  ErrorCodes.AUTH_TOKEN_REVOKED,
+  ErrorCodes.AUTH_NO_TOKEN,
 ]);
 
 let onAuthExpired: (() => void) | null = null;
@@ -131,14 +131,16 @@ httpClient.interceptors.response.use(
     }
 
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-    const { status, data } = error.response;
+    const { status } = error.response;
+    // Every API error body is the shared envelope; a proxy/CDN error page may
+    // not be, hence the optional chaining on `apiError` below.
+    const apiError = (error.response.data as Partial<ApiErrorResponse> | undefined)?.error;
 
     // Only an APP-token 401 (expired/invalid JWT) should attempt refresh/logout.
     // A domain 401 (e.g. wrong password on a sensitive action) must
     // NOT log the user out — it falls through to the generic AppError reject so
     // the caller can show the error inline.
-    const auth401Code = (data as { error?: { code?: string } } | undefined)?.error?.code;
-    const isAppTokenExpiry = !auth401Code || SESSION_REFRESH_CODES.has(auth401Code);
+    const isAppTokenExpiry = !apiError?.code || SESSION_REFRESH_CODES.has(apiError.code);
 
     if (status === 401 && !originalRequest._retry && isAppTokenExpiry) {
       // A flagged silent session probe (the `/auth/me` call in getCurrentUser)
@@ -149,7 +151,6 @@ httpClient.interceptors.response.use(
       // on public pages (/register, /forgot-password) from being
       // bounced to /sign-in by the boot probe.
       if (originalRequest.skipSessionExpiredRedirect) {
-        const apiError = (data as { error?: { message?: string; code?: string } })?.error;
         return Promise.reject(
           new AppError(
             apiError?.message || i18n.t("errors.sessionExpired", { ns: "common" }),
@@ -167,9 +168,6 @@ httpClient.interceptors.response.use(
       // up") — don't clear auth, don't attempt a refresh.
       const isEmailVerification = originalRequest.url?.includes("/auth/email-verification/");
       if (isEmailVerification) {
-        const apiError = (
-          data as { error?: { message?: string; code?: string; details?: unknown } }
-        )?.error;
         return Promise.reject(
           new AppError(
             apiError?.message || i18n.t("errors.sessionExpired", { ns: "common" }),
@@ -182,9 +180,6 @@ httpClient.interceptors.response.use(
       // Auth routes should not attempt refresh
       if (originalRequest.url?.includes("/auth/")) {
         clearAuthAndRedirect();
-        const apiError = (
-          data as { error?: { message?: string; code?: string; details?: unknown } }
-        )?.error;
         return Promise.reject(
           new AppError(
             apiError?.message || i18n.t("errors.sessionExpired", { ns: "common" }),
@@ -241,10 +236,9 @@ httpClient.interceptors.response.use(
     }
 
     if (status === 429) {
-      const apiError = (data as { error?: { message?: string; code?: string } })?.error;
       const retryAfter = error.response.headers["retry-after"];
       const message = apiError?.message || i18n.t("errors.rateLimited", { ns: "common" });
-      const code = apiError?.code || "RATE_LIMIT";
+      const code = apiError?.code || ErrorCodes.RATE_LIMIT;
       return Promise.reject(
         new AppError(message, code, 429, {
           retryAfter: retryAfter ? Number(retryAfter) : undefined,
@@ -252,8 +246,6 @@ httpClient.interceptors.response.use(
       );
     }
 
-    const apiError = (data as { error?: { message?: string; code?: string; details?: unknown } })
-      ?.error;
     const message = apiError?.message || i18n.t("errors.unexpectedError", { ns: "common" });
     const code = apiError?.code || "UNKNOWN_ERROR";
     const details = apiError?.details;

@@ -89,7 +89,9 @@ apps/api/src/
 **Dependency rule (inward only, unchanged):** `domain` ← `application` ← `infrastructure` inside each
 module. `modules/` may import `shared/` and `core/` (ports); `core/` may import `shared/`; `shared/`
 imports nobody. A module NEVER imports another module's `infrastructure/` — only its `domain/` or
-`application/`. Violations are blocking. Full skeleton + "where do I put X?" cheat-sheet in
+`application/`. The one external package any layer (domain included) may import is
+`@pombo/shared-types` — the zero-dependency wire contract — and in `domain/` only as `import type` /
+`export type` of a contract union or DTO. Violations are blocking. Full skeleton + "where do I put X?" cheat-sheet in
 [`backend-modules.md`](./backend-modules.md).
 
 ---
@@ -138,14 +140,13 @@ export class Device {
   get name(): string { return this.props.name; }
   // ... one getter per field
 
-  public toJSON() {
-    const { webhookSecret, ...safe } = this.props;
-    return safe;  // omit sensitive fields here (secrets, tokens, session keys)
+  public toJSON(): DeviceResponseDTO {   // wire DTO from @pombo/shared-types
+    return { id: this.id, name: this.name, /* ... */ };  // never the webhookSecret
   }
 }
 ```
 
-**Rules:** immutable props, private; only getters; `toJSON()` controls serialization — and a projection with a DIFFERENT exposure gets its own named method instead of a flag (`ApiToken.toMetadata()` hides the hash; never a `toJSON(includeSecret)`); no business behavior in entities (use cases own logic) — derived read-only getters over own state (`user.isActive`, `device.isConnected`) are fine and preferred over `status === "ACTIVE"` literals in use cases; nested relations as `Xxx[]` of IDs or nested entities.
+**Rules:** immutable props, private; only getters; `toJSON()` controls serialization and is typed with the response DTO from `@pombo/shared-types` (the web consumes the same type; status/type unions and `DeviceWebhooks` are re-exported from the package, and a `*-status.spec.ts` pins each union to its Prisma enum; each request Zod schema is pinned to its DTO with `expectTypeOf<z.input<typeof Schema>>()` in the `*.dto.spec.ts`) — and a projection with a DIFFERENT exposure gets its own named method instead of a flag (`ApiToken.toMetadata()` hides the hash; never a `toJSON(includeSecret)`); no business behavior in entities (use cases own logic) — derived read-only getters over own state (`user.isActive`, `device.isConnected`) are fine and preferred over `status === "ACTIVE"` literals in use cases; nested relations as `Xxx[]` of IDs or nested entities.
 
 ### Repository Interface (`modules/<domain>/domain/repository/{entity}-repository.interface.ts`)
 

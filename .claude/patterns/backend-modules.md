@@ -104,6 +104,7 @@ core/     →  may import  →  shared/
 shared/   →  imports nobody
 modules/  →  NEVER import another module's infrastructure/
              (only its domain/ or application/ — the interface / use-case)
+any layer →  may import  →  @pombo/shared-types (the wire contract; type-only in domain/)
 ```
 
 The direction always points **inward** (`infrastructure → application → domain`),

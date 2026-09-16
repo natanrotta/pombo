@@ -12,7 +12,7 @@ Everything you need to build and ship — clone it, rename it, start shipping.
 |---|---|---|---|
 | **API** | `apps/api` | Node.js · Express 4 · Prisma 7 (Postgres) · tsyringe DI · Zod · Vitest | `4444` |
 | **Web** | `apps/web` | React 19 · Vite 5 · Chakra UI 3 · TanStack Query 5 · react-i18next · Vitest + Playwright | `4000` |
-| **Shared types** | `packages/shared-types` | `@pombo/shared-types` — DTOs shared by API + web | — |
+| **Shared types** | `packages/shared-types` | `@pombo/shared-types` — the wire contract (DTOs, status unions, `ErrorCodes`, envelope) shared by API + web | — |
 
 `apps/api` and `apps/web` are Turborepo/yarn workspaces.
 
@@ -55,6 +55,8 @@ password: Demo1234!
 | `yarn backend:down` | Stop the API and `docker compose down` |
 | `yarn web:up` | Web dev server on `:4000` |
 | `yarn services:up` | Postgres + Redis only (Docker) |
+
+> The API runs against the **built** `packages/shared-types/dist`; the web reads the package source directly. The root scripts above rebuild it for you — if you start the API any other way (e.g. `yarn workspace @pombo/api dev`), run `yarn shared:build` after editing the package.
 
 ### Database (Prisma)
 

@@ -42,45 +42,51 @@ export interface MeResponseDTO {
 }
 
 /**
- * Response for every endpoint that mints a full session (`sign-in`,
- * `verify-email`, single-user flows). Carries the tokens and the profile so
- * the FE can render without an extra `/auth/me` call.
+ * Body of every endpoint that mints a full session (`sign-in`,
+ * `email-verification/verify`). The session itself rides httpOnly cookies;
+ * `token` is echoed for non-browser clients (the web ignores it) and
+ * `csrfToken` is the value of the JS-readable `pombo_csrf` cookie. The refresh
+ * token is never in the body — it lives only in the `pombo_rt` cookie.
  */
-export interface AuthResponseDTO {
+export interface SessionResponseDTO {
   user: MeResponseDTO;
   token: string;
-  refreshToken: string;
+  csrfToken: string;
 }
 
 /** `POST /auth/sign-in` response — single-user, so the session is final
  *  immediately (no account picker). */
-export type SignInResponseDTO = AuthResponseDTO;
+export type SignInResponseDTO = SessionResponseDTO;
+
+/** `POST /auth/email-verification/verify` response — the PIN upgrades the
+ *  scoped token into a full session. */
+export type VerifyEmailPinResponseDTO = SessionResponseDTO;
 
 /**
  * `POST /auth/sign-up` response (email+password path). The user is created
  * unverified — instead of a full session the backend returns a short-lived
  * `email:verify`-scoped token and the registered e-mail. The FE stores the
  * token and routes to `/verify-email`, where the user confirms the 6-digit
- * PIN to upgrade into a full session.
+ * PIN to upgrade into a full session. `csrfToken` lets the scoped POSTs pass
+ * the double-submit check before any session exists.
  */
 export interface SignUpResponseDTO {
   requiresEmailVerification: true;
   /** Scoped JWT that ONLY authorizes the send/verify-PIN endpoints. */
   token: string;
   email: string;
+  csrfToken: string;
 }
 
 /**
- * `POST /auth/google-sign-in` response. A single discriminated shape: both
- * sign-in and sign-up land on a full session in single-user mode; `kind`
- * lets the FE pick the right post-auth route.
+ * `POST /auth/google` response (200 on sign-in, 201 on sign-up). Both land on
+ * a full session; `kind` lets the FE pick the post-auth route.
  */
-export type GoogleSignInResponseDTO =
-  | ({ kind: "sign-in" } & AuthResponseDTO)
-  | ({ kind: "sign-up" } & AuthResponseDTO);
+export type GoogleSignInResponseDTO = { kind: "sign-in" | "sign-up" } & SessionResponseDTO;
 
-/** `POST /auth/refresh` response. */
+/** `POST /auth/refresh` response. The rotated refresh token goes to the
+ *  cookie only. */
 export interface RefreshTokenResponseDTO {
   token: string;
-  refreshToken: string;
+  csrfToken: string;
 }
