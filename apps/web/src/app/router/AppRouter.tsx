@@ -60,6 +60,17 @@ const SandboxPage = lazyWithRetry(() =>
   }))
 );
 
+// Dev-only styleguide: excluded from production builds, so the chunk never
+// ships and the route never mounts outside local development (and e2e, which
+// runs against the Vite dev server).
+const StyleguidePage = import.meta.env.DEV
+  ? lazyWithRetry(() =>
+      import("@/modules/development/presentation/pages/StyleguidePage").then((m) => ({
+        default: m.StyleguidePage,
+      }))
+    )
+  : null;
+
 // Neutral placeholder while the lazy chunk is downloading. Each page owns its
 // own loading state (skeleton) once it mounts, so this only needs to hold the
 // layout height for the handful of ms until the chunk lands.
@@ -156,6 +167,10 @@ export function AppRouter() {
           path={ROUTE_PATHS.settings}
           element={<Navigate to={ROUTE_PATHS.profile} replace />}
         />
+
+        {StyleguidePage ? (
+          <Route path={ROUTE_PATHS.styleguide} element={<StyleguidePage />} />
+        ) : null}
 
         <Route path={ROUTE_PATHS.notFound} element={<NotFoundPage />} />
         <Route path="*" element={<NotFoundPage />} />

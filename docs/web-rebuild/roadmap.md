@@ -327,9 +327,11 @@ Legenda: **Tamanho** S/M/L (esforço relativo); **Especialista** conforme o rote
 - A11y: todo ícone-botão com `aria-label`, foco visível nos tokens, contraste AA nos pares `text.*` × `bg.*` (verificado na galeria).
 - Docs: `.claude/patterns/frontend.md` (remover `withAppShell`, tokens do theme azul, adicionar `@pombo/theme`, galeria, `data-cy`), `BASELINE.md` (R10 aponta para o pacote), `code-review-checklist.md`, `e2e.md` (novos POMs/fixtures), `apps/web/README.md`, `packages/theme/README.md`. Port das mudanças de patterns para o `cuidda` (memória: `.claude/**` é compartilhado — sincronizar por diff normalizado).
 - `.claude/learning/violations.md` com o ledger das fases; radar de promoção rodado.
+- **Testes das Fases 5–9, concentrados aqui** (decisão de 2026-09-16, ver §7): specs unitários e e2e, page objects, fixtures e snapshots visuais que cada fase lista nos seus ACs são escritos e executados nesta fase, junto com a suíte completa (`yarn test`, `yarn test:e2e`, galeria).
 
 **Critérios de aceite**
 - AC-10.1 — CI verde com build de web + e2e.
+- AC-10.5 — Os ACs de teste das Fases 5–9 (AC-5.2, AC-5.3, AC-6.1, AC-6.2, AC-7.1–7.3, AC-8.1, AC-8.2, AC-9.1–9.3) estão cumpridos e verdes.
 - AC-10.2 — `/normalize` sem Critical/High.
 - AC-10.3 — `patterns/frontend.md` descreve o código que existe (conferido contra `ls` real).
 - AC-10.4 — Nenhuma referência ao theme antigo, ao `withAppShell` ou a `modules/dashboard` em nenhum doc.
@@ -390,6 +392,7 @@ Onze PRs (doze com a Fase 11). Fases 1 e 2 começam imediatamente; a Fase 3 é o
 1. `/start-task` na worktree própria → `/triage` (ou `/architect` para as Fases 3, 4 e 11) → Task Spec em `.claude/specs/web-rebuild-<fase>.md` com status `approved`.
 2. Especialista implementa contra os ACs; babysit nível 1 (`code-auditor`) + nível 2 (`code-reviewer`); nível 3 (`/duck-debug`) obrigatório nas Fases 3, 4, 6 e 11.
 3. Gates do `/finish-task`: cobertura (não se aplica ao web, mas a Fase 2 toca `apps/api`), spec compliance, contract sync, `/code-review`, `yarn type-check && yarn lint && yarn test`, `yarn test:e2e` (toda fase toca `apps/web/**`), snapshots da galeria (Fase 4+).
+   - **A partir da Fase 5** (decisão de 2026-09-16): cada fase roda só `type-check` e `lint`. Escrever e executar testes (unitários, e2e, snapshots) fica para a Fase 10, que cobre os ACs de teste das Fases 5–9. Até lá, uma fase pode quebrar um snapshot ou um e2e existente; a Fase 10 revisa e atualiza.
 4. Checagem manual light/dark das telas tocadas; zero hex/rgba fora do theme (`post-edit-frontend.sh` F-C2); zero amarelo/laranja (F-C3); i18n nas 3 locales; `data-cy` em todo interativo novo.
 5. PR para `develop` com a spec linkada e os ACs marcados; `/cleanup-task` após o merge.
 6. Rollback: cada fase é um PR reversível; o Cloudflare Pages faz deploy de `main` — a fase só chega em produção no merge `develop → main` (ver `DEPLOY.md`).

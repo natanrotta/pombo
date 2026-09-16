@@ -148,7 +148,7 @@ The single `webServer` entry spawns a **dedicated E2E Vite on `:3001`** (`VITE_P
 2. **`getByLabel(...)` for form fields.** Chakra `<FormControl>` wires `<FormLabel>` → input via `aria-labelledby`. The label text in the regex must match pt-BR **and** en (see "Bilingual assertions").
 3. **`getByText(...)` for static content / empty states / toasts.** Prefer over text-on-element + locator chains.
 4. **`getByPlaceholder(...)` only when the input has no label** (search bars, inline filters).
-5. **`getByTestId(...)` as last resort.** If you reach for this, first try: parent role + `.filter({ hasText: ... })`, or `getByRole(role).getByText(name)`. Add a `data-testid` to the source component only when no semantic option exists and document the reason in the POM.
+5. **`getByTestId(...)` as last resort.** If you reach for this, first try: parent role + `.filter({ hasText: ... })`, or `getByRole(role).getByText(name)`. The test-id attribute in this app is **`data-cy`** (`testIdAttribute: "data-cy"` in `playwright.config.ts`) — never `data-testid`. Shared primitives already carry one where no semantic selector is unique (`app-modal`, `app-modal-primary`, `app-modal-cancel`, `confirm-dialog`, `confirm-dialog-confirm`, `confirm-dialog-cancel`, `entity-card`, `page-header-primary-action`, `filter-bar-search`, `save-button`, `empty-state-action`, `toast`, `language-option-<code>`, `user-menu-trigger`, `user-menu-sign-out`). `entity-card` and `toast` repeat once per rendered item — scope them (`getByTestId("entity-card").filter({ hasText: name })`) before acting. Add a new one to the source component only when no semantic option exists and document the reason in the POM.
 
 **Forbidden:**
 - CSS class selectors (`.chakra-button`, `.css-xyz`, `[class*="..."]`) → `E-C1` / `F-H17`.
@@ -485,6 +485,13 @@ npx playwright test -g "happy path"    # narrow by test title grep
 ```
 
 When iterating, prefer `--ui` — it gives you the locator picker, time-travel, and a watch loop.
+
+### Visual regression (design system)
+
+`e2e/tests/design-system/styleguide-visual.spec.ts` screenshots every section of the DEV-only `/dev/styleguide` gallery (plus the modal, the confirmation dialog and the four toasts) in light and dark, against baselines versioned in `e2e/tests/__screenshots__/…/<name>-<platform>.png`. The config pins `animations: "disabled"`, a tight `threshold: 0.02` / `maxDiffPixelRatio: 0.002` (the 0.2 default lets a subtle token change pass) and a `stylePath` that hides the TanStack devtools button. Wait for finite animations with `document.getAnimations()` — never a sleep.
+
+- A design change is **expected** to fail it: review the diff in the HTML report, then `yarn test:e2e --update-snapshots`, and commit the new PNGs with the change.
+- Baselines are per platform: the `darwin` files come from a Mac; CI needs its own `linux` set generated in the Playwright Docker image.
 
 ---
 

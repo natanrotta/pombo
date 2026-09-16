@@ -47,7 +47,9 @@ function FilterBarComponent({
         }
       >
         <Input
+          data-cy="filter-bar-search"
           type="text"
+          aria-label={searchPlaceholder ?? t("filter.searchPlaceholder")}
           placeholder={searchPlaceholder ?? t("filter.searchPlaceholder")}
           value={searchValue}
           onChange={(e) => onSearchChange(e.target.value)}

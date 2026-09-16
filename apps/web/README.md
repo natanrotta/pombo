@@ -60,6 +60,7 @@ Path aliases: `@/*` → `src/*`, `@assets/*` → `assets/*`.
 | `/perfil` | profile (`/settings` redirects here) | `ProtectedRoute` + `AppShell` |
 | `/api` | API token | `ProtectedRoute` + `AppShell` |
 | `/404`, `*` | not found | `ProtectedRoute` + `AppShell` |
+| `/dev/styleguide` | design-system gallery — **dev server only**, never in a production build | `ProtectedRoute` + `AppShell` |
 
 Paths live only in `src/app/router/RoutePaths.ts`.
 
@@ -98,6 +99,7 @@ yarn dev           # vite dev (:4000)
 yarn build         # tsc + vite build
 yarn test          # Vitest unit tests
 yarn test:e2e      # Playwright against an isolated stack (docker + API :3334 + web :3001)
+yarn test:e2e --update-snapshots   # accept an intended visual change (design-system baselines)
 ```
 
 > Authenticated flows need the API (`yarn backend:up-d`). Seeded login: `demo@example.com` / `Demo1234!`.

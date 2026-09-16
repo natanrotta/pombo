@@ -219,6 +219,7 @@ export function SidebarNav({ forceExpanded, onNavigate }: SidebarNavProps) {
             >
               <MenuTrigger
                 asChild
+                data-cy="user-menu-trigger"
                 cursor="pointer"
                 borderRadius="lg"
                 _hover={{ bg: "bg.hover" }}
@@ -309,6 +310,7 @@ export function SidebarNav({ forceExpanded, onNavigate }: SidebarNavProps) {
                *  push the version to the far right. */}
               <MenuItem
                 value="sign-out"
+                data-cy="user-menu-sign-out"
                 color="status.error.fg"
                 onClick={signOut}
                 disabled={isSubmitting}

@@ -82,6 +82,9 @@ export function LanguageSelector() {
           >
             <Flex
               as="button"
+              aria-label={label}
+              aria-pressed={isActive}
+              data-cy={`language-option-${lang.value}`}
               align="center"
               justify="center"
               gap={1.5}

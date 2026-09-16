@@ -55,6 +55,7 @@ export const EntityCard = memo(function EntityCard({
 }: EntityCardProps) {
   return (
     <MotionBox
+      data-cy="entity-card"
       bg="bg.surface"
       borderWidth="1px"
       borderColor="border.subtle"

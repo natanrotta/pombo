@@ -166,7 +166,7 @@ function EmptyStateComponent({
           alignItems="center"
           gap={2}
         >
-          <Button variant="subtle" onClick={onAction}>
+          <Button data-cy="empty-state-action" variant="subtle" onClick={onAction}>
             {actionLabel}
           </Button>
           {secondaryActionLabel && onSecondaryAction ? (

@@ -73,6 +73,7 @@ export function Toaster() {
             // everything inside is the app's own chrome (v2 rendered this via
             // the `render` option, which v3 moved up to the Toaster).
             <Toast.Root
+              data-cy="toast"
               display="flex"
               alignItems="center"
               gap={3}

@@ -559,6 +559,10 @@ Global font-size: `sm` (14px). FormLabel: `xs`, `600`, `gray.600`. Section headi
 
 **Rule:** check this catalog **before** creating any new shared UI. Duplication is a defect.
 
+**Styleguide:** every primitive above renders, in every state, on the DEV-only route `/dev/styleguide` (`modules/development`, mounted only when `import.meta.env.DEV`; the `pombo:dev-only-modules-excluded` Vite plugin fails a production build that bundles any of its modules). A new or changed shared primitive gets a spot there, and the visual baselines in `e2e/tests/design-system/` get updated in the same change. Interactive primitives without a unique semantic selector carry a `data-cy` (the app's test-id attribute).
+
+**Custom button variants:** the recipe's `danger` variant is not in Chakra's generated types, and the `solid` variant paints brand tokens regardless of `colorPalette` — `colorPalette="red"` renders green. For a destructive action use `variant={"danger" as "solid"}` — the cast only bridges the missing typegen (see `ConfirmDialog`, pinned by `AppModal.spec.tsx`).
+
 ### Skeletons (`shared/components/skeletons/`)
 
 `ListPageSkeleton`, `DetailPageSkeleton` (`profile` / `two-column` / `single`), `EntityCardSkeleton`, `FilterBarSkeleton`, `SectionCardSkeleton`.

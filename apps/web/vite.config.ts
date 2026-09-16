@@ -66,8 +66,37 @@ const devDepsNoImmutableCache = () => ({
   },
 });
 
+// `modules/development` (the /dev/styleguide gallery) is reachable only through
+// an `import.meta.env.DEV` branch in AppRouter, which the production build
+// drops. Failing the build when any of its modules lands in a chunk turns that
+// guarantee into a gate instead of a convention.
+const DEV_ONLY_MODULE_DIR = "/src/modules/development/";
+const devOnlyModulesExcluded = () => ({
+  name: "pombo:dev-only-modules-excluded",
+  apply: "build" as const,
+  generateBundle(
+    this: { error: (message: string) => never },
+    _options: unknown,
+    bundle: Record<string, { type: string; fileName: string; modules?: Record<string, unknown> }>,
+  ) {
+    for (const output of Object.values(bundle)) {
+      const leaked = Object.keys(output.modules ?? {}).find((id) =>
+        id.includes(DEV_ONLY_MODULE_DIR),
+      );
+      if (leaked) {
+        this.error(`Dev-only module ${leaked} leaked into ${output.fileName}`);
+      }
+    }
+  },
+});
+
 export default defineConfig(({ command }) => ({
-  plugins: [react(), devDepsNoImmutableCache(), ...(enableHttps ? [basicSsl()] : [])],
+  plugins: [
+    react(),
+    devDepsNoImmutableCache(),
+    devOnlyModulesExcluded(),
+    ...(enableHttps ? [basicSsl()] : []),
+  ],
   define: {
     __APP_VERSION__: JSON.stringify(resolveAppVersion(command)),
   },

@@ -152,4 +152,52 @@ describe("ConfirmDialog", () => {
     );
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
+
+  // The button recipe's `solid` variant ignores `colorPalette`, so the
+  // destructive CTA once rendered brand green. jsdom resolves no computed
+  // colors, so these read the rules emotion injected for the button's class.
+  it("paints the destructive action with the recipe's danger variant", async () => {
+    renderWithProviders(
+      <ConfirmDialog
+        isOpen
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        confirmLabel="Excluir"
+      />,
+    );
+
+    const css = injectedCssFor(
+      await screen.findByRole("button", { name: "Excluir" }),
+    );
+    expect(css).toContain("background:var(--chakra-colors-red-500)");
+    expect(css).not.toContain("background:var(--chakra-colors-bg-brand-solid)");
+  });
+
+  it("keeps the brand solid variant when the action is not destructive", async () => {
+    renderWithProviders(
+      <ConfirmDialog
+        isOpen
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        confirmLabel="Confirmar"
+        isDanger={false}
+      />,
+    );
+
+    const css = injectedCssFor(
+      await screen.findByRole("button", { name: "Confirmar" }),
+    );
+    expect(css).toContain("background:var(--chakra-colors-bg-brand-solid)");
+    expect(css).not.toContain("background:var(--chakra-colors-red-");
+  });
 });
+
+function injectedCssFor(element: HTMLElement): string {
+  const className = [...element.classList].find((c) => c.startsWith("css-"));
+  if (!className) throw new Error("element has no emotion class");
+  const stylesheet = [...document.querySelectorAll("style")]
+    .map((style) => style.textContent ?? "")
+    .join("\n");
+  const rule = new RegExp(`\\.${className}(?![\\w-])[^{]*\\{([^}]*)\\}`, "g");
+  return [...stylesheet.matchAll(rule)].map(([, body]) => body).join(";");
+}

@@ -159,7 +159,7 @@ function PrimaryAction({ action }: { action: PageHeaderAction }) {
         transform: "scale(0.98)",
       }}
       transition="all 0.15s ease"
-      data-testid="page-header-primary-action"
+      data-cy="page-header-primary-action"
     >
       <Icon boxSize={3.5}>
         <ActionIcon />
