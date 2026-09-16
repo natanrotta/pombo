@@ -32,7 +32,8 @@
     "caption": "Leyenda",
     "captionPlaceholder": "Leyenda opcional",
     "count": "Cantidad",
-    "countHelper": "Encola varios mensajes para ver la cola y el ritmo humanizado (escribiendo + variación) en la práctica."
+    "countHelper": "Encola varios mensajes para ver la cola y el ritmo humanizado (escribiendo + variación) en la práctica.",
+    "textCount": "{{count}} caracteres"
   },
   "type": {
     "text": "Texto",
@@ -67,15 +68,16 @@
     "clear": "Limpiar"
   },
   "queue": {
-    "title": "Cola de envío",
-    "summary": "{{total}} en la cola",
+    "title": "Cola en tiempo real",
     "item": "Mensaje {{index}}/{{total}}",
-    "pacingHint": "Con el ritmo humanizado activo, el destinatario ve \"escribiendo…\" y los mensajes salen espaciados — sigue la cola vaciarse arriba.",
     "pacingPending": "Esperando el ritmo humanizado: se envía después de los mensajes anteriores y las pausas.",
     "empty": {
       "title": "Aún no hay envíos",
       "description": "Envía uno o más mensajes de prueba para seguir la cola vaciarse aquí en tiempo real."
-    }
+    },
+    "subtitle": "Sigue cada mensaje al salir"
   },
-  "success": "{{total}} mensaje(s) en la cola de envío."
+  "success": "{{total}} mensaje(s) en la cola de envío.",
+  "ready_one": "{{count}} device listo",
+  "ready_other": "{{count}} devices listos"
 }

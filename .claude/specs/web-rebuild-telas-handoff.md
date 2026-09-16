@@ -27,3 +27,4 @@ Levar as quatro telas restantes do handoff para o app, na mesma linguagem já ap
 - [2026-09-16] Login: "manter conectado" ficou de fora — a sessão hoje não tem essa opção no backend, e inventar um checkbox sem efeito seria pior que não ter.
 - [2026-09-16] O subtítulo do cartão de login passou a ser "Entre para gerenciar seus devices"; a manchete do produto vive só no bloco de marca, como no handoff.
 - [2026-09-16] O spec visual ganhou a tela de login (deslogada), com o botão do Google mascarado — ele é um iframe do Google, fora do nosso controle.
+- [2026-09-16] Sandbox: cabeçalho com a etiqueta "N device pronto", contador de caracteres no rótulo da mensagem, ações do compositor separadas por régua (limpar discreto + enviar em verde suave) e painel da fila com cabeçalho próprio, linhas numeradas e limpeza só da fila. O contador não mostra limite porque a API não impõe um; inventar "/1024" seria mentira na tela.

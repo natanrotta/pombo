@@ -1,3 +1,4 @@
+import { Flex, Text } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
 import { FormField } from "@/shared/components/forms/FormField";
 import { TextAreaField } from "@/shared/components/forms/TextAreaField";
@@ -28,7 +29,14 @@ export function SandboxMessageFields({
   if (messageType === "text" || messageType === "group") {
     return (
       <TextAreaField
-        label={t("fields.text")}
+        label={
+          <Flex justify="space-between" align="baseline" gap={3} w="full">
+            {t("fields.text")}
+            <Text as="span" color="text.muted" textTransform="none">
+              {t("fields.textCount", { count: formData.text.length })}
+            </Text>
+          </Flex>
+        }
         placeholder={t("fields.textPlaceholder")}
         value={formData.text}
         onChange={(value) => onChange("text", value)}

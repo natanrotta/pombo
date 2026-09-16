@@ -88,6 +88,9 @@ export function useSandboxComposer(connectedDevices: Device[]) {
     [reset, deviceId, phone, count],
   );
 
+  /** Empties the queue panel without touching the composed message. */
+  const clearSends = useCallback(() => setSends([]), []);
+
   const handleReset = useCallback(() => {
     reset({ ...INITIAL_SANDBOX_FORM, deviceId });
     setSends([]);
@@ -141,6 +144,7 @@ export function useSandboxComposer(connectedDevices: Device[]) {
     handleTypeChange,
     handleReset,
     handleSend,
+    clearSends,
   };
 }
 

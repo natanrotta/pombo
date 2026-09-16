@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import { Flex, Spinner, Text } from "@chakra-ui/react";
+import { Box, Flex, Spinner, Text } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
 import { StatusBadge } from "@/shared/components/ui/StatusBadge";
 import { useMessageStatus } from "@/modules/messaging/presentation/hooks/useSendMessage";
@@ -60,39 +60,41 @@ export const SandboxQueueItem = memo(function SandboxQueueItem({
     status === "PENDING" && !isError && waitedMs > LONG_PENDING_MS;
 
   return (
-    <Flex
-      direction="column"
-      gap={1}
-      py={2.5}
+    <Box
+      data-cy="sandbox-queue-item"
+      aria-label={t("queue.item", { index, total })}
+      display="grid"
+      gridTemplateColumns="26px minmax(0, 1fr) auto"
+      alignItems="center"
+      gap={3}
+      px={4.5}
+      py={3.5}
       borderBottomWidth="1px"
       borderColor="border.subtle"
       _last={{ borderBottomWidth: 0 }}
     >
-      <Flex align="center" justify="space-between" gap={3}>
-        <Text fontSize="sm" fontWeight="600" color="text.primary">
-          {t("queue.item", { index, total })}
-        </Text>
-        <Flex align="center" gap={2} flexShrink={0}>
-          {isPolling && <Spinner size="xs" color="text.muted" />}
-          <StatusBadge
-            status={STATUS_TONE[status]}
-            label={t(`status.${status}`)}
-          />
-        </Flex>
-      </Flex>
-      <Text fontSize="xs" color="text.muted" wordBreak="break-all">
-        {messageId}
+      <Text textStyle="mono" fontSize="11.5px" color="text.disabled">
+        {String(index).padStart(2, "0")}
       </Text>
-      {showPacingHint && (
-        <Text fontSize="xs" color="text.muted">
-          {t("queue.pacingPending")}
+
+      <Flex direction="column" gap={0.5} minW={0}>
+        <Text textStyle="mono" color="text.primary" lineClamp={1}>
+          {messageId}
         </Text>
-      )}
-      {failureReason && (
-        <Text fontSize="xs" color="status.error.fg">
-          {failureReason}
+        <Text textStyle="caption" color="text.muted" lineClamp={2}>
+          {failureReason ??
+            (showPacingHint ? t("queue.pacingPending") : t(`status.${status}`))}
         </Text>
-      )}
-    </Flex>
+      </Flex>
+
+      <Flex align="center" gap={2} flexShrink={0}>
+        {isPolling && <Spinner size="xs" color="text.muted" />}
+        <StatusBadge
+          status={STATUS_TONE[status]}
+          label={t(`status.${status}`)}
+          isPending={isPolling}
+        />
+      </Flex>
+    </Box>
   );
 });

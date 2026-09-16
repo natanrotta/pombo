@@ -138,6 +138,12 @@ for (const scheme of SCHEMES) {
       await expect(page).toHaveScreenshot(`device-detail-${scheme}.png`);
     });
 
+    test("the sandbox matches its baseline", async ({ page }) => {
+      await openSettled(page, "/sandbox", /^sandbox$/i);
+      await expect(page.getByTestId("sandbox-queue")).toBeVisible();
+      await expect(page).toHaveScreenshot(`sandbox-${scheme}.png`);
+    });
+
     test("the profile page matches its baseline", async ({ page }) => {
       await openSettled(page, "/perfil", /^perfil$/i);
       await expect(page).toHaveScreenshot(`profile-${scheme}.png`);

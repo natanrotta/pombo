@@ -32,7 +32,8 @@
     "caption": "Caption",
     "captionPlaceholder": "Optional caption",
     "count": "Quantity",
-    "countHelper": "Queue several messages to watch the queue and the humanized pacing (typing + jitter) in action."
+    "countHelper": "Queue several messages to watch the queue and the humanized pacing (typing + jitter) in action.",
+    "textCount": "{{count}} characters"
   },
   "type": {
     "text": "Text",
@@ -67,15 +68,16 @@
     "clear": "Clear"
   },
   "queue": {
-    "title": "Send queue",
-    "summary": "{{total}} in queue",
+    "title": "Live queue",
     "item": "Message {{index}}/{{total}}",
-    "pacingHint": "With humanized pacing on, the recipient sees \"typing…\" and messages go out spaced apart — watch the queue drain above.",
     "pacingPending": "Waiting on the humanized pacing: it goes out after the earlier messages and pauses.",
     "empty": {
       "title": "No send yet",
       "description": "Send one or more test messages to watch the queue drain here in real time."
-    }
+    },
+    "subtitle": "Watch each message go out"
   },
-  "success": "{{total}} message(s) queued for sending."
+  "success": "{{total}} message(s) queued for sending.",
+  "ready_one": "{{count}} device ready",
+  "ready_other": "{{count}} devices ready"
 }

@@ -94,12 +94,23 @@ export function SandboxComposer({ composer }: SandboxComposerProps) {
           </Text>
         </Flex>
 
-        <Flex justify="flex-end" gap={2}>
-          <Button variant="ghost" onClick={composer.handleReset}>
+        <Flex
+          justify="flex-end"
+          gap={2.5}
+          pt={4}
+          borderTopWidth="1px"
+          borderColor="border.subtle"
+        >
+          <Button variant="outline" size="md" onClick={composer.handleReset}>
             {t("actions.clear")}
           </Button>
-          <Button onClick={composer.handleSend} loading={composer.isSending}>
-            <Icon>
+          <Button
+            variant="subtle"
+            size="md"
+            onClick={composer.handleSend}
+            loading={composer.isSending}
+          >
+            <Icon boxSize={3.5}>
               <FiSend />
             </Icon>
             {t("actions.send")}

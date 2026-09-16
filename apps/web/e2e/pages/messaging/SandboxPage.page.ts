@@ -73,7 +73,7 @@ export class SandboxPage {
     this.clearButton = page.getByRole("button", { name: /^limpar$|^clear$/i });
 
     this.queueEmptyTitle = page.getByText(/nenhum envio ainda|no send yet/i);
-    this.queueItems = page.getByText(/^mensagem \d+\/\d+$|^message \d+\/\d+$/i);
+    this.queueItems = page.getByTestId("sandbox-queue-item");
   }
 
   async goto() {
