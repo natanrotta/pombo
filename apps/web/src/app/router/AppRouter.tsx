@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { Box } from "@chakra-ui/react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { ROUTE_PATHS } from "@/app/router/RoutePaths";
 import { lazyWithRetry } from "@/app/router/lazyWithRetry";
@@ -9,6 +8,7 @@ import { NotFoundPage } from "@/app/router/NotFoundPage";
 import { RouteErrorBoundary } from "@/shared/components/ui/RouteErrorBoundary";
 import { PageTransition } from "@/shared/components/animations/PageTransition";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { RouteContentSkeleton } from "@/shared/components/skeletons/RouteContentSkeleton";
 
 // Lazy-loaded pages — each becomes a separate chunk
 const RegisterPage = lazyWithRetry(() =>
@@ -71,11 +71,6 @@ const StyleguidePage = import.meta.env.DEV
     )
   : null;
 
-// Neutral placeholder while the lazy chunk is downloading. Each page owns its
-// own loading state (skeleton) once it mounts, so this only needs to hold the
-// layout height for the handful of ms until the chunk lands.
-const RouteFallback = () => <Box minH="40vh" />;
-
 // Single layout route for all protected pages. AppShell + sidebar stay mounted
 // across navigations — only the content inside PageTransition swaps, with a
 // cross-fade (old exits → new enters) via AnimatePresence.
@@ -85,7 +80,10 @@ function ProtectedLayout() {
     <ProtectedRoute>
       <AppShell>
         <RouteErrorBoundary locationKey={location.key}>
-          <Suspense fallback={<RouteFallback />}>
+          {/* Only while the lazy chunk downloads: each page owns its loading
+              state once it mounts. The skeleton reveals itself after a short
+              delay, so fast chunk loads never flash it. */}
+          <Suspense fallback={<RouteContentSkeleton />}>
             <PageTransition />
           </Suspense>
         </RouteErrorBoundary>

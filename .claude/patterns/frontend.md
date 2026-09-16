@@ -77,7 +77,7 @@ shared/                           # Cross-module reuse
   components/
     ui/                           # AppModal, EntityCard, EmptyState, PageHeader, SectionCard, ...
     forms/                        # FormField, SelectField, TextAreaField, NumberField, PasswordField
-    layout/                       # AppShell, SidebarNav, MobileHeader, MobileBottomNav, AppVersion
+    layout/                       # AppShell, SidebarNav (+ SidebarNavItems, SidebarUserMenu), BrandMark, MobileHeader, MobileBottomNav, AppVersion
     skeletons/                    # ListPageSkeleton, DetailPageSkeleton, ...
     animations/                   # PageTransition
   hooks/                          # useDetailPageController, useFormState, useAutoSave, useNotify,
@@ -345,6 +345,7 @@ const { formData, setField, errors, validate, reset } = useFormState(
 | Detail page | `<DetailPageGuard isLoading error entity skeletonVariant="profile" notFoundMessage>{children}</DetailPageGuard>` |
 | List page | `<ListPageSkeleton />` while loading, then the cards; `<EmptyState>` when the list is empty |
 | Section / card | `<SectionCardSkeleton />`, `<EntityCardSkeleton />` |
+| Session check / route chunk | handled by the shell: `ProtectedRoute` renders `<AppShellSkeleton />`, the route `Suspense` renders `<RouteContentSkeleton />` — pages never add their own |
 | Manual empty | `<EmptyState icon title description actionLabel onAction />` |
 | Manual error | `useNotify().showError(error, fallback)` toast |
 | Render error | `<RouteErrorBoundary>` (per route via `withAppShell`); `<GlobalErrorBoundary>` (root) |
@@ -565,7 +566,7 @@ Global font-size: `sm` (14px). FormLabel: `xs`, `600`, `gray.600`. Section headi
 
 ### Skeletons (`shared/components/skeletons/`)
 
-`ListPageSkeleton`, `DetailPageSkeleton` (`profile` / `two-column` / `single`), `EntityCardSkeleton`, `FilterBarSkeleton`, `SectionCardSkeleton`.
+`ListPageSkeleton`, `DetailPageSkeleton` (`profile` / `two-column` / `single`), `EntityCardSkeleton`, `FilterBarSkeleton`, `SectionCardSkeleton`. Shell-level: `AppShellSkeleton` (the `ProtectedRoute` state while the session resolves — honors the collapsed sidebar width from `SIDEBAR_WIDTH`) and `RouteContentSkeleton` (the route `Suspense` fallback; it fades in after a CSS delay, so fast loads never flash it).
 
 ### Animations (`shared/components/animations/`)
 

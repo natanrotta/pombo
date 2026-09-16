@@ -13,6 +13,7 @@
 - [High] v3 `MenuItem` **requires** a unique `value` prop. A menu that renders but never fires `onClick` is usually a missing `value`.
 - [Medium] `PinInput` is controlled by a **string array of exactly `count` entries**. Passing a short array (`"".split("")` → `[]`) leaves the trailing slots `undefined`, which zag stringifies into the value (`"1undefined"`, truncated by maxlength to `"1undef"`). Build it as `Array.from({ length: N }, (_, i) => value[i] ?? "")` and read back `valueAsString`, never `value.join("")`.
 - [Medium] v3 `PinInput` renders an extra `hidden-input` for form submission. A test selecting `container.querySelectorAll("input")` picks that one up first — select `input[data-part="input"]` for the visible digit boxes.
+- [Medium] **Delayed placeholders need no timer.** `animationName="fade-in" animationDelay="300ms" animationFillMode="backwards"` keeps a skeleton invisible until the delay passes, so a `Suspense` fallback or session-check skeleton never flashes on fast loads (`RouteContentSkeleton`). Both `fade-in` and the `moderate` duration are Chakra v3 defaults.
 
 ## Cache / Query Insights
 - (none yet)

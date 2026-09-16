@@ -59,6 +59,8 @@ const NavItem = memo(function NavItem({ item }: { item: NavigationItem }) {
 });
 
 export const MobileBottomNav = memo(function MobileBottomNav() {
+  const { t } = useTranslation("common");
+
   return (
     <Box
       display={{ base: "block", lg: "none" }}
@@ -75,7 +77,7 @@ export const MobileBottomNav = memo(function MobileBottomNav() {
       boxShadow="shadow.cardHover"
       overflow="hidden"
     >
-      <Flex as="nav" role="navigation" aria-label="Main navigation">
+      <Flex as="nav" aria-label={t("layout.mainNavigation")}>
         {bottomNavItems.map((item) => (
           <NavItem key={item.to} item={item} />
         ))}

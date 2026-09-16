@@ -5,6 +5,7 @@ import { SidebarNav } from "@/shared/components/layout/SidebarNav";
 import { MobileHeader } from "@/shared/components/layout/MobileHeader";
 import { MobileBottomNav } from "@/shared/components/layout/MobileBottomNav";
 import { useSidebar } from "@/shared/contexts/useSidebar";
+import { SIDEBAR_WIDTH } from "@/shared/constants/layout";
 
 export function AppShell({ children }: PropsWithChildren) {
   const { open: isOpen, onOpen, onClose } = useDisclosure();
@@ -14,7 +15,7 @@ export function AppShell({ children }: PropsWithChildren) {
     <Flex minH="100vh">
       <Box
         as="aside"
-        w={isCollapsed ? "68px" : "248px"}
+        w={isCollapsed ? SIDEBAR_WIDTH.collapsed : SIDEBAR_WIDTH.expanded}
         borderRightWidth="1px"
         borderColor="border.subtle"
         bg="bg.surface"
@@ -35,7 +36,7 @@ export function AppShell({ children }: PropsWithChildren) {
           if (!open) onClose();
         }}
       >
-        <DrawerContent maxW="248px">
+        <DrawerContent maxW={SIDEBAR_WIDTH.expanded}>
           <DrawerBody p={0}>
             <SidebarNav forceExpanded onNavigate={onClose} />
           </DrawerBody>

@@ -187,7 +187,8 @@
     "moduleDeniedNamed": "You don't have permission to access \"{{module}}\"."
   },
   "layout": {
-    "openMenu": "Open menu"
+    "openMenu": "Open menu",
+    "mainNavigation": "Main navigation"
   },
   "forms": {
     "showPassword": "Show password",

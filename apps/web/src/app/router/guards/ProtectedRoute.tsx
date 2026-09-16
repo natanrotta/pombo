@@ -1,8 +1,8 @@
 import type { PropsWithChildren } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { Center, Spinner } from "@chakra-ui/react";
 import { useAuth } from "@/modules/auth";
 import { ROUTE_PATHS } from "@/app/router/RoutePaths";
+import { AppShellSkeleton } from "@/shared/components/skeletons/AppShellSkeleton";
 
 /**
  * Gate for every authenticated route. Unauthenticated users are sent to
@@ -13,16 +13,7 @@ export function ProtectedRoute({ children }: PropsWithChildren) {
   const location = useLocation();
 
   if (isLoading) {
-    return (
-      <Center minH="100vh">
-        <Spinner
-          color="brand.500"
-          borderWidth="3px"
-          animationDuration="0.65s"
-          size="xl"
-        />
-      </Center>
-    );
+    return <AppShellSkeleton />;
   }
 
   if (!isAuthenticated) {
