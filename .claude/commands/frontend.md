@@ -138,10 +138,10 @@ If a shared component is missing, propose it as a shared addition rather than du
 4. **Unsaved-changes guard** — `useUnsavedChangesGuard(isDirty)` on every editable detail page.
 5. **Optimistic delete** — implement `onMutate`/`onError` rollback in the module's mutation hook (see `patterns/frontend.md` § Optimistic Updates).
 6. **Hover lift on cards** — `_hover={{ boxShadow: "shadow.cardHover", transform: "translateY(-2px)", borderColor: "brand.200" }}`.
-7. **Quick-action reveal** — `<Flex opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.15s ease">`.
+7. **Quick-action reveal** — `<Flex opacity={0} _groupHover={{ opacity: 1 }} _focusWithin={{ opacity: 1 }} transition="opacity 0.15s ease">` inside a parent with `className="group"`.
 8. **Fetching fade** — `<Box opacity={isFetching ? 0.5 : 1} transition="opacity 0.15s ease">`.
 9. **Toast feedback** — every user action: `showSuccess` / `showError`. Silent operations are bugs.
-10. **Accessibility** — `aria-label` on every icon-only button; semantic HTML; keyboard nav; `role="group"` on cards with `_groupHover`.
+10. **Accessibility** — `aria-label` on every icon-only button; semantic HTML; keyboard nav; `className="group"` (not `role="group"`) on the parent of any `_groupHover` / `_groupFocusVisible` — Chakra v3 matches the class.
 
 ---
 

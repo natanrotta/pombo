@@ -235,7 +235,10 @@ describe("useMessageStatus", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(messaging.getStatus).toHaveBeenCalledWith("msg-1");
+    expect(messaging.getStatus).toHaveBeenCalledWith(
+      "msg-1",
+      expect.any(AbortSignal),
+    );
     expect(result.current.data).toEqual(statusOf("SERVER_ACK"));
   });
 

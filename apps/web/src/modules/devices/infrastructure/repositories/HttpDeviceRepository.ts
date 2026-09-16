@@ -14,12 +14,12 @@ import type {
 // The httpClient response interceptor unwraps `{ ok, data }` → each call
 // resolves to the inner `data` directly.
 export class HttpDeviceRepository implements DeviceRepository {
-  list(): Promise<Device[]> {
-    return httpClient.get<never, Device[]>("/devices");
+  list(signal?: AbortSignal): Promise<Device[]> {
+    return httpClient.get<never, Device[]>("/devices", { signal });
   }
 
-  getById(id: string): Promise<Device> {
-    return httpClient.get<never, Device>(`/devices/${id}`);
+  getById(id: string, signal?: AbortSignal): Promise<Device> {
+    return httpClient.get<never, Device>(`/devices/${id}`, { signal });
   }
 
   create(input: CreateDeviceInput): Promise<CreatedDevice> {
@@ -48,12 +48,14 @@ export class HttpDeviceRepository implements DeviceRepository {
     );
   }
 
-  getQr(id: string): Promise<DeviceQr> {
-    return httpClient.get<never, DeviceQr>(`/devices/${id}/qr`);
+  getQr(id: string, signal?: AbortSignal): Promise<DeviceQr> {
+    return httpClient.get<never, DeviceQr>(`/devices/${id}/qr`, { signal });
   }
 
-  listGroups(id: string): Promise<DeviceGroup[]> {
-    return httpClient.get<never, DeviceGroup[]>(`/devices/${id}/groups`);
+  listGroups(id: string, signal?: AbortSignal): Promise<DeviceGroup[]> {
+    return httpClient.get<never, DeviceGroup[]>(`/devices/${id}/groups`, {
+      signal,
+    });
   }
 
   delete(id: string): Promise<void> {

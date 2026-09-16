@@ -55,6 +55,7 @@ export function ProfileTab() {
     localData,
     isDirty,
     isSaving,
+    errors,
     handleFieldChange,
     handleManualSave,
     reset,
@@ -63,7 +64,8 @@ export function ProfileTab() {
     delay: 1500,
     flushOnUnmount: true,
     validationSchema: {
-      name: (value) => (value.trim() === "" ? "name_empty" : null),
+      // Returns an i18n key; the field renders its translation.
+      name: (value) => (value.trim() === "" ? "profile.nameRequired" : null),
     },
   });
   useUnsavedChangesGuard(isDirty);
@@ -126,6 +128,7 @@ export function ProfileTab() {
             label={t("profile.fullName")}
             value={fullName}
             onChange={(v) => handleFieldChange("name", v)}
+            error={errors.name ? t(errors.name) : undefined}
           />
           <FormField
             label={t("profile.email")}

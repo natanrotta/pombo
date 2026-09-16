@@ -87,3 +87,28 @@ describe("httpClient silent refresh", () => {
     ).not.toHaveProperty("X-CSRF-Token");
   });
 });
+
+describe("httpClient cancellation", () => {
+  const originalAdapter = httpClient.defaults.adapter;
+
+  afterEach(() => {
+    httpClient.defaults.adapter = originalAdapter;
+  });
+
+  it("rejects an aborted request as a cancellation, not a network error", async () => {
+    httpClient.defaults.adapter = (config) =>
+      new Promise((_resolve, reject) => {
+        config.signal?.addEventListener?.("abort", () =>
+          reject(new axios.CanceledError(undefined, undefined, config)),
+        );
+      });
+    const controller = new AbortController();
+
+    const request = httpClient.get("/devices", { signal: controller.signal });
+    controller.abort();
+
+    const error = await request.catch((e: unknown) => e);
+    expect(axios.isCancel(error)).toBe(true);
+  });
+});
+

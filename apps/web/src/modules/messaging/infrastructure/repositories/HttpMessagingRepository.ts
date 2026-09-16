@@ -63,9 +63,13 @@ export class HttpMessagingRepository implements MessagingRepository {
     return this.send(`/devices/${deviceId}/messages/document`, input);
   }
 
-  getStatus(messageId: string): Promise<MessageStatusResult> {
+  getStatus(
+    messageId: string,
+    signal?: AbortSignal,
+  ): Promise<MessageStatusResult> {
     return httpClient.get<never, MessageStatusResult>(
       `/messages/${messageId}`,
+      { signal },
     );
   }
 

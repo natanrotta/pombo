@@ -55,9 +55,11 @@ export function ProfileAvatarCard() {
         await uploadAvatar(file);
         showSuccess(t("profile.avatarUpdated"));
       } catch (error) {
-        setPreview(null);
         handleError(error, t("profile.avatarUpdateError"));
       } finally {
+        // The blob is revoked below, so the avatar goes back to the user's
+        // URL — the server's new one after a success, the old one otherwise.
+        setPreview(null);
         URL.revokeObjectURL(previewUrl);
         setIsUploading(false);
         input.value = "";

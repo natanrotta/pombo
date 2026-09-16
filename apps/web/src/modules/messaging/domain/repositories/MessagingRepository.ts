@@ -31,5 +31,8 @@ export interface MessagingRepository {
     deviceId: string,
     input: SendDocumentInput,
   ): Promise<SendMessageResult>;
-  getStatus(messageId: string): Promise<MessageStatusResult>;
+  getStatus(
+    messageId: string,
+    signal?: AbortSignal,
+  ): Promise<MessageStatusResult>;
 }

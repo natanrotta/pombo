@@ -145,6 +145,23 @@ describe("useDevicesList", () => {
     expect(result.current.data).toEqual([deviceA, deviceB]);
     expect(devicesRepository.list).toHaveBeenCalledTimes(1);
   });
+
+  it("aborts the request when the query is cancelled", async () => {
+    devicesRepository.list.mockReturnValue(new Promise<Device[]>(() => {}));
+
+    renderHook(() => useDevicesList(), {
+      wrapper: createWrapper(queryClient),
+    });
+    await waitFor(() => expect(devicesRepository.list).toHaveBeenCalledTimes(1));
+    const signal = devicesRepository.list.mock.calls[0]![0] as AbortSignal;
+    expect(signal.aborted).toBe(false);
+
+    await act(() =>
+      queryClient.cancelQueries({ queryKey: queryKeys.devices.list() }),
+    );
+
+    expect(signal.aborted).toBe(true);
+  });
 });
 
 describe("useDeviceDetail", () => {
@@ -156,7 +173,10 @@ describe("useDeviceDetail", () => {
     });
 
     await waitFor(() => expect(result.current.data).toEqual(deviceB));
-    expect(devicesRepository.getById).toHaveBeenCalledWith("b");
+    expect(devicesRepository.getById).toHaveBeenCalledWith(
+      "b",
+      expect.any(AbortSignal),
+    );
   });
 
   it("does not fetch while the id is empty", () => {
@@ -217,7 +237,10 @@ describe("usePrefetchDevice", () => {
 
     await act(() => result.current("c"));
 
-    expect(devicesRepository.getById).toHaveBeenCalledWith("c");
+    expect(devicesRepository.getById).toHaveBeenCalledWith(
+      "c",
+      expect.any(AbortSignal),
+    );
     expect(queryClient.getQueryData(queryKeys.devices.detail("c"))).toEqual(
       deviceC,
     );
@@ -742,7 +765,10 @@ describe("useDeviceQr", () => {
     });
 
     await waitFor(() => expect(result.current.data).toEqual(pendingQr));
-    expect(devicesRepository.getQr).toHaveBeenCalledWith("a");
+    expect(devicesRepository.getQr).toHaveBeenCalledWith(
+      "a",
+      expect.any(AbortSignal),
+    );
   });
 
   it("starts fetching once it becomes enabled", async () => {
@@ -856,7 +882,10 @@ describe("useDeviceGroups", () => {
     });
 
     await waitFor(() => expect(result.current.data).toEqual(groups));
-    expect(devicesRepository.listGroups).toHaveBeenCalledWith("a");
+    expect(devicesRepository.listGroups).toHaveBeenCalledWith(
+      "a",
+      expect.any(AbortSignal),
+    );
   });
 
   it("fails fast without retrying even when the client retries by default", async () => {

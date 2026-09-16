@@ -5,7 +5,7 @@ import type {
 
 export interface AccountRepository {
   /** The account's active API-token metadata, or null if never generated. */
-  getApiToken(): Promise<ApiTokenMetadata | null>;
+  getApiToken(signal?: AbortSignal): Promise<ApiTokenMetadata | null>;
   /** Generates a new token (revokes the previous). The clear token is returned
    *  exactly once. */
   generateApiToken(): Promise<GeneratedApiToken>;

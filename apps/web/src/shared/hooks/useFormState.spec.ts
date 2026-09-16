@@ -41,6 +41,44 @@ describe("useFormState", () => {
     expect(result.current.errors.name).toBeUndefined();
   });
 
+  it("keeps setField's identity across edits", () => {
+    const schema = { name: (v: string) => (v ? null : "Required") };
+    const { result } = renderHook(() => useFormState<Person>({ name: "", age: 30 }, schema));
+    const first = result.current.setField;
+
+    act(() => result.current.setField("name", "Ana"));
+    act(() => result.current.setField("age", 31));
+
+    expect(result.current.setField).toBe(first);
+  });
+
+  it("validates a field against the values set just before it in the same tick", () => {
+    const schema = {
+      age: (v: number, data: Person) => (data.name === "Kid" && v > 12 ? "Too old" : null),
+    };
+    const { result } = renderHook(() => useFormState<Person>({ name: "Ana", age: 30 }, schema));
+
+    act(() => {
+      result.current.setField("name", "Kid");
+      result.current.setField("age", 40);
+    });
+
+    expect(result.current.formData).toEqual({ name: "Kid", age: 40 });
+    expect(result.current.errors.age).toBe("Too old");
+  });
+
+  it("validates against the reset values after reset()", () => {
+    const schema = {
+      age: (v: number, data: Person) => (data.name === "Kid" && v > 12 ? "Too old" : null),
+    };
+    const { result } = renderHook(() => useFormState<Person>({ name: "Kid", age: 10 }, schema));
+
+    act(() => result.current.reset({ name: "Ana", age: 30 }));
+    act(() => result.current.setField("age", 40));
+
+    expect(result.current.errors.age).toBeUndefined();
+  });
+
   it("validate() returns false and populates errors for missing fields", () => {
     const { result } = renderHook(() =>
       useFormState<Person>(

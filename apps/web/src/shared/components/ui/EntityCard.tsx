@@ -76,7 +76,8 @@ export const EntityCard = memo(function EntityCard({
       // making the whole card focusable.
       onMouseEnter={onHover}
       onFocus={onHover}
-      role="group"
+      // Chakra v3's `_groupHover` matches the `group` class, not `role="group"`.
+      className="group"
       _hover={
         onClick
           ? {
@@ -192,6 +193,7 @@ export const EntityCard = memo(function EntityCard({
               onClick={(e) => e.stopPropagation()}
               opacity={{ base: 1, md: 0 }}
               _groupHover={{ opacity: 1 }}
+              _focusWithin={{ opacity: 1 }}
               transition="opacity 0.15s ease"
             >
               {quickActions.map((action) => (

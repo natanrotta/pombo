@@ -238,6 +238,28 @@ describe("ProfileAvatarCard", () => {
     expect(showSuccessMock).toHaveBeenCalledWith(profileCopy.avatarUpdated);
   });
 
+  it("shows the local preview while uploading and drops the revoked blob after a success", async () => {
+    let finishUpload: () => void = () => {};
+    uploadAvatarMock.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finishUpload = resolve;
+        }),
+    );
+    const { container, fileInput, user } = await renderCard();
+    const previewImage = () =>
+      container.querySelector(`img[src="${PREVIEW_URL}"]`);
+
+    await user.upload(fileInput, imageFile());
+
+    await waitFor(() => expect(previewImage()).not.toBeNull());
+    finishUpload();
+    await waitFor(() =>
+      expect(revokeObjectURLMock).toHaveBeenCalledWith(PREVIEW_URL),
+    );
+    expect(previewImage()).toBeNull();
+  });
+
   it("reports an upload failure with the update-error message", async () => {
     const failure = new AppError("upload falhou", ErrorCodes.INTERNAL_ERROR, 500);
     uploadAvatarMock.mockRejectedValue(failure);

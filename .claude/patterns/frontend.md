@@ -536,7 +536,7 @@ Global font-size: `sm` (14px). FormLabel: `xs`, `600`, `gray.600`. Section headi
   const MotionBox = motion.create(Box) as unknown as ComponentType<MotionBoxProps>;
   ```
 - Card hover: `_hover={{ boxShadow: "shadow.cardHover", transform: "translateY(-2px)", borderColor: "brand.200" }}`
-- Quick actions reveal: `<Flex opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.15s ease">`
+- Quick actions reveal: `<Flex opacity={0} _groupHover={{ opacity: 1 }} _focusWithin={{ opacity: 1 }} transition="opacity 0.15s ease">` — the card carries `className="group"` (Chakra v3's `_group*` conditions match the class, not `role="group"`)
 - Fetching state: `<Box opacity={isFetching ? 0.5 : 1} transition="opacity 0.15s ease">`
 
 ---

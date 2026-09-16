@@ -126,6 +126,7 @@
     "avatarUpdateError": "Error al actualizar foto",
     "avatarTooLarge": "La foto supera el límite de 5 MB.",
     "avatarInvalidType": "Formato no compatible. Usa JPG, PNG, WebP o GIF.",
+    "nameRequired": "Ingresa tu nombre.",
     "shareCode": "¡Encuéntrame en Pombo! Agrega por código: #{{code}}",
     "adminCard": {
       "title": "Administrador",

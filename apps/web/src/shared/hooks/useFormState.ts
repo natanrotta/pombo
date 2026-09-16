@@ -12,6 +12,10 @@ export function useFormState<T extends Record<string, unknown>>(
   const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({});
   const [touched, setTouched] = useState<Partial<Record<keyof T, boolean>>>({});
   const initialRef = useRef(initialValues);
+  // The latest values, kept in step by `setField`/`reset` (the only writers),
+  // so `setField` can validate against them without depending on `formData`
+  // — its identity stays stable across keystrokes.
+  const latestRef = useRef(initialValues);
 
   const isDirty = useMemo(() => {
     const initial = initialRef.current;
@@ -20,12 +24,15 @@ export function useFormState<T extends Record<string, unknown>>(
 
   const setField = useCallback(
     (field: keyof T, value: T[keyof T]) => {
-      setFormData((prev) => ({ ...prev, [field]: value }));
+      const nextData = { ...latestRef.current, [field]: value } as T;
+      latestRef.current = nextData;
+      setFormData(nextData);
       setTouched((prev) => ({ ...prev, [field]: true }));
 
-      if (validationSchema?.[field]) {
+      const validator = validationSchema?.[field];
+      if (validator) {
+        const error = validator(value, nextData);
         setErrors((prev) => {
-          const error = validationSchema[field]!(value, { ...formData, [field]: value } as T);
           if (error) return { ...prev, [field]: error };
           const next = { ...prev };
           delete next[field];
@@ -33,7 +40,7 @@ export function useFormState<T extends Record<string, unknown>>(
         });
       }
     },
-    [formData, validationSchema]
+    [validationSchema]
   );
 
   const setError = useCallback((field: keyof T, message: string) => {
@@ -69,6 +76,7 @@ export function useFormState<T extends Record<string, unknown>>(
 
   const reset = useCallback((values?: T) => {
     const next = values ?? initialRef.current;
+    latestRef.current = next;
     setFormData(next);
     setErrors({});
     setTouched({});

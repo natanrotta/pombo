@@ -17,7 +17,7 @@ const QR_POLL_INTERVAL_MS = 3_000;
 export function useDevicesList() {
   return useQuery({
     queryKey: queryKeys.devices.list(),
-    queryFn: () => repositories.devices.list(),
+    queryFn: ({ signal }) => repositories.devices.list(signal),
   });
 }
 
@@ -25,7 +25,7 @@ export function useDevicesList() {
 export function useDeviceDetail(id: string) {
   return useQuery({
     queryKey: queryKeys.devices.detail(id),
-    queryFn: () => repositories.devices.getById(id),
+    queryFn: ({ signal }) => repositories.devices.getById(id, signal),
     enabled: Boolean(id),
   });
 }
@@ -49,7 +49,7 @@ export function usePrefetchDevice() {
     (id: string) =>
       queryClient.prefetchQuery({
         queryKey: queryKeys.devices.detail(id),
-        queryFn: () => repositories.devices.getById(id),
+        queryFn: ({ signal }) => repositories.devices.getById(id, signal),
       }),
     [queryClient],
   );
@@ -180,7 +180,7 @@ export function useDisconnectDevice() {
 export function useDeviceQr(id: string, enabled: boolean) {
   return useQuery({
     queryKey: queryKeys.devices.qr(id),
-    queryFn: () => repositories.devices.getQr(id),
+    queryFn: ({ signal }) => repositories.devices.getQr(id, signal),
     enabled: enabled && Boolean(id),
     refetchInterval: enabled ? QR_POLL_INTERVAL_MS : false,
     refetchIntervalInBackground: false,
@@ -197,7 +197,7 @@ export function useDeviceQr(id: string, enabled: boolean) {
 export function useDeviceGroups(id: string, enabled: boolean) {
   return useQuery({
     queryKey: queryKeys.devices.groups(id),
-    queryFn: () => repositories.devices.listGroups(id),
+    queryFn: ({ signal }) => repositories.devices.listGroups(id, signal),
     enabled: enabled && Boolean(id),
     // Live-socket data (a device can join/leave groups); keep the dedup window
     // short so a reopened picker reflects reality without hammering the socket.

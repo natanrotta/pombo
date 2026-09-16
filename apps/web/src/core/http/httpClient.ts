@@ -124,6 +124,10 @@ httpClient.interceptors.response.use(
     return body;
   },
   async (error: AxiosError) => {
+    // An aborted request (a cancelled query) is not a network failure.
+    if (axios.isCancel(error)) {
+      return Promise.reject(error);
+    }
     if (!axios.isAxiosError(error) || !error.response) {
       return Promise.reject(
         new AppError(i18n.t("errors.networkError", { ns: "common" }), "NETWORK_ERROR", 0)
