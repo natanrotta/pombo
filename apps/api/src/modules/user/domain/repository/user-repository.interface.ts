@@ -52,20 +52,24 @@ export interface SetTokenData {
   refreshTokenExpiresAt: Date;
 }
 
+/**
+ * The identity core. Every method is keyed by the user's own primary key and
+ * is reached ONLY with an id the caller already owns — `req.auth.userId` from
+ * the session JWT, or a `userId` recovered from a token the user was e-mailed
+ * (password reset, e-mail PIN). The user IS the subject, so there is no tenant
+ * to scope by: a caller can never name another user's id from a request.
+ *
+ * There is deliberately NO `findAll` / `findByIds` / hard `delete`: a list or
+ * batch read of users is a cross-tenant surface by construction (BASELINE R1),
+ * and the only removal a user may perform is on themselves (`softDelete`, R2).
+ */
 export interface IUserRepository {
   findById(id: string): Promise<User | null>;
-  /**
-   * Batch lookup — returns every existing user for the supplied ids, in
-   * arbitrary order, skipping ids that don't resolve.
-   */
-  findByIds(ids: string[]): Promise<User[]>;
   findByEmail(email: string): Promise<User | null>;
   findByGoogleId(googleId: string): Promise<User | null>;
   findByRefreshTokenHash(hash: string): Promise<User | null>;
-  findAll(): Promise<User[]>;
   create(data: CreateUserData): Promise<User>;
   update(id: string, data: UpdateUserData): Promise<User>;
-  delete(id: string): Promise<void>;
   softDelete(id: string): Promise<void>;
   incrementTokenVersion(id: string): Promise<void>;
   /** Flips `email_verified` to true after a successful PIN confirmation. */

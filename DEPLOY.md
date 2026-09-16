@@ -93,7 +93,7 @@ make help                     # list all targets
 
 ## Special cases
 
-- **Migrations:** run on boot (`prisma migrate deploy`). Don't run them by hand. (`yarn monitor-status` shows applied/pending.)
+- **Migrations:** run on boot by the image entrypoint (`prisma migrate deploy`). Don't run them by hand. (`yarn monitor-status` shows applied/pending.) With one replica that is the whole story; on extra replicas set `RUN_MIGRATIONS=false` in `.env.prod` and run the migration once as a deploy step.
 - **`.env.prod`:** lives on the host, outside the image. Edit it there + `make deploy-direct` (or `up -d`) for the container to re-read. `APP_VERSION` stays commented (otherwise the `env_file` masks the real version). The deploy runner must be able to **read** that file — the deploy pre-flight aborts with "PRODUCTION UNTOUCHED" if it can't (never boots a container without env).
 - **Frontends:** automatic on push to `main` (static host / CDN).
 

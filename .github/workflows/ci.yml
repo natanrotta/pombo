@@ -1,0 +1,52 @@
+# ci.yml — the quality gate on every PR and on the integration branches.
+# Nothing here builds or ships an image (that is build-api.yml, dispatched
+# explicitly by `yarn make-tag`).
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: type-check · lint · unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # The API validates its env at import time (core/config). Unit tests never
+      # open a connection — these only have to satisfy the schema.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
+      JWT_SECRET: ci-only-jwt-secret-not-a-real-secret-32c
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install (frozen lockfile)
+        run: yarn install --frozen-lockfile
+
+      # turbo builds @pombo/shared-types first (`dependsOn: ^build`).
+      - name: Type-check
+        run: yarn type-check
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Unit tests
+        run: yarn test
+
+      # The workflows lint themselves — the same actionlint the repo runs
+      # locally, from the maintainer's official image.
+      - name: actionlint
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color

@@ -11,14 +11,11 @@ type MockOf<T> = {
 export function mockUserRepository(): MockOf<IUserRepository> {
   return {
     findById: vi.fn(),
-    findByIds: vi.fn().mockResolvedValue([]),
     findByEmail: vi.fn(),
     findByGoogleId: vi.fn(),
     findByRefreshTokenHash: vi.fn(),
-    findAll: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
-    delete: vi.fn(),
     softDelete: vi.fn(),
     incrementTokenVersion: vi.fn(),
     markEmailVerified: vi.fn(),

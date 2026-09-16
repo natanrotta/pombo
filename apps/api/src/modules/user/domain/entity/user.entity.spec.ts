@@ -21,6 +21,11 @@ describe("User", () => {
     expect(user.updatedAt).toBeInstanceOf(Date);
   });
 
+  it("isActive is true only for the ACTIVE status", () => {
+    expect(makeUser({ status: "ACTIVE" }).isActive).toBe(true);
+    expect(makeUser({ status: "PENDING" }).isActive).toBe(false);
+  });
+
   it("handles optional/nullable fields with values", () => {
     const user = makeUser({
       googleId: "google-123",

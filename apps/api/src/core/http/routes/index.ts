@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { authRoutes } from "@modules/auth/infrastructure/route/auth.routes";
-import { userRoutes } from "@modules/user/infrastructure/route/user.routes";
 import { accountRoutes } from "@modules/account/infrastructure/route/account.routes";
 import { deviceRoutes } from "@modules/devices/infrastructure/route/device.routes";
 import { messageRoutes } from "@modules/messaging/infrastructure/route/message.routes";
@@ -33,9 +32,6 @@ router.get("/health", async (_req, res) => {
 router.use("/auth", authRoutes);
 
 router.use(userRateLimit);
-
-// User management (CRUD) — every route is auth-guarded inside user.routes.
-router.use("/users", userRoutes);
 
 // Account settings (API-token generation) — auth-guarded inside account.routes.
 router.use("/account", accountRoutes);

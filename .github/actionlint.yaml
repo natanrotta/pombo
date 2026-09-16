@@ -1,0 +1,5 @@
+# actionlint config — the deploy cutover runs on the self-hosted runner that
+# infra/app/setup-github-runner.sh registers with this label.
+self-hosted-runner:
+  labels:
+    - pombo-app

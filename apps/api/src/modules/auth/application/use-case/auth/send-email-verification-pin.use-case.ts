@@ -11,7 +11,7 @@ import {
   UnauthorizedError,
 } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
-import { renderEmailVerificationPinEmail } from "@modules/auth/application/service/auth/email-verification-pin.template";
+import { renderEmailVerificationPinEmail } from "@modules/auth/application/service/email-verification-pin.template";
 
 /** Seconds a user must wait between PIN sends. Enforced server-side so the
  *  UI countdown can't be bypassed by calling the endpoint directly. */

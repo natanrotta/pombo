@@ -9,7 +9,7 @@ import {
   SignUpTransactionResult,
   SetTokenData,
 } from "@modules/user/domain/repository/user-repository.interface";
-import type { UserStatusType } from "@shared/type/enums";
+import type { UserStatus } from "@modules/user/domain/value-object/user-status";
 import { PrismaUserRepository } from "./prisma-user-repository";
 import type { ICacheProvider } from "@shared/provider/cache-provider.interface";
 import type { AppConfig } from "@shared/provider/app-config.interface";
@@ -26,7 +26,7 @@ interface SerializedUser {
   email: string;
   password: string | null;
   googleId: string | null;
-  status: UserStatusType;
+  status: UserStatus;
   emailVerified: boolean;
   avatarUrl: string | null;
   language: string;
@@ -58,7 +58,7 @@ const userCodec: CacheCodec<User> = {
     email: u.email,
     password: u.password,
     googleId: u.googleId,
-    status: u.status as UserStatusType,
+    status: u.status as UserStatus,
     emailVerified: u.emailVerified,
     avatarUrl: u.avatarUrl,
     language: u.language,
@@ -133,9 +133,6 @@ export class CachedUserRepository implements IUserRepository {
   }
 
   // ── Uncached reads / creates (delegate) ──────────────────────────────────
-  findByIds(ids: string[]): Promise<User[]> {
-    return this.inner.findByIds(ids);
-  }
 
   findByEmail(email: string): Promise<User | null> {
     return this.inner.findByEmail(email);
@@ -147,10 +144,6 @@ export class CachedUserRepository implements IUserRepository {
 
   findByRefreshTokenHash(hash: string): Promise<User | null> {
     return this.inner.findByRefreshTokenHash(hash);
-  }
-
-  findAll(): Promise<User[]> {
-    return this.inner.findAll();
   }
 
   // Creates mint a fresh UUID that was never queried, so no cache entry can
@@ -220,11 +213,6 @@ export class CachedUserRepository implements IUserRepository {
 
   async softDelete(id: string): Promise<void> {
     await this.inner.softDelete(id);
-    await this.evict(id);
-  }
-
-  async delete(id: string): Promise<void> {
-    await this.inner.delete(id);
     await this.evict(id);
   }
 }

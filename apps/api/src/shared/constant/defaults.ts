@@ -1,2 +1,3 @@
-export const DEFAULT_PROFESSIONAL_COLOR = "#6366F1";
+/** Locale persisted on a user when the client sends none (sign-up, Google
+ *  sign-in) and the fallback the `Accept-Language` parser settles on. */
 export const DEFAULT_LOCALE = "pt-BR";

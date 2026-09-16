@@ -3,7 +3,7 @@ import { mockUserRepository } from "@test/mocks";
 import { makeUser } from "@test/factories";
 import { NotFoundError, ConflictError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
-import { AuthProfileBuilder } from "@modules/auth/application/service/auth/auth-profile.builder";
+import { AuthProfileBuilder } from "@modules/auth/application/service/auth-profile.builder";
 
 describe("UpdateProfileUseCase", () => {
   let sut: UpdateProfileUseCase;

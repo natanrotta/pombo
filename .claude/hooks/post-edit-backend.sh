@@ -99,6 +99,21 @@ case "$file" in
     ;;
 esac
 
+# B-C14: auth/scope middleware FACTORY passed without being invoked
+# (`router.use(authMiddleware)` instead of `router.use(authMiddleware())`).
+# Express calls the factory as if it were the handler: it returns a function
+# and never calls next() → every request on that router hangs AND the guard is
+# not applied. Single-line form only (the vitest guard route-mount.spec.ts
+# parses the multi-line form).
+case "$file" in
+  */route/*|*/routes/*|*/http/app.ts)
+    if grep -nE '\.(use|get|post|put|patch|delete|all)\([^)]*\b(authMiddleware|emailVerificationAuthMiddleware|apiTokenAuthMiddleware|rejectScopedTokens|requireScope|bearerFromQueryToken)\b[[:space:]]*[,)]' "$file" >/dev/null; then
+      lines="$(grep -nE '\.(use|get|post|put|patch|delete|all)\([^)]*\b(authMiddleware|emailVerificationAuthMiddleware|apiTokenAuthMiddleware|rejectScopedTokens|requireScope|bearerFromQueryToken)\b[[:space:]]*[,)]' "$file" | head -3)"
+      warn "B-C14: middleware factory passed without being CALLED — write authMiddleware() (with parentheses); as written every request on this router hangs. Lines: $lines"
+    fi
+    ;;
+esac
+
 # B-H8: list/findMany without skip/take in repository implementations
 case "$file" in
   *prisma-*-repository.ts)

@@ -24,10 +24,13 @@ const SENSITIVE_HEADERS = [
   "x-csrf-token",
 ];
 
-// Body fields carrying secrets (auth/OAuth) or free-form clinical text (PHI).
-// Adding a new clinical field to any payload requires adding it here (SEC-M2).
+// Body fields carrying secrets (auth/OAuth), identity (e-mail), or free-form
+// user content (message text). Adding a new field of any of those kinds to a
+// payload requires adding it here (SEC-M2). Defense in depth — the rule is
+// still "never put PII in a log line" (R5), the redact list is the net.
 const SENSITIVE_BODY_FIELDS = [
   "password",
+  "email",
   "token",
   "refreshToken",
   "credential",

@@ -5,7 +5,7 @@ import {
   mockJwtProvider,
 } from "@test/mocks";
 import { makeUser } from "@test/factories";
-import { AuthProfileBuilder } from "@modules/auth/application/service/auth/auth-profile.builder";
+import { AuthProfileBuilder } from "@modules/auth/application/service/auth-profile.builder";
 import { UnauthorizedError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
 

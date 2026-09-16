@@ -43,7 +43,7 @@ Controllers are thin: they resolve a use-case from the container and return the 
 | Module | Responsibility |
 |---|---|
 | **auth** | Sign-up, sign-in, Google sign-in, refresh, sign-out; password reset; e-mail-verification PIN; the authenticated user's own profile (`/me`, `/profile`). |
-| **user** | User identity core (entity + repository) and user management CRUD (`/users`). |
+| **user** | User identity core (entity + `UserStatus` + repository), consumed by `auth`. No HTTP surface of its own. |
 
 ## Endpoints
 
@@ -56,13 +56,6 @@ POST   /password/request-reset      POST /password/reset
 POST   /email-verification/send     POST /email-verification/verify
 GET    /me                          PUT  /profile           PUT  /profile/avatar
 DELETE /account
-```
-
-**User management** (`/api/users`, auth-guarded):
-
-```
-GET /users        POST /users
-GET /users/:id    PUT  /users/:id    DELETE /users/:id
 ```
 
 **Health:** `GET /api/health` (unauthenticated liveness + version).

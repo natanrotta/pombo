@@ -57,6 +57,11 @@ export class Device {
     return this.props.status;
   }
 
+  /** The socket is live — the only status that can send (ADR-005). */
+  get isConnected(): boolean {
+    return this.props.status === "CONNECTED";
+  }
+
   get webhookSecret(): string | null {
     return this.props.webhookSecret;
   }

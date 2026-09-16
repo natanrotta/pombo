@@ -16,6 +16,8 @@
 3. Health: `/healthz` (text `ok`) + `/api/health` (JSON with `version`).
 
 ## CI/CD (reference)
+- Workflows: `ci.yml` (type-check · lint · unit tests on every PR / push to develop+main — nothing ships), `build-api.yml` (dispatched by `yarn make-tag`: tests → docker build → boot smoke of the exact image → push `:vX.Y` + `:latest` → git tag), `deploy-api.yml` (dispatched by `yarn deploy` / `yarn rollback` on the self-hosted `pombo-app` runner: pre-flight → pull → `compose up --wait` → `/api/health` version check; "PRODUCTION UNTOUCHED" whenever it fails before the cutover).
+- ONE `apps/api/Dockerfile` (stages `base → deps → build / prod-deps → runtime`, plus `dev` for docker-compose.local.yml). Runtime is non-root (`node`), prod deps only, `dist/` without test code, node as PID 1 via `docker-entrypoint.sh` (`exec node`) so SIGTERM reaches the graceful shutdown; `RUN_MIGRATIONS=false` skips migrate-on-boot for extra replicas. The root `.dockerignore` keeps `.env*`, `apps/web`, `.git` and `node_modules` out of the context.
 - `yarn make-tag` builds + stamps a versioned image and creates the git tag.
 - `yarn deploy` / `yarn rollback` pull a tag on the host and verify the version via `/api/health`.
 - `yarn monitor-status` shows service health.

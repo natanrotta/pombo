@@ -13,9 +13,8 @@ import {
   SendAudioDTOSchema,
   SendVideoDTOSchema,
   SendDocumentDTOSchema,
-  SendMessageParamSchema,
-  MessageIdParamSchema,
 } from "@modules/messaging/application/dto/message.dto";
+import { UuidParamSchema } from "@shared/dto/common.dto";
 
 const messageRoutes = Router();
 const messageController = container.resolve(MessageController);
@@ -28,7 +27,7 @@ messageRoutes.use(authMiddleware());
 messageRoutes.post(
   "/devices/:id/messages",
   validateRequest({
-    params: SendMessageParamSchema,
+    params: UuidParamSchema,
     body: SendMessageDTOSchema,
   }),
   asyncHandler(messageController.send.bind(messageController)),
@@ -39,7 +38,7 @@ messageRoutes.post(
 messageRoutes.post(
   "/devices/:id/messages/group",
   validateRequest({
-    params: SendMessageParamSchema,
+    params: UuidParamSchema,
     body: SendGroupMessageDTOSchema,
   }),
   asyncHandler(messageController.sendToGroup.bind(messageController)),
@@ -49,23 +48,23 @@ messageRoutes.post(
 // Idempotency-Key contract as the text send above.
 messageRoutes.post(
   "/devices/:id/messages/image",
-  validateRequest({ params: SendMessageParamSchema, body: SendImageDTOSchema }),
+  validateRequest({ params: UuidParamSchema, body: SendImageDTOSchema }),
   asyncHandler(messageController.sendImage),
 );
 messageRoutes.post(
   "/devices/:id/messages/audio",
-  validateRequest({ params: SendMessageParamSchema, body: SendAudioDTOSchema }),
+  validateRequest({ params: UuidParamSchema, body: SendAudioDTOSchema }),
   asyncHandler(messageController.sendAudio),
 );
 messageRoutes.post(
   "/devices/:id/messages/video",
-  validateRequest({ params: SendMessageParamSchema, body: SendVideoDTOSchema }),
+  validateRequest({ params: UuidParamSchema, body: SendVideoDTOSchema }),
   asyncHandler(messageController.sendVideo),
 );
 messageRoutes.post(
   "/devices/:id/messages/document",
   validateRequest({
-    params: SendMessageParamSchema,
+    params: UuidParamSchema,
     body: SendDocumentDTOSchema,
   }),
   asyncHandler(messageController.sendDocument),
@@ -73,7 +72,7 @@ messageRoutes.post(
 
 messageRoutes.get(
   "/messages/:id",
-  validateRequest({ params: MessageIdParamSchema }),
+  validateRequest({ params: UuidParamSchema }),
   asyncHandler(messageController.getStatus.bind(messageController)),
 );
 

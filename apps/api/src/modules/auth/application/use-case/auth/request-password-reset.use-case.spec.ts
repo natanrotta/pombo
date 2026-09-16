@@ -70,6 +70,19 @@ describe("RequestPasswordResetUseCase", () => {
     expect(mailProvider.send).not.toHaveBeenCalled();
   });
 
+  it("logs the noop with a reason but NEVER with the e-mail address (SEC-C7)", async () => {
+    userRepository.findByEmail.mockResolvedValue(null);
+
+    await sut.execute({ email: "ghost@test.com" });
+
+    expect(logger.info).toHaveBeenCalledTimes(1);
+    const [context] = logger.info.mock.calls[0]!;
+    expect(context).toEqual({ reason: "unknown-email" });
+    expect(JSON.stringify(logger.info.mock.calls)).not.toContain(
+      "ghost@test.com",
+    );
+  });
+
   it("silently succeeds when the account has no password (Google-only)", async () => {
     userRepository.findByEmail.mockResolvedValue(makeUser({ password: null }));
 

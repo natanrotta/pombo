@@ -45,7 +45,7 @@ export class ConnectDeviceUseCase {
       );
     }
 
-    if (device.status === "CONNECTED" || this.gateway.isConnected(device.id)) {
+    if (device.isConnected || this.gateway.isConnected(device.id)) {
       throw new ConflictError(
         "The device is already connected",
         undefined,
