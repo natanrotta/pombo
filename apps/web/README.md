@@ -4,6 +4,8 @@ The Pombo dashboard — a React + Vite single-page app where an account manages 
 
 **Design system:** `@pombo/theme` (`packages/theme`) — tokens, semantic tokens, text styles and recipes. The app only composes it.
 
+**Type:** IBM Plex Sans (body) + IBM Plex Mono (titles, labels, numbers), bundled via `@fontsource`.
+
 **Stack:** React 19 · Vite 5 · TypeScript (strict) · Chakra UI v3 (+ `next-themes`) · TanStack Query 5 · axios · react-hook-form + Zod · react-i18next (pt-BR / en / es) · lucide-react · Bugsnag · Vitest (unit) · Playwright (e2e).
 
 The rebuild plan for this app lives in [`docs/web-rebuild/roadmap.md`](../../docs/web-rebuild/roadmap.md).

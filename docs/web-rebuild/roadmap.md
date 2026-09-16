@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | draft — aguardando o intake do design (Fase 0) |
+| **Status** | executado — Fases 1–10 entregues; design do handoff aplicado (tema + as cinco telas) |
 | **Branch** | `claude/web-rebuild-roadmap-5b5abe` |
 | **Data** | 2026-09-16 |
 | **Handoff** | [Pombo Design Foundation](https://claude.ai/design/p/f0e6e630-b1b7-447e-beaf-294e973f8037?file=Pombo+Design+Foundation.dc.html) — arquivos `Pombo Design Foundation.dc.html` + `support.js` |
@@ -12,15 +12,18 @@ Este documento é o plano completo, sem código, para reconstruir o frontend do 
 
 ---
 
-## 0. O que está bloqueado e como destravar
+## 0. Design: como o handoff chegou
 
-O arquivo de design **não pôde ser lido nesta sessão**. Foram tentados, nesta ordem: o MCP de design (`DesignSync` exige `/design-login`, que só roda em sessão interativa), o navegador embutido (cai na tela de sign-in do claude.ai), o Claude in Chrome (extensão desconectada), `WebFetch` (403) e busca por cópia local (nenhuma). Sem ele, a Fase 0 não fecha e as Fases 3+ não podem começar; as Fases 1 e 2 são independentes do design e podem começar já.
+O arquivo de design ficou inacessível durante a maior parte da execução (o MCP `DesignSync` exige `/design-login`, que só roda em sessão interativa; o navegador embutido cai na tela de sign-in, a extensão do Chrome estava desconectada e `WebFetch` responde 403). Por isso as Fases 1, 2 e 4–10 foram feitas como reconstrução **estrutural**, preservando o visual antigo.
 
-Qualquer uma destas três opções destrava:
+Em 2026-09-16 o usuário autorizou o acesso (`/design-login`), e o projeto foi lido direto do claude.ai/design: `Pombo Design Foundation.dc.html` (tokens e regras) e as cinco telas — `Pombo Home`, `Pombo Login`, `Pombo Sandbox`, `Pombo Profile` e `Pombo API`. A Fase 3 (tema) e a aplicação tela a tela vieram em seguida, cada uma em seu commit.
 
-1. Rodar `/design-login` uma vez num terminal `claude` interativo nesta máquina (a autorização passa a valer para as sessões seguintes).
-2. Conectar a extensão Claude in Chrome (o Chrome já tem a sessão do claude.ai).
-3. Exportar os dois arquivos e commitá-los em `docs/design/` (mesma convenção já usada em `clintplay/docs/design/` e `clint-mobile/docs/design/`): `docs/design/Pombo Design Foundation.dc.html` e `docs/design/support.js`. **Recomendado** — o handoff fica versionado junto do código que o implementa.
+Decisões do usuário no momento do intake, registradas em `.claude/specs/web-rebuild-fase-3-theme.md`:
+
+- **Claro e escuro continuam.** O handoff só define o escuro; o claro é derivado das mesmas famílias.
+- **Sem amarelo.** A regra R11 vence o `#F0C860` do handoff: "pareando" usa o azul do próprio design.
+- **Alcance:** tema primeiro, depois a Home, depois as outras telas.
+- **Extras da Home:** grade/lista e o contador "na fila" entram (este último exigiu um endpoint novo na API); atalhos de teclado ficam de fora.
 
 ---
 

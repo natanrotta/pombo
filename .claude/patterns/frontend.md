@@ -552,8 +552,10 @@ Global font-size: `sm` (14px). FormLabel: `xs`, `600`, `gray.600`. Section headi
 |-----------|---------|
 | `PageHeader` | The ONE page header (`title` + `description` + `count`/`countLabel` pill + `primaryAction` + `actions`) — use it on every list/detail page; never hand-roll a title row |
 | `SectionCard` | Content section (variants: `default` / `glass` / `sunken`) |
-| `StatCard` | Statistic display (label + value + hint + icon, tone-coloured) |
-| `EntityCard` | List card (avatar + title + badges + meta + actions + quick actions on hover) |
+| `StatTiles` | The counters above a list: one bordered block split into tiles (tiny label + big mono number, tone-coloured) |
+| `EntityCard` | List card (avatar + title + badges + meta + actions; `hoverAction` reveals the call to action, `isLive` makes a live entity breathe) |
+| `ViewToggle` | Cards ⇄ rows switch for a list |
+| `InlineSelect` | Borderless select that sits inside another control's chrome (the `FilterBar`'s status picker) |
 | `StatusBadge` | Colored status badge |
 | `InfoRow` | Label/value row inside a section |
 | `EmptyState` | Empty state with icon + title + description + CTA |
@@ -562,9 +564,9 @@ Global font-size: `sm` (14px). FormLabel: `xs`, `600`, `gray.600`. Section headi
 | `AppModal` | Standard modal wrapper (header + body + cancel/primary footer) |
 | `SaveButton` | Save with isDirty/isSaving |
 | `CopyButton` | Copy-to-clipboard with a success toast |
-| `FilterBar` | Search input with clear affordance |
+| `FilterBar` | The list filter row: mono `/` prompt, query, clear affordance and an optional `trailing` control |
 | `DetailPageGuard` | Loading/error/not-found wrapper for detail pages |
-| `ColorModeToggle` | Light/dark switch |
+| `ColorModeToggle` | Dark/light segmented control (`shape="pill"` on the auth screens) |
 | `LanguageSelector` | Locale switch (pt-BR / en / es) |
 | `GlobalErrorBoundary` / `RouteErrorBoundary` | Root and per-route render-error boundaries |
 
