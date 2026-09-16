@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
-# infra/backup/backup-db.sh — roda na VPS-DATA via systemd timer (Backup Nível 1).
+# infra/backup/backup-db.sh — roda no host de DATA via systemd timer (Backup Nível 1).
 #
 # Dump lógico do Postgres → criptografa client-side (age) → envia p/ R2/B2
 # (offsite) → ping no dead-man switch. Ver install-backup.sh (timers) e
-# .claude/knowledge/devops.md › "Backup 3-2-1".
+# infra/backup/README.md.
 #
-# Regra: o dado clínico NUNCA sai da máquina em claro. A chave PRIVADA age
-# fica FORA desta VPS — aqui só usamos a chave PÚBLICA (recipient), que só cifra.
+# Regra: o dump (contas, tokens, chaves de sessão do WhatsApp) NUNCA sai da
+# máquina em claro. A chave PRIVADA age fica FORA deste host — aqui só usamos a
+# chave PÚBLICA (recipient), que só cifra.
 #
 # Agenda: os systemd timers do install-backup.sh rodam este script 2x/dia
-# (03:30 e 15:30). Alternativa por cron (crontab -e na VPS-DATA):
+# (03:30 e 15:30). Alternativa por cron (crontab -e no host de DATA):
 #   30 3,15 * * *  . /etc/pombo/backup.env && /opt/pombo/backup-db.sh >> /var/log/pombo-backup.log 2>&1
 #
 # Pré-requisitos: docker, age, rclone (remote 'r2' configurado), curl.

@@ -6,35 +6,46 @@
 #   yarn make-tag         gera a versão vX.Y (testes + boot-smoke → GHCR + git tag)
 #   yarn deploy           sobe uma versão em produção e verifica /api/health
 #   yarn rollback         reverte para uma versão anterior (guiado)
-#   yarn monitor-status   saúde dos 5 serviços (Backend · Banco · Adm · App · Site)
+#   yarn monitor-status   saúde dos serviços (Backend · Banco · App · Site)
 #
 # Este Makefile é a camada AVANÇADA/rara por baixo deles: plano B do deploy (sem
-# runner), setup do runner, SSH/logs/status das VPS e backup. Os antigos
-# one-liners `make deploy/build/status/version` foram para os comandos yarn acima.
+# runner), setup do runner, SSH/logs/status dos hosts e backup.
 #
-# Requisitos:  gh (GitHub CLI autenticado: `gh auth login`) · ssh nas VPS · (opcional) jq
-# Guia enxuto: DEPLOY.md · runbook/arquitetura completa: .claude/knowledge/devops.md
+# Requisitos:  gh (GitHub CLI autenticado: `gh auth login`) · ssh nos hosts
+# Guia enxuto: DEPLOY.md · arquitetura + runbook: .claude/knowledge/devops.md
 
-# ── Config — SET THESE FOR YOUR OWN INFRASTRUCTURE ────────────────────────────
-# The boilerplate ships PLACEHOLDERS on purpose: nothing here points at a real
-# host until you set it. Override inline (`make deploy-direct APP_HOST=1.2.3.4
-# TAG=v1.5`), export as env vars, or edit the defaults below. The unresolved
-# placeholders below intentionally fail (DNS error) instead of touching a host.
+# ── Alvos (infra/deploy.env) ───────────────────────────────────────────────────
+# Os hosts vêm do MESMO arquivo que os comandos yarn leem: infra/deploy.env
+# (gitignored — copie de infra/deploy.env.example). Precedência: `make VAR=…` >
+# variável exportada no shell > infra/deploy.env. O repo não traz host real: um
+# alvo que precisa de host falha na hora se ele não estiver definido.
+DEPLOY_ENV  ?= infra/deploy.env
+DEPLOY_VARS := API_URL WEB_URL SITE_URL APP_HOST DATA_HOST SSH_USER GH_REPO IMAGE
+
+# KEY=value do arquivo (última ocorrência), sem aspas nem comentário no fim. Só
+# aceita [A-Za-z0-9._:/@-]: os valores entram em comandos de shell/ssh, então um
+# valor com aspas, espaço, `;` ou `$` é descartado (o alvo falha como "não definido").
+deploy_env_value = $(shell sed -n -e 's/^[[:space:]]*$(1)=//p' $(DEPLOY_ENV) | tail -n 1 | sed -e 's/[[:space:]]\#.*$$//' -e 's/^"\(.*\)"$$/\1/' | grep -E '^[A-Za-z0-9._:/@-]*$$')
+
+ifneq ($(wildcard $(DEPLOY_ENV)),)
+$(foreach v,$(DEPLOY_VARS),$(if $(filter environment% command%,$(origin $(v))),,$(eval $(v) := $(call deploy_env_value,$(v)))))
+endif
+
 TAG       ?= latest
-IMAGE     ?=                       # e.g. ghcr.io/you/your-api  (container registry image)
-APP_HOST  ?=                       # APP host (API origin) — your host or IP
-DATA_HOST ?=                       # DATA host (database) — your host or IP
-SSH_USER  ?= root
-API_URL   ?=                       # e.g. https://api.your-domain.tld
-GH_REPO   ?=                       # e.g. you/your-repo (for the self-hosted runner)
 APP_DIR   ?= /opt/pombo/app/infra/app
-
-# As linhas acima trazem espaço antes do comentário inline, que entra no valor.
-# Sem normalizar, `scp $(SSH_USER)@$(DATA_HOST):/path` vira `root@host :/path`
-# (com espaço) e o scp falha; idem `$(IMAGE):$(TAG)` no deploy-direct. Strip resolve.
-DATA_HOST := $(strip $(DATA_HOST))
+SSH_USER  := $(or $(strip $(SSH_USER)),root)
+API_URL   := $(patsubst %/,%,$(strip $(API_URL)))
 APP_HOST  := $(strip $(APP_HOST))
-IMAGE     := $(strip $(IMAGE))
+DATA_HOST := $(strip $(DATA_HOST))
+GH_REPO   := $(strip $(GH_REPO))
+GH_OWNER  := $(shell printf '%s' '$(firstword $(subst /, ,$(GH_REPO)))' | tr '[:upper:]' '[:lower:]')
+# Mesma imagem que o build-api.yml publica: ghcr.io/<owner>/pombo-api.
+IMAGE     := $(or $(strip $(IMAGE)),$(if $(GH_OWNER),ghcr.io/$(GH_OWNER)/pombo-api))
+# Usuário do `docker login` = o owner do caminho da imagem.
+IMAGE_OWNER := $(word 2,$(subst /, ,$(IMAGE)))
+
+# Aborta o alvo (antes de qualquer ssh) quando uma variável obrigatória está vazia.
+require = $(if $(strip $($(1))),,$(error $(1) não definido (ou inválido) — preencha $(DEPLOY_ENV) (modelo: infra/deploy.env.example) ou passe $(1)=…))
 
 .DEFAULT_GOAL := help
 
@@ -42,17 +53,25 @@ IMAGE     := $(strip $(IMAGE))
 # Sem `## ` de propósito: não aparecem no `make help`. Só apontam pro yarn certo.
 .PHONY: deploy rollback build status version smoke
 deploy rollback build:
-	@echo "→ Use o comando guiado:  yarn $@   (o make $@ saiu — o fluxo agora e o yarn)"; exit 1
+	@echo "→ Use o comando guiado:  yarn $@   (o make $@ saiu — o fluxo agora é o yarn)"; exit 1
 status version:
 	@echo "→ Use:  yarn monitor-status   (substitui make status / make version)"; exit 1
 smoke:
-	@echo "→ O boot-smoke roda no build (yarn make-tag) e como opcao no yarn deploy."; exit 1
+	@echo "→ O boot-smoke roda no build (yarn make-tag) e como opção no yarn deploy."; exit 1
 
 # ── Deploy — plano B (sem runner self-hosted) ─────────────────────────────────
+# Mesmo cutover do deploy-api.yml, via SSH: login no GHCR (token por stdin, nunca
+# em argv), pull + up --wait e logout no fim (trap), para a credencial não ficar
+# no host. Token: exporte GHCR_TOKEN com um PAT só de `read:packages` (preferido
+# — menor raio de estrago); sem ele, usa o `gh auth token` da sua sessão (que
+# precisa de read:packages: `gh auth refresh -s read:packages`).
 .PHONY: deploy-direct
-deploy-direct: ## Plano B sem Actions: cutover DIRETO via SSH da sua máquina (TAG=vX.Y|latest) + verify de fora.
-	@echo "🚚 Cutover direto de $(IMAGE):$(TAG) na VPS-APP ($(APP_HOST)) — sem GitHub Actions…"
-	ssh $(SSH_USER)@$(APP_HOST) 'set -e; cd $(APP_DIR); export API_IMAGE=$(IMAGE):$(TAG); docker compose -f docker-compose.prod.yml pull api; docker compose -f docker-compose.prod.yml up -d --wait --wait-timeout 300 api; docker image prune -f >/dev/null'
+deploy-direct: ## Plano B sem Actions: cutover DIRETO via SSH (TAG=vX.Y|latest) + verify de fora.
+	$(call require,APP_HOST)
+	$(call require,IMAGE)
+	$(call require,API_URL)
+	@echo "🚚 Cutover direto de $(IMAGE):$(TAG) no host de APP ($(APP_HOST)) — sem GitHub Actions…"
+	@printf '%s' "$${GHCR_TOKEN:-$$(gh auth token)}" | ssh $(SSH_USER)@$(APP_HOST) 'set -e; docker login ghcr.io -u $(IMAGE_OWNER) --password-stdin >/dev/null; trap "docker logout ghcr.io >/dev/null 2>&1" EXIT; cd $(APP_DIR); export API_IMAGE=$(IMAGE):$(TAG); docker compose -f docker-compose.prod.yml pull api; docker compose -f docker-compose.prod.yml up -d --wait --wait-timeout 300 api; docker image prune -f >/dev/null'
 	@echo "→ Verificando de fora ($(API_URL)/api/health)…"; sleep 3; \
 	BODY=$$(curl -fsS --max-time 8 $(API_URL)/api/health || true); echo "  $$BODY"; \
 	if [ "$(TAG)" = "latest" ]; then echo "$$BODY" | grep -q '"ok":true'; else echo "$$BODY" | grep -q '"version":"$(TAG)"'; fi \
@@ -60,57 +79,70 @@ deploy-direct: ## Plano B sem Actions: cutover DIRETO via SSH da sua máquina (T
 	  || { echo "❌ /api/health não confirmou ($(TAG)) — veja: make logs"; exit 1; }
 
 .PHONY: runner-setup
-runner-setup: ## Instala/registra o runner self-hosted do deploy na VPS-APP (1x; token via gh).
-	@echo "🤖 Registrando o runner self-hosted (label pombo-app) na VPS-APP…"
+runner-setup: ## Instala/registra o runner self-hosted do deploy no host de APP (1x; token via gh).
+	$(call require,APP_HOST)
+	$(call require,GH_REPO)
+	@echo "🤖 Registrando o runner self-hosted (label pombo-app) em $(GH_REPO)…"
 	@TOKEN=$$(gh api -X POST repos/$(GH_REPO)/actions/runners/registration-token -q .token) && \
-	  ssh $(SSH_USER)@$(APP_HOST) "bash -s -- $$TOKEN" < infra/app/setup-github-runner.sh
+	  { printf 'set -- %s %s\n' "$$TOKEN" "https://github.com/$(GH_REPO)"; cat infra/app/setup-github-runner.sh; } \
+	  | ssh $(SSH_USER)@$(APP_HOST) 'bash -s'
 
-# ── Status nas VPS (SSH — visão profunda; o `yarn monitor-status` é a visão rápida) ──
+# ── Status nos hosts (SSH — visão profunda; o `yarn monitor-status` é a visão rápida) ──
 .PHONY: app-status
-app-status: ## Status da VPS-APP: containers + imagem/versão + túnel + disco.
-	@ssh $(SSH_USER)@$(APP_HOST) 'bash -s' < infra/status-app.sh
+app-status: ## Status do host de APP: containers + imagem/versão + gateway + túnel + disco.
+	$(call require,APP_HOST)
+	@{ printf 'API_URL=%s\n' "$(API_URL)"; cat infra/status-app.sh; } | ssh $(SSH_USER)@$(APP_HOST) 'bash -s'
 
 .PHONY: db-status
-db-status: ## Status da VPS-DATA: Postgres + Redis + túnel + disco + backup.
+db-status: ## Status do host de DATA: Postgres + Redis + túnel + disco + backup.
+	$(call require,DATA_HOST)
 	@ssh $(SSH_USER)@$(DATA_HOST) 'bash -s' < infra/status.sh
 
 # ── Logs (Ctrl-C p/ sair) ──────────────────────────────────────────────────────
 .PHONY: logs
-logs: ## Tail dos logs da API (VPS-APP).
+logs: ## Tail dos logs da API (host de APP).
+	$(call require,APP_HOST)
 	ssh -t $(SSH_USER)@$(APP_HOST) 'cd $(APP_DIR) && docker compose -f docker-compose.prod.yml logs -f --tail=100 api'
 
 .PHONY: logs-caddy
-logs-caddy: ## Tail dos logs do Caddy (VPS-APP).
+logs-caddy: ## Tail dos logs do Caddy (host de APP).
+	$(call require,APP_HOST)
 	ssh -t $(SSH_USER)@$(APP_HOST) 'cd $(APP_DIR) && docker compose -f docker-compose.caddy.yml logs -f --tail=100 caddy'
 
 # ── Shells ─────────────────────────────────────────────────────────────────────
 .PHONY: ssh-app
-ssh-app: ## Abre SSH na VPS-APP.
+ssh-app: ## Abre SSH no host de APP.
+	$(call require,APP_HOST)
 	ssh $(SSH_USER)@$(APP_HOST)
 
 .PHONY: ssh-data
-ssh-data: ## Abre SSH na VPS-DATA.
+ssh-data: ## Abre SSH no host de DATA.
+	$(call require,DATA_HOST)
 	ssh $(SSH_USER)@$(DATA_HOST)
 
-# ── Backup (VPS-DATA) ──────────────────────────────────────────────────────────
+# ── Backup (host de DATA) ──────────────────────────────────────────────────────
 # Setup de segredos (chave age, rclone R2, healthchecks.io) é manual — ver
 # infra/backup/README.md. Estes alvos ligam/operam a automação depois disso.
 .PHONY: backup-setup
-backup-setup: ## Ativa o backup Nível 1 na VPS-DATA (scripts + systemd timers). Pré: /etc/pombo/backup.env preenchido.
+backup-setup: ## Ativa o backup Nível 1 no host de DATA (scripts + systemd timers). Pré: /etc/pombo/backup.env preenchido.
+	$(call require,DATA_HOST)
 	ssh $(SSH_USER)@$(DATA_HOST) 'mkdir -p /opt/pombo/backup-src'
 	scp infra/backup/*.sh $(SSH_USER)@$(DATA_HOST):/opt/pombo/backup-src/
 	ssh $(SSH_USER)@$(DATA_HOST) 'bash /opt/pombo/backup-src/install-backup.sh'
 
 .PHONY: backup-now
-backup-now: ## Roda um backup AGORA na VPS-DATA (2x/dia é o agendado) e mostra o log.
+backup-now: ## Roda um backup AGORA no host de DATA (o agendado é 2x/dia) e mostra o log.
+	$(call require,DATA_HOST)
 	ssh $(SSH_USER)@$(DATA_HOST) 'systemctl start pombo-backup.service && sleep 2 && journalctl -u pombo-backup.service -n 25 --no-pager'
 
 .PHONY: backup-status
-backup-status: ## Timers (2x/dia) + contagem/últimos dumps no R2 (VPS-DATA).
+backup-status: ## Timers (2x/dia + GFS) + contagem/últimos dumps no R2 (host de DATA).
+	$(call require,DATA_HOST)
 	ssh $(SSH_USER)@$(DATA_HOST) 'systemctl list-timers "pombo-backup*" --no-pager; echo; . /etc/pombo/backup.env 2>/dev/null && { echo "dumps em daily/: $$(rclone lsf "$${RCLONE_REMOTE:-r2}:$${RCLONE_BUCKET:-pombo-backups}/daily/" --files-only 2>/dev/null | grep -c .) (teto $${DAILY_RETENTION_COUNT:-5})"; rclone lsl "$${RCLONE_REMOTE:-r2}:$${RCLONE_BUCKET:-pombo-backups}/daily/" 2>/dev/null | tail -5; } || echo "(rclone/remote indisponível)"'
 
 .PHONY: backup-check
-backup-check: ## Confere a invariante de retenção no R2 (0<count<=5). Sai != 0 em erro.
+backup-check: ## Confere a invariante de retenção no R2 (0<count<=N). Sai != 0 em erro.
+	$(call require,DATA_HOST)
 	ssh $(SSH_USER)@$(DATA_HOST) '. /etc/pombo/backup.env 2>/dev/null; /opt/pombo/backup-check.sh'
 
 .PHONY: restore-drill
@@ -123,6 +155,6 @@ restore-drill: ## Ensaio de restauração LOCAL (não toca prod). Uso: make rest
 help: ## Lista os alvos disponíveis.
 	@echo "Pombo — infra de produção (camada avançada). O fluxo normal é o yarn:"; \
 	 echo "  yarn make-tag · yarn deploy · yarn rollback · yarn monitor-status"; echo
-	@echo "Alvos deste Makefile (SSH/backup/plano-B):"
+	@echo "Alvos deste Makefile (SSH/backup/plano B) — hosts em $(DEPLOY_ENV):"
 	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 	  | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'

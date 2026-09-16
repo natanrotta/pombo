@@ -1,31 +1,33 @@
 #!/usr/bin/env bash
 # infra/app/setup-github-runner.sh — instala e registra o runner SELF-HOSTED do
-# GitHub Actions na VPS-APP. O job de cutover do deploy-api.yml roda nele.
+# GitHub Actions no host de APP. O job de cutover do deploy-api.yml roda nele.
 #
-# Por quê: o cutover rodava via SSH runner→VPS:22, que passou a ser dropado
-# upstream da VPS (incidente 2026-07-10) — e deploy + rollback morreram juntos.
-# O runner inverte a direção: ele mora na VPS e faz conexão de SAÍDA pro GitHub,
+# Por quê: o cutover rodava via SSH runner→host:22, que passou a ser dropado
+# upstream do host (incidente 2026-07-10) — e deploy + rollback morreram juntos.
+# O runner inverte a direção: ele mora no host e faz conexão de SAÍDA pro GitHub,
 # então firewall de entrada deixa de importar e a porta 22 pode ficar fechada
 # ao mundo.
 #
-# Uso (da SUA máquina, 1x):
+# Uso (da SUA máquina, 1x — APP_HOST e GH_REPO em infra/deploy.env):
 #   make runner-setup
 # que equivale a:
 #   TOKEN=$(gh api -X POST repos/OWNER/REPO/actions/runners/registration-token -q .token)
-#   ssh root@<APP_HOST> "bash -s -- $TOKEN" < infra/app/setup-github-runner.sh
+#   { printf 'set -- %s %s\n' "$TOKEN" https://github.com/OWNER/REPO; cat infra/app/setup-github-runner.sh; } \
+#     | ssh root@<APP_HOST> 'bash -s'
+# (o token vai por stdin — nunca na linha de comando do ssh)
 #
 # O que faz (idempotente — re-rodar mantém um registro existente):
 #   1. cria o usuário de serviço `ghrunner` e o coloca no grupo docker
 #   2. baixa a última versão do actions/runner em /opt/pombo/gh-runner
 #   3. registra no repo com o label `pombo-app` (runs-on: [self-hosted, pombo-app])
-#   4. instala como serviço systemd (sobe sozinho no boot da VPS)
+#   4. instala como serviço systemd (sobe sozinho no boot do host)
 #   5. garante que o ghrunner consegue LER o .env.prod (env_file do compose)
 #
 # Conferir depois: https://github.com/OWNER/REPO/settings/actions/runners
 set -euo pipefail
 
-TOKEN="${1:?uso: setup-github-runner.sh <registration-token> [repo-url]}"
-REPO_URL="${2:?pass the repo URL as arg 2, e.g. https://github.com/you/your-repo}"
+TOKEN="${1:?uso: setup-github-runner.sh <registration-token> <repo-url>}"
+REPO_URL="${2:?uso: setup-github-runner.sh <registration-token> <repo-url> (ex.: https://github.com/OWNER/REPO)}"
 RUNNER_DIR="/opt/pombo/gh-runner"
 RUNNER_USER="ghrunner"
 ENV_PROD="${ENV_PROD:-/opt/pombo/app/infra/.env.prod}"

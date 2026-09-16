@@ -14,7 +14,7 @@
 # Freshness ("o último backup rodou a tempo?") é responsabilidade do dead-man
 # switch (healthchecks.io) — não é reimplementado aqui.
 #
-# Uso na VPS-DATA (via systemd EnvironmentFile ou . backup.env):
+# Uso no host de DATA (via systemd EnvironmentFile ou . backup.env):
 #   . /etc/pombo/backup.env && /opt/pombo/backup-check.sh
 # Saída != 0 em ERRO (serve de gate p/ automação).
 

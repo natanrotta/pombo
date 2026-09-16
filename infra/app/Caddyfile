@@ -1,23 +1,26 @@
-# infra/app/Caddyfile — reverse proxy + TLS da VPS-APP
+# infra/app/Caddyfile — reverse proxy + TLS do host de APP
 #
-# {$API_DOMAIN} → container da API (localhost:3333). Ver Step 5 do plano.
+# {$API_DOMAIN} (ex.: api.your-domain.tld, repassado pelo
+# docker-compose.caddy.yml) → container da API em localhost:3333.
 #
-# ── Streaming / raw-body notes ───────────────────────────────────────────────
-# `flush_interval -1` disables response buffering, so any Server-Sent Events /
-# text/event-stream endpoint is delivered chunk by chunk. Harmless for the rest
-# of the API. If you add a webhook that verifies a RAW request body (e.g. a
-# payment-provider signature), keep the reverse_proxy as-is — Caddy forwards the
-# body byte-for-byte; do NOT add `request_body`/`encode` directives that alter it.
+# ── Corpo e streaming ────────────────────────────────────────────────────────
+# `flush_interval -1` desliga o buffering da resposta: um endpoint SSE /
+# text/event-stream futuro chega em chunks (hoje a API não tem SSE — é inócuo).
+# O corpo da requisição é repassado byte a byte: NÃO adicione `request_body` /
+# `encode` que o alterem (um webhook de entrada assinado dependeria disso).
 #
 # ── TLS atrás do Cloudflare (proxy laranja) ──────────────────────────────────
-# Com o proxy do Cloudflare ON, o desafio HTTP-01 do Let's Encrypt pode falhar
-# (o 80/443 chega no Cloudflare, não na origem). Três saídas — escolha UMA:
-#   (a) DNS-01 com o plugin Cloudflare do Caddy (recomendado). Requer um build
-#       do Caddy com o módulo e um token de API. Descomente o bloco `tls` abaixo.
-#   (b) Cloudflare Origin Certificate instalado na origem + SSL "Full (strict)".
-#   (c) Deixar o registro como "DNS only" (cinza) só durante a 1ª emissão, e
-#       religar o proxy laranja depois.
-# Ver infra/README.md › "TLS + Cloudflare".
+# Decisão: Cloudflare Origin Certificate na origem + SSL "Full (strict)". Gere o
+# cert em SSL/TLS → Origin Server e coloque os 2 arquivos em /etc/caddy/certs/
+# no host (chmod 600 na key) — montados pelo docker-compose.caddy.yml. Sem ACME.
+# Alternativas (não usadas): DNS-01 com o plugin Cloudflare do Caddy, ou
+# registro "DNS only" só durante a 1ª emissão Let's Encrypt.
+#
+# ── IP real do cliente ───────────────────────────────────────────────────────
+# O X-Forwarded-For vira o CF-Connecting-IP, e a API confia em 1 proxy
+# (`trust proxy 1`) para o rate limit por IP. Esse header só é confiável se a
+# origem aceitar 80/443 APENAS dos IPs do Cloudflare (ufw) — ver o backlog em
+# .claude/knowledge/devops.md.
 
 {$API_DOMAIN} {
 	reverse_proxy localhost:3333 {
@@ -29,10 +32,6 @@
 		header_up X-Real-IP {http.request.header.CF-Connecting-IP}
 	}
 
-	# TLS = Cloudflare Origin Certificate (decisão B7: api proxied/laranja +
-	# SSL "Full (strict)"). Gere o cert em SSL/TLS → Origin Server no Cloudflare
-	# e coloque os 2 arquivos em /etc/caddy/certs/ na VPS-APP (chmod 600 na key).
-	# Montados no container Caddy via docker-compose.caddy.yml. 15 anos, sem ACME.
 	tls /etc/caddy/certs/origin.crt /etc/caddy/certs/origin.key
 
 	log {

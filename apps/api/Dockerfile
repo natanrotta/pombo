@@ -10,8 +10,10 @@
 #   prod-deps  a second, production-only install (no devDependencies)
 #   runtime    node:alpine + prod deps + dist/ + prisma migrations, non-root,
 #              node as PID 1 (the entrypoint `exec`s it so SIGTERM reaches the
-#              graceful shutdown), HEALTHCHECK on /healthz
-#   dev        `yarn dev` with the source bind-mounted (docker-compose.local.yml)
+#              graceful shutdown), HEALTHCHECK on /healthz. Listens on API_PORT
+#              (schema default 3333 — infra/app/docker-compose.prod.yml)
+#   dev        `yarn dev` with the source bind-mounted (docker-compose.local.yml,
+#              API_PORT=4444 from apps/api/.env)
 #
 #   docker build -f apps/api/Dockerfile --target runtime -t pombo-api .
 #   docker build -f apps/api/Dockerfile --target dev     -t pombo-api:dev .
@@ -93,5 +95,5 @@ COPY packages/shared-types ./packages/shared-types
 RUN yarn workspace @pombo/shared-types build
 COPY apps/api ./apps/api
 WORKDIR /usr/src/app/apps/api
-EXPOSE 3333
+EXPOSE 4444
 CMD ["sh", "-c", "yarn prisma generate && yarn dev"]

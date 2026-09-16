@@ -5,7 +5,8 @@
 # self-hosted runner registered by `make runner-setup` (infra/app/
 # setup-github-runner.sh) — no inbound SSH. The host keeps the repo checkout at
 # /opt/pombo/app, the real env at /opt/pombo/app/infra/.env.prod (readable by the
-# runner user), and the compose in /opt/pombo/app/infra/app.
+# runner user) and the compose in /opt/pombo/app/infra/app. Without a runner the
+# fallback is `make deploy-direct` (same cutover, over SSH).
 #
 # Verdicts (what the operator sees):
 #   PRODUCTION UNTOUCHED — a pre-flight failed before the container was touched
@@ -43,11 +44,13 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: "[1/4] Pre-flight (fails = PRODUCTION UNTOUCHED)"
+        env:
+          REPO_OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
           [[ "$TAG" =~ ^v[0-9]+\.[0-9]+$ || "$TAG" == "latest" ]] \
             || { echo "::error::tag must be vMAJOR.MINOR or latest (got '$TAG') — PRODUCTION UNTOUCHED"; exit 1; }
-          OWNER="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          OWNER="$(printf '%s' "$REPO_OWNER" | tr '[:upper:]' '[:lower:]')"
           echo "IMAGE=ghcr.io/${OWNER}/pombo-api:${TAG}" >> "$GITHUB_ENV"
           [ -n "$API_URL" ] \
             || { echo "::error::repository variable API_URL is not set — PRODUCTION UNTOUCHED"; exit 1; }
@@ -58,9 +61,12 @@ jobs:
           docker compose version
 
       - name: "[2/4] Pull the image (fails = PRODUCTION UNTOUCHED)"
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
         run: |
           set -euo pipefail
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
           docker pull "$IMAGE" \
             || { echo "::error::$IMAGE not found in GHCR — PRODUCTION UNTOUCHED (build it with yarn make-tag)"; exit 1; }
 
@@ -90,6 +96,12 @@ jobs:
           done
           echo "::error::/api/health did not confirm $TAG — production was touched; consider: yarn rollback. Last body: $BODY"
           exit 1
+
+      # The runner is long-lived and shared by every job on the APP host: never
+      # leave the registry credential behind in ~/.docker/config.json.
+      - name: Log out of GHCR
+        if: always()
+        run: docker logout ghcr.io >/dev/null 2>&1 || true
 
       - name: Prune dangling images
         if: always()
