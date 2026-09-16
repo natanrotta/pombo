@@ -48,11 +48,11 @@ export function AppShell({ children }: PropsWithChildren) {
 
         <Box
           as="main"
-          px={{ base: 4, md: 6, xl: 8 }}
-          py={{ base: 4, md: 6 }}
+          px={{ base: 4, md: 8, xl: "40px" }}
+          py={{ base: 4, md: "34px" }}
           // Clears the floating bottom nav on mobile: ~50px pill height +
           // 12px bottom offset + ~34px breathing room, above the safe-area inset.
-          pb={{ base: "calc(env(safe-area-inset-bottom) + 96px)", lg: 6 }}
+          pb={{ base: "calc(env(safe-area-inset-bottom) + 96px)", lg: "72px" }}
         >
           {children}
         </Box>

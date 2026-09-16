@@ -3,9 +3,8 @@ import { useTranslation } from "react-i18next";
 import { FiClock, FiLogOut, FiTrash2 } from "@/shared/components/icons";
 import type { ActionMenuItem } from "@/shared/components/ui/ActionMenu";
 import { EntityCard } from "@/shared/components/ui/EntityCard";
-import { formatShortDate } from "@/shared/utils/date";
-import { formatPhoneDisplay } from "@/shared/utils/phone";
 import { DeviceStatusBadge } from "@/modules/devices/presentation/components/DeviceStatusBadge";
+import { useDeviceSummary } from "@/modules/devices/presentation/hooks/useDeviceSummary";
 import type { Device } from "@/modules/devices/domain/entities/Device";
 
 interface DeviceCardProps {
@@ -40,12 +39,7 @@ export const DeviceCard = memo(function DeviceCard({
     [onDisconnect, device.id],
   );
 
-  const subtitle = device.identifier
-    ? formatPhoneDisplay(device.identifier)
-    : t("list.notPaired");
-  const lastSeen = device.lastConnectedAt
-    ? formatShortDate(device.lastConnectedAt)
-    : t("list.neverConnected");
+  const { subtitle, meta, hoverAction, isLive } = useDeviceSummary(device);
 
   const actionItems: ActionMenuItem[] = [
     ...(device.status === "CONNECTED"
@@ -70,7 +64,9 @@ export const DeviceCard = memo(function DeviceCard({
       title={device.name}
       subtitle={subtitle}
       badges={[<DeviceStatusBadge key="status" status={device.status} />]}
-      metaItems={[{ icon: FiClock, label: lastSeen }]}
+      metaItems={[{ icon: FiClock, label: meta }]}
+      hoverAction={hoverAction}
+      isLive={isLive}
       onClick={handleOpen}
       onHover={handleHover}
       actionItems={actionItems}

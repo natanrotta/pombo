@@ -1,6 +1,7 @@
 import { memo } from "react";
 import {
   Button,
+  chakra,
   Separator,
   Flex,
   Heading,
@@ -86,14 +87,13 @@ function PageHeaderComponent({
       >
         <Flex direction="column" gap={0.5} minW={0}>
           <Flex align="baseline" gap={2}>
-            <Heading
-              as="h1"
-              fontSize={{ base: "lg", md: "xl" }}
-              fontWeight="700"
-              letterSpacing="tight"
-              color="text.primary"
-            >
+            {/* Lowercase mono + a green full stop — the design's page-title
+                signature (foundation § "Título"). */}
+            <Heading as="h1" textStyle="pageTitle" color="text.primary">
               {title}
+              <chakra.span color="text.brand" aria-hidden="true">
+                .
+              </chakra.span>
             </Heading>
             <AnimatePresence>
               {count !== undefined && (
@@ -113,7 +113,7 @@ function PageHeaderComponent({
             </AnimatePresence>
           </Flex>
           {description && (
-            <Text color="text.secondary" fontSize="sm" maxW="2xl">
+            <Text color="text.secondary" textStyle="body" maxW="2xl">
               {description}
             </Text>
           )}

@@ -12,20 +12,16 @@ import {
 } from "@chakra-ui/react";
 import { buttonRecipe, semanticTokens, textStyles } from "@pombo/theme";
 import {
-  FiActivity,
-  FiCheckCircle,
   FiClock,
   FiEdit2,
-  FiInbox,
-  FiSlash,
-  FiSmartphone,
   FiTrash2,
 } from "@/shared/components/icons";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { StatusBadge } from "@/shared/components/ui/StatusBadge";
 import { SectionCard } from "@/shared/components/ui/SectionCard";
 import { EntityCard } from "@/shared/components/ui/EntityCard";
-import { StatCard, type StatCardTone } from "@/shared/components/ui/StatCard";
+import { StatTiles, type StatTileTone } from "@/shared/components/ui/StatTiles";
+import { ViewToggle } from "@/shared/components/ui/ViewToggle";
 import { InfoRow } from "@/shared/components/ui/InfoRow";
 import { EmptyState } from "@/shared/components/ui/EmptyState";
 import { FilterBar } from "@/shared/components/ui/FilterBar";
@@ -75,7 +71,7 @@ const textStyleNames = Object.keys(textStyles);
 const buttonVariants = Object.keys(buttonRecipe.variants?.variant ?? {});
 const BUTTON_SIZES = ["xs", "sm", "md"] as const;
 const STATUSES = ["success", "info", "warning", "error", "neutral"] as const;
-const STAT_TONES: StatCardTone[] = ["brand", "success", "info", "neutral", "error", "blue"];
+const STAT_TONES: StatTileTone[] = ["default", "success", "error", "info"];
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
@@ -270,18 +266,27 @@ function CardSection() {
             </Stack>
           </SectionCard>
         </SimpleGrid>
-        <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
-          {STAT_TONES.map((tone, index) => (
-            <StatCard
-              key={tone}
-              tone={tone}
-              label={tone}
-              value={String(index + 1)}
-              hint="Dica do indicador"
-              icon={[FiSmartphone, FiCheckCircle, FiActivity, FiInbox, FiSlash, FiSmartphone][index]}
-            />
-          ))}
-        </SimpleGrid>
+        <StatTiles
+          items={STAT_TONES.map((tone, index) => ({
+            label: tone,
+            value: `0${index + 1}`,
+            tone,
+          }))}
+        />
+        <Flex gap={3} align="center">
+          <ViewToggle
+            value="grid"
+            onChange={() => {}}
+            gridLabel="Ver em grade"
+            listLabel="Ver em lista"
+          />
+          <ViewToggle
+            value="list"
+            onChange={() => {}}
+            gridLabel="Ver em grade"
+            listLabel="Ver em lista"
+          />
+        </Flex>
       </Stack>
     </Section>
   );

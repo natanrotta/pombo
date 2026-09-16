@@ -80,21 +80,26 @@ const SidebarNavItem = memo(function SidebarNavItem({
             borderRadius="md"
             bg={isActive ? "bg.brand.subtle" : "transparent"}
             color={isActive ? "text.brand" : "text.secondary"}
-            borderLeftWidth={isCollapsed ? "0" : "3px"}
-            borderLeftColor={isActive ? "brand.500" : "transparent"}
+            // The active item is outlined by a green inset edge, not a left bar.
+            boxShadow={
+              isActive
+                ? "inset 0 0 0 1px var(--chakra-colors-border-accent)"
+                : undefined
+            }
             cursor="pointer"
             _hover={{
               bg: isActive ? "bg.brand.subtle" : "bg.hover",
-              transform: isActive || isCollapsed ? "none" : "translateX(2px)",
+              color: isActive ? "text.brand" : "text.primary",
             }}
-            transition="all 0.18s cubic-bezier(0.22, 1, 0.36, 1)"
+            transition="background-color 150ms ease, color 150ms ease"
           >
-            <Icon boxSize="18px" flexShrink={0}>
+            <Icon boxSize="17px" flexShrink={0}>
               <ItemIcon />
             </Icon>
             <Text
-              fontWeight={isActive ? "700" : "500"}
-              fontSize="sm"
+              fontFamily="mono"
+              fontWeight={isActive ? "500" : "400"}
+              fontSize="14px"
               opacity={isCollapsed ? 0 : 1}
               w={isCollapsed ? 0 : "auto"}
               overflow="hidden"

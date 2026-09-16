@@ -11,6 +11,9 @@ export const STORAGE_KEYS = {
    *  surfaced as suggestions when the recipient input is focused. Convenience
    *  only — cleared safely at any time, never contains sensitive data. */
   sandboxRecentRecipients: "@pombo-web:sandbox-recent-recipients",
+  /** Device list layout (`grid` | `list`). A browser preference, like the
+   *  sidebar state — it survives a sign-out. */
+  devicesView: "@pombo-web:devices-view",
 } as const;
 
 /** Prefix shared by every key this app writes to web storage. */
@@ -22,4 +25,5 @@ export const STORAGE_KEY_PREFIX = "@pombo-web:";
 export const DEVICE_PREFERENCE_KEYS: readonly string[] = [
   STORAGE_KEYS.language,
   STORAGE_KEYS.sidebarCollapsed,
+  STORAGE_KEYS.devicesView,
 ];

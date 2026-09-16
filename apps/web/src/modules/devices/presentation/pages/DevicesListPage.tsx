@@ -2,31 +2,30 @@ import { useCallback, useMemo, useState } from "react";
 import {
   Box,
   Button,
-  ButtonGroup,
+  chakra,
   Flex,
   Icon,
-  SimpleGrid,
+  Text,
   useDisclosure,
 } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import {
-  FiCheckCircle,
-  FiPlus,
-  FiSlash,
-  FiSmartphone,
-} from "@/shared/components/icons";
+import { FiPlus, FiSmartphone } from "@/shared/components/icons";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
-import { StatCard } from "@/shared/components/ui/StatCard";
+import { StatTiles } from "@/shared/components/ui/StatTiles";
 import { FilterBar } from "@/shared/components/ui/FilterBar";
+import { InlineSelect } from "@/shared/components/ui/InlineSelect";
+import { ViewToggle, type ListView } from "@/shared/components/ui/ViewToggle";
 import { EmptyState } from "@/shared/components/ui/EmptyState";
 import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
 import { ListPageSkeleton } from "@/shared/components/skeletons/ListPageSkeleton";
 import { useConfirm } from "@/shared/hooks/useConfirm";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useNotify } from "@/shared/hooks/useNotify";
+import { STORAGE_KEYS } from "@/shared/constants/storageKeys";
 import { ROUTE_PATHS } from "@/app/router/RoutePaths";
 import { DeviceCard } from "@/modules/devices/presentation/components/DeviceCard";
+import { DeviceRow } from "@/modules/devices/presentation/components/DeviceRow";
 import { CreateDeviceModal } from "@/modules/devices/presentation/components/CreateDeviceModal";
 import {
   useDevicesList,
@@ -35,7 +34,34 @@ import {
   usePrefetchDevice,
 } from "@/modules/devices/presentation/hooks/useDevices";
 
-type StatusFilter = "all" | "connected" | "disconnected";
+type StatusFilter = "all" | "connected" | "disconnected" | "pairing";
+
+const PAIRING_STATUSES = new Set(["QR_PENDING", "CONNECTING"]);
+
+/** Cards or rows — a browser preference, remembered across visits. */
+function useDevicesView(): [ListView, (view: ListView) => void] {
+  const [view, setView] = useState<ListView>(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEYS.devicesView) === "list"
+        ? "list"
+        : "grid";
+    } catch {
+      // Private mode / blocked storage: fall back to the default.
+      return "grid";
+    }
+  });
+
+  const persist = useCallback((next: ListView) => {
+    setView(next);
+    try {
+      localStorage.setItem(STORAGE_KEYS.devicesView, next);
+    } catch {
+      // The preference simply won't survive a reload.
+    }
+  }, []);
+
+  return [view, persist];
+}
 
 export function DevicesListPage() {
   const { t } = useTranslation("devices");
@@ -53,6 +79,7 @@ export function DevicesListPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [view, setView] = useDevicesView();
 
   const stats = useMemo(() => {
     const total = devices.length;
@@ -72,7 +99,10 @@ export function DevicesListPage() {
           ? true
           : statusFilter === "connected"
             ? device.status === "CONNECTED"
-            : device.status !== "CONNECTED";
+            : statusFilter === "pairing"
+              ? PAIRING_STATUSES.has(device.status)
+              : device.status !== "CONNECTED" &&
+                !PAIRING_STATUSES.has(device.status);
       return matchesSearch && matchesStatus;
     });
   }, [devices, debouncedSearch, statusFilter]);
@@ -118,8 +148,13 @@ export function DevicesListPage() {
         title={t("list.title")}
         description={t("list.description")}
         actions={
-          <Button onClick={createModal.onOpen} data-cy="devices-add">
-            <Icon>
+          <Button
+            variant="subtle"
+            size="md"
+            onClick={createModal.onOpen}
+            data-cy="devices-add"
+          >
+            <Icon boxSize={3.5}>
               <FiPlus />
             </Icon>
             {t("list.add")}
@@ -130,58 +165,58 @@ export function DevicesListPage() {
       {isLoading ? (
         <ListPageSkeleton />
       ) : (
-        <Flex direction="column" gap={5}>
-          <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
-            <StatCard
-              label={t("list.stats.total")}
-              value={String(stats.total)}
-              hint={t("list.stats.totalHint")}
-              icon={FiSmartphone}
-              tone="blue"
-            />
-            <StatCard
-              label={t("list.stats.connected")}
-              value={String(stats.connected)}
-              hint={t("list.stats.connectedHint")}
-              icon={FiCheckCircle}
-              tone="success"
-            />
-            <StatCard
-              label={t("list.stats.disconnected")}
-              value={String(stats.disconnected)}
-              hint={t("list.stats.disconnectedHint")}
-              icon={FiSlash}
-              tone="error"
-            />
-          </SimpleGrid>
+        <Flex direction="column" gap={6}>
+          <StatTiles
+            items={[
+              { label: t("list.stats.total"), value: padCount(stats.total) },
+              {
+                label: t("list.stats.connected"),
+                value: padCount(stats.connected),
+                tone: "success",
+              },
+              {
+                label: t("list.stats.disconnected"),
+                value: padCount(stats.disconnected),
+                tone: "error",
+              },
+            ]}
+          />
 
           {hasDevices && (
-            <Flex
-              direction={{ base: "column", md: "row" }}
-              gap={3}
-              align={{ base: "stretch", md: "center" }}
-              justify="space-between"
-            >
-              <Box flex="1">
+            <Flex gap={2.5} align="center" wrap="wrap">
+              <Box flex={{ base: "1 1 100%", md: "1 1 240px" }} minW={0}>
                 <FilterBar
                   searchValue={search}
                   onSearchChange={setSearch}
                   searchPlaceholder={t("list.searchPlaceholder")}
+                  trailing={
+                    <InlineSelect<StatusFilter>
+                      value={statusFilter}
+                      onChange={setStatusFilter}
+                      ariaLabel={t("list.filter.label")}
+                      dataCy="devices-status-filter"
+                      options={[
+                        { value: "all", label: t("list.filter.all") },
+                        {
+                          value: "connected",
+                          label: t("list.filter.connected"),
+                        },
+                        {
+                          value: "disconnected",
+                          label: t("list.filter.disconnected"),
+                        },
+                        { value: "pairing", label: t("list.filter.pairing") },
+                      ]}
+                    />
+                  }
                 />
               </Box>
-              <ButtonGroup size="sm" attached variant="outline">
-                {(["all", "connected", "disconnected"] as StatusFilter[]).map(
-                  (value) => (
-                    <Button
-                      key={value}
-                      variant={statusFilter === value ? "solid" : "outline"}
-                      onClick={() => setStatusFilter(value)}
-                    >
-                      {t(`list.filter.${value}`)}
-                    </Button>
-                  ),
-                )}
-              </ButtonGroup>
+              <ViewToggle
+                value={view}
+                onChange={setView}
+                gridLabel={t("list.view.grid")}
+                listLabel={t("list.view.list")}
+              />
             </Flex>
           )}
 
@@ -201,19 +236,86 @@ export function DevicesListPage() {
               size="sm"
             />
           ) : (
-            <Box opacity={isFetching ? 0.6 : 1} transition="opacity 0.15s ease">
-              <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} gap={4}>
-                {filtered.map((device) => (
-                  <DeviceCard
-                    key={device.id}
-                    device={device}
-                    onOpen={handleOpen}
-                    onHover={prefetchDevice}
-                    onDelete={handleDelete}
-                    onDisconnect={handleDisconnect}
+            <Box opacity={isFetching ? 0.6 : 1} transition="opacity 150ms ease">
+              {view === "grid" ? (
+                <Box
+                  display="grid"
+                  gridTemplateColumns="repeat(auto-fill, minmax(280px, 1fr))"
+                  gap={3}
+                  alignItems="stretch"
+                >
+                  {filtered.map((device) => (
+                    <DeviceCard
+                      key={device.id}
+                      device={device}
+                      onOpen={handleOpen}
+                      onHover={prefetchDevice}
+                      onDelete={handleDelete}
+                      onDisconnect={handleDisconnect}
+                    />
+                  ))}
+                  <ConnectTile
+                    label={t("list.connect.title")}
+                    hint={t("list.connect.hint")}
+                    onClick={createModal.onOpen}
                   />
-                ))}
-              </SimpleGrid>
+                </Box>
+              ) : (
+                <Box
+                  bg="bg.surface"
+                  borderWidth="1px"
+                  borderColor="border.default"
+                  borderRadius="lg"
+                  overflow="hidden"
+                >
+                  <Flex
+                    px={4.5}
+                    py={3}
+                    gap={3.5}
+                    borderBottomWidth="1px"
+                    borderColor="border.default"
+                    textStyle="eyebrow"
+                    color="text.muted"
+                  >
+                    <Text flex={1} minW={0}>
+                      {t("list.columns.device")}
+                    </Text>
+                    <Text
+                      display={{ base: "none", md: "block" }}
+                      w="132px"
+                      flexShrink={0}
+                    >
+                      {t("list.columns.status")}
+                    </Text>
+                    <Box display={{ base: "none", md: "block" }} w="120px" />
+                  </Flex>
+                  {filtered.map((device) => (
+                    <DeviceRow
+                      key={device.id}
+                      device={device}
+                      onOpen={handleOpen}
+                      onHover={prefetchDevice}
+                    />
+                  ))}
+                  <Button
+                    variant="ghost"
+                    w="100%"
+                    h="48px"
+                    borderRadius="0"
+                    borderTopWidth="1px"
+                    borderColor="border.default"
+                    bg="bg.canvas"
+                    color="text.brand"
+                    fontFamily="mono"
+                    onClick={createModal.onOpen}
+                  >
+                    <Icon boxSize={3.5}>
+                      <FiPlus />
+                    </Icon>
+                    {t("list.connect.title")}
+                  </Button>
+                </Box>
+              )}
             </Box>
           )}
         </Flex>
@@ -243,5 +345,58 @@ export function DevicesListPage() {
         isLoading={disconnectDevice.isPending}
       />
     </>
+  );
+}
+
+/** The counters read as fixed-width pairs (`03`), like the design. */
+function padCount(value: number): string {
+  return value < 10 ? `0${value}` : String(value);
+}
+
+interface ConnectTileProps {
+  label: string;
+  hint: string;
+  onClick: () => void;
+}
+
+/** The dashed "connect a number" tile that closes the card grid. */
+function ConnectTile({ label, hint, onClick }: ConnectTileProps) {
+  return (
+    <chakra.button
+      type="button"
+      data-cy="devices-connect-tile"
+      onClick={onClick}
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      justifyContent="center"
+      gap={2.5}
+      minH="150px"
+      p={5}
+      bg="transparent"
+      borderWidth="1px"
+      borderStyle="dashed"
+      borderColor="border.accent"
+      borderRadius="lg"
+      color="text.brand"
+      cursor="pointer"
+      transition="background-color 150ms ease, border-color 150ms ease"
+      _hover={{ bg: "bg.brand.subtle", borderColor: "border.brand" }}
+      _focusVisible={{
+        outline: "2px solid",
+        outlineColor: "border.focus",
+        outlineOffset: "2px",
+      }}
+    >
+      <Icon boxSize={5}>
+        <FiPlus />
+      </Icon>
+      <Text textStyle="mono" fontWeight="500" fontSize="13.5px">
+        {label}
+      </Text>
+      <Text textStyle="mono" color="text.muted">
+        {hint}
+      </Text>
+    </chakra.button>
   );
 }

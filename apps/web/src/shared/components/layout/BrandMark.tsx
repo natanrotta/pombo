@@ -33,16 +33,18 @@ export function BrandMark({ variant, isCollapsed = false }: BrandMarkProps) {
       {!isCollapsed && (
         <Box flex={1} minW={0}>
           <Text
-            fontSize="sm"
-            fontWeight={isSidebar ? "800" : "700"}
+            fontFamily="mono"
+            fontSize="14.5px"
+            fontWeight="600"
             color="text.primary"
-            letterSpacing="-0.01em"
+            letterSpacing="-0.2px"
+            textTransform="lowercase"
             whiteSpace="nowrap"
           >
             {name}
           </Text>
           {isSidebar && (
-            <Text fontSize="xs" color="text.muted" whiteSpace="nowrap">
+            <Text textStyle="mono" color="text.muted" whiteSpace="nowrap">
               {t("platform.tagline")}
             </Text>
           )}

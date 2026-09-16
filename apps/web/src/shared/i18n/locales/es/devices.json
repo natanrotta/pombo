@@ -28,7 +28,9 @@
     "filter": {
       "all": "Todos",
       "connected": "Conectados",
-      "disconnected": "Desconectados"
+      "disconnected": "Desconectados",
+      "label": "Filtrar por estado",
+      "pairing": "Vinculando"
     },
     "empty": {
       "title": "Aún no hay dispositivos",
@@ -45,6 +47,28 @@
     "disconnectConfirm": {
       "title": "Desconectar dispositivo",
       "description": "La sesión de WhatsApp se cerrará. Para reconectar, escanea el código QR de nuevo."
+    },
+    "view": {
+      "grid": "Ver en cuadrícula",
+      "list": "Ver en lista"
+    },
+    "columns": {
+      "device": "Dispositivo",
+      "status": "Estado"
+    },
+    "connect": {
+      "title": "Conectar número",
+      "hint": "Escanea el QR en WhatsApp"
+    },
+    "meta": {
+      "since": "Conectado desde {{date}}",
+      "left": "Salió el {{date}}",
+      "created": "Creado el {{date}}"
+    },
+    "action": {
+      "open": "Abrir",
+      "reconnect": "Reconectar",
+      "qr": "Ver código QR"
     }
   },
   "create": {

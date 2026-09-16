@@ -28,7 +28,9 @@
     "filter": {
       "all": "All",
       "connected": "Connected",
-      "disconnected": "Disconnected"
+      "disconnected": "Disconnected",
+      "label": "Filter by status",
+      "pairing": "Pairing"
     },
     "empty": {
       "title": "No devices yet",
@@ -45,6 +47,28 @@
     "disconnectConfirm": {
       "title": "Disconnect device",
       "description": "The WhatsApp session will be ended. To reconnect, scan the QR code again."
+    },
+    "view": {
+      "grid": "Grid view",
+      "list": "List view"
+    },
+    "columns": {
+      "device": "Device",
+      "status": "Status"
+    },
+    "connect": {
+      "title": "Connect a number",
+      "hint": "Scan the QR in WhatsApp"
+    },
+    "meta": {
+      "since": "Connected since {{date}}",
+      "left": "Left on {{date}}",
+      "created": "Created on {{date}}"
+    },
+    "action": {
+      "open": "Open",
+      "reconnect": "Reconnect",
+      "qr": "Show QR code"
     }
   },
   "create": {

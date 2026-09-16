@@ -26,6 +26,10 @@ export interface EntityCardQuickAction {
 
 interface EntityCardProps {
   avatar?: ReactNode;
+  /** A live entity breathes (the design's only continuous animation). */
+  isLive?: boolean;
+  /** Footer call to action, revealed on hover/focus ("abrir →"). */
+  hoverAction?: string;
   title: string;
   subtitle?: string;
   badges?: ReactNode[];
@@ -43,6 +47,8 @@ interface EntityCardProps {
 
 export const EntityCard = memo(function EntityCard({
   avatar,
+  isLive = false,
+  hoverAction,
   title,
   subtitle,
   badges,
@@ -58,16 +64,18 @@ export const EntityCard = memo(function EntityCard({
       data-cy="entity-card"
       bg="bg.surface"
       borderWidth="1px"
-      borderColor="border.subtle"
+      // A live entity rests on a green edge and breathes; everything else
+      // carries the plain border.
+      borderColor={isLive ? "border.accent" : "border.default"}
       borderRadius="lg"
       boxShadow="shadow.card"
+      animation={isLive ? "livePulse 3.4s ease-in-out infinite" : undefined}
       p={4}
       h="100%"
       display="flex"
       flexDirection="column"
       style={{
-        transition:
-          "box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1), transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1)",
+        transition: "border-color 150ms ease, box-shadow 150ms ease",
       }}
       cursor={onClick ? "pointer" : undefined}
       onClick={onClick}
@@ -78,16 +86,9 @@ export const EntityCard = memo(function EntityCard({
       onFocus={onHover}
       // Chakra v3's `_groupHover` matches the `group` class, not `role="group"`.
       className="group"
-      _hover={
-        onClick
-          ? {
-              boxShadow: { base: "shadow.card", md: "shadow.cardHover" },
-              transform: { base: "none", md: "translateY(-2px)" },
-              borderColor: { base: "border.subtle", md: "border.brand" },
-            }
-          : undefined
-      }
-      _active={onClick ? { transform: "scale(0.98)" } : undefined}
+      // The design moves in color, not in space: the edge lights up, the card
+      // stays put.
+      _hover={onClick ? { borderColor: "border.brand" } : undefined}
       position="relative"
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
@@ -104,12 +105,12 @@ export const EntityCard = memo(function EntityCard({
               showArrow
               positioning={{ placement: "top" }}
             >
-              <Text fontWeight="700" fontSize="sm" lineClamp={1}>
+              <Text fontWeight="500" fontSize="16.5px" lineClamp={1}>
                 {title}
               </Text>
             </Tooltip>
             {subtitle && (
-              <Text fontSize="xs" color="text.secondary" lineClamp={1} mt={0.5}>
+              <Text textStyle="mono" color="text.muted" lineClamp={1} mt={1}>
                 {subtitle}
               </Text>
             )}
@@ -130,6 +131,7 @@ export const EntityCard = memo(function EntityCard({
 
       {(metaItems && metaItems.length > 0) ||
       (quickActions && quickActions.length > 0) ||
+      hoverAction ||
       footerEnd ? (
         <Flex
           align={{
@@ -162,14 +164,14 @@ export const EntityCard = memo(function EntityCard({
               <Flex key={meta.label} align="center" gap={1.5} flexShrink={0}>
                 <Icon
                   boxSize={3.5}
-                  color={meta.color ?? "text.secondary"}
+                  color={meta.color ?? "text.muted"}
                   flexShrink={0}
                 >
                   <meta.icon />
                 </Icon>
                 <Text
-                  fontSize="xs"
-                  color={meta.color ?? "text.secondary"}
+                  textStyle="mono"
+                  color={meta.color ?? "text.muted"}
                   whiteSpace="nowrap"
                 >
                   {meta.label}
@@ -177,6 +179,21 @@ export const EntityCard = memo(function EntityCard({
               </Flex>
             ))}
           </Flex>
+          {hoverAction && (
+            <Text
+              textStyle="mono"
+              fontWeight="500"
+              color="text.brand"
+              whiteSpace="nowrap"
+              flexShrink={0}
+              opacity={{ base: 1, md: 0 }}
+              _groupHover={{ opacity: 1 }}
+              _groupFocusWithin={{ opacity: 1 }}
+              transition="opacity 150ms ease"
+            >
+              {hoverAction} →
+            </Text>
+          )}
           {footerEnd && (
             <Flex
               flexShrink={0}
