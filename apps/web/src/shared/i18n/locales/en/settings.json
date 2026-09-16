@@ -40,7 +40,7 @@
     },
     "regenerateConfirm": {
       "title": "Generate new token",
-      "description": "The current token will be revoked immediately and stop working. This action cannot be undone."
+      "description": "The current token is revoked and stops working within 60 seconds. This action cannot be undone."
     }
   },
   "account": {
@@ -124,6 +124,8 @@
     "profileUpdateError": "Failed to update profile",
     "avatarUpdated": "Photo updated",
     "avatarUpdateError": "Failed to update photo",
+    "avatarTooLarge": "The photo is over the 5 MB limit.",
+    "avatarInvalidType": "Unsupported format. Use JPG, PNG, WebP or GIF.",
     "shareCode": "Find me on Pombo! Add by code: #{{code}}",
     "adminCard": {
       "title": "Administrator",

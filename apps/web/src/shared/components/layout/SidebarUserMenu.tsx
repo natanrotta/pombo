@@ -76,7 +76,7 @@ export function SidebarUserMenu({ isCollapsed }: SidebarUserMenuProps) {
                   size="sm"
                   name={user.name}
                   src={user.avatarUrl || undefined}
-                  bg="brand.500"
+                  bg="bg.brand.solid"
                   color="text.onBrand"
                   fontSize="xs"
                   fontWeight="700"

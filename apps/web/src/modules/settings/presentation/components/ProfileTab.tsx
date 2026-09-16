@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Box, Button, Flex, Grid, Icon, Spinner, Text } from "@chakra-ui/react";
-import { Avatar } from "@/components/ui/avatar";
-import { FiCamera, FiLock } from "@/shared/components/icons";
+import { Button, Flex, Grid, Icon, Text } from "@chakra-ui/react";
+import { FiLock } from "@/shared/components/icons";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/shared/components/ui/SectionCard";
 import { SaveButton } from "@/shared/components/ui/SaveButton";
@@ -12,6 +11,7 @@ import { useNotify } from "@/shared/hooks/useNotify";
 import { useErrorHandler } from "@/core/query/useErrorHandler";
 import { useDetailPageController } from "@/shared/hooks/useDetailPageController";
 import { useUnsavedChangesGuard } from "@/shared/hooks/useUnsavedChangesGuard";
+import { ProfileAvatarCard } from "@/modules/settings/presentation/components/ProfileAvatarCard";
 
 /** Local form state, seeded from the persisted user on mount. */
 type LocalProfileData = {
@@ -28,15 +28,12 @@ function buildSeed(user: ReturnType<typeof useAuth>["user"]): LocalProfileData {
 
 export function ProfileTab() {
   const { t } = useTranslation("settings");
-  const { user, updateProfile, uploadAvatar, requestPasswordReset } = useAuth();
+  const { user, updateProfile, requestPasswordReset } = useAuth();
   const { showSuccess } = useNotify();
   const { handleError } = useErrorHandler();
 
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isRequestingPasswordReset, setIsRequestingPasswordReset] =
     useState(false);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = useCallback(
     async (data: LocalProfileData) => {
@@ -95,104 +92,9 @@ export function ProfileTab() {
     }
   }, [user?.email, requestPasswordReset, showSuccess, handleError, t]);
 
-  const handleAvatarChange = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      const previewUrl = URL.createObjectURL(file);
-      setAvatarPreview(previewUrl);
-      setIsUploadingAvatar(true);
-
-      try {
-        await uploadAvatar(file);
-        showSuccess(t("profile.avatarUpdated"));
-      } catch (error) {
-        setAvatarPreview(null);
-        handleError(error, t("profile.avatarUpdateError"));
-      } finally {
-        URL.revokeObjectURL(previewUrl);
-        setIsUploadingAvatar(false);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
-      }
-    },
-    [uploadAvatar, showSuccess, handleError, t],
-  );
-
   return (
     <Flex direction="column" gap={5}>
-      <SectionCard>
-        <Flex
-          direction={{ base: "column", md: "row" }}
-          align={{ base: "center", md: "center" }}
-          gap={4}
-        >
-          <Box
-            position="relative"
-            cursor="pointer"
-            onClick={() => fileInputRef.current?.click()}
-            role="button"
-            aria-label={t("profile.changeAvatar")}
-            flexShrink={0}
-          >
-            <Avatar
-              size="xl"
-              src={avatarPreview || user?.avatarUrl || undefined}
-              name={user?.name}
-              bg="brand.500"
-              color="white"
-            />
-            <Flex
-              position="absolute"
-              inset={0}
-              align="center"
-              justify="center"
-              bg="blackAlpha.500"
-              borderRadius="full"
-              opacity={0}
-              _hover={{ opacity: 1 }}
-              transition="opacity 0.2s"
-            >
-              {isUploadingAvatar ? (
-                <Spinner size="sm" color="white" />
-              ) : (
-                <Icon color="white" boxSize={5}>
-                  <FiCamera />
-                </Icon>
-              )}
-            </Flex>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              onChange={handleAvatarChange}
-              style={{ display: "none" }}
-            />
-          </Box>
-
-          <Flex
-            direction="column"
-            gap={0.5}
-            minW={0}
-            align={{ base: "center", md: "flex-start" }}
-            textAlign={{ base: "center", md: "left" }}
-          >
-            <Text
-              fontSize="lg"
-              fontWeight="700"
-              color="text.primary"
-              lineClamp={1}
-            >
-              {user?.name}
-            </Text>
-            <Text fontSize="sm" color="text.secondary" lineClamp={1}>
-              {user?.email}
-            </Text>
-          </Flex>
-        </Flex>
-      </SectionCard>
+      <ProfileAvatarCard />
 
       <SectionCard>
         <Flex
@@ -208,7 +110,6 @@ export function ProfileTab() {
           <Button
             size="sm"
             variant="outline"
-            colorPalette="brand"
             onClick={handleRequestPasswordReset}
             loading={isRequestingPasswordReset}
             loadingText={t("profile.security.sending")}

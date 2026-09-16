@@ -7,3 +7,4 @@ export * from "./auth.js";
 export * from "./devices.js";
 export * from "./messaging.js";
 export * from "./account.js";
+export * from "./uploads.js";

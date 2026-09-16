@@ -40,7 +40,7 @@
     },
     "regenerateConfirm": {
       "title": "Gerar novo token",
-      "description": "O token atual será revogado imediatamente e deixará de funcionar. Esta ação não pode ser desfeita."
+      "description": "O token atual é revogado e para de funcionar em até 60 segundos. Esta ação não pode ser desfeita."
     }
   },
   "account": {
@@ -124,6 +124,8 @@
     "profileUpdateError": "Falha ao atualizar perfil",
     "avatarUpdated": "Foto atualizada",
     "avatarUpdateError": "Falha ao atualizar foto",
+    "avatarTooLarge": "A foto passa do limite de 5 MB.",
+    "avatarInvalidType": "Formato não suportado. Use JPG, PNG, WebP ou GIF.",
     "shareCode": "Me encontre no Pombo! Adicione pelo código: #{{code}}",
     "adminCard": {
       "title": "Administrador",

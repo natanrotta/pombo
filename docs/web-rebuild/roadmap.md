@@ -324,9 +324,17 @@ Legenda: **Tamanho** S/M/L (esforço relativo); **Especialista** conforme o rote
 - CI (`.github/workflows/ci.yml`): adicionar `yarn build:web` e um job Playwright (serviços `postgres:15` + `redis:7`, `WHATSAPP_ENABLED=false`, upload do report como artifact). Hoje não existe build nem e2e de web no CI.
 - Auditoria final: `/normalize apps/web` (auditor) + `/security` (o token escopado em `sessionStorage`, CSP/CORS do lado do cliente) + `/ui-design` (consistência) — relatórios anexados ao PR.
 - Performance: conferir `manualChunks` após as trocas de deps; orçamento de bundle inicial registrado na spec (medido com `vite build --report` ou `rollup-plugin-visualizer` em dev only).
-- A11y: todo ícone-botão com `aria-label`, foco visível nos tokens, contraste AA nos pares `text.*` × `bg.*` (verificado na galeria).
+- A11y: todo ícone-botão com `aria-label`, foco visível nos tokens, contraste AA nos pares `text.*` × `bg.*` (verificado na galeria) — incluindo as iniciais do avatar (`text.onBrand` sobre `bg.brand.solid` dá 3,8:1 no claro).
 - Docs: `.claude/patterns/frontend.md` (remover `withAppShell`, tokens do theme azul, adicionar `@pombo/theme`, galeria, `data-cy`), `BASELINE.md` (R10 aponta para o pacote), `code-review-checklist.md`, `e2e.md` (novos POMs/fixtures), `apps/web/README.md`, `packages/theme/README.md`. Port das mudanças de patterns para o `cuidda` (memória: `.claude/**` é compartilhado — sincronizar por diff normalizado).
 - `.claude/learning/violations.md` com o ledger das fases; radar de promoção rodado.
+- **Pendências herdadas das Fases 4–9** (registradas nos Decisions logs das specs):
+  - Regenerar os snapshots da galeria (a variante `dangerOutline` da Fase 7 muda o baseline "buttons") e criar os de shell/devices/perfil.
+  - `EntityCard`: trocar `role="group"` por `className="group"` (no Chakra v3 o `_groupHover` casa com a classe) e corrigir a mesma recomendação no `.claude/commands/frontend.md`.
+  - `colorPalette` inerte e cores cruas da paleta que sobraram em componentes compartilhados (ex.: `RouteErrorBoundary`, a borda `brand.500` do item ativo da sidebar).
+  - `/security`: chave dos limitadores de auth (IP × e-mail) agora que o tempo de espera aparece na tela (Fase 6).
+  - Repassar o `signal` do TanStack Query aos repositórios para o `cancelQueries` abortar o HTTP (Fase 7).
+  - `useFormState.setField` com identidade estável (hoje muda a cada tecla; Fase 8).
+  - `ProfileAvatarCard`: limpar o preview depois de um envio bem-sucedido, para exibir a URL do servidor em vez do blob revogado (comportamento anterior à Fase 9).
 - **Testes das Fases 5–9, concentrados aqui** (decisão de 2026-09-16, ver §7): specs unitários e e2e, page objects, fixtures e snapshots visuais que cada fase lista nos seus ACs são escritos e executados nesta fase, junto com a suíte completa (`yarn test`, `yarn test:e2e`, galeria).
 
 **Critérios de aceite**
