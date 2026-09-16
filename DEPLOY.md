@@ -1,105 +1,105 @@
 # Deploy — Guide
 
-Operate production **from your terminal**, without SSHing into the host. Four guided commands — each one prompts for what it needs (arrow-key selection), streams the run live, and verifies `/api/health`:
+Operate production **from your terminal**, without SSHing into a host. Four guided commands — each one prompts for what it needs (arrow-key selection, default = Cancel on anything that touches production), streams the run live, and verifies `/api/health`:
 
 ```bash
-yarn make-tag         # build the version vX.Y (tests + boot-smoke → image registry + git tag)
+yarn make-tag         # build the version vX.Y (tests + boot-smoke → GHCR + git tag)
 yarn deploy           # ship a version to production and verify /api/health
-yarn rollback         # revert to a previous version
-yarn monitor-status   # health of the services on one screen (API · DB · Web · Site)
+yarn rollback         # re-ship a previous version
+yarn monitor-status   # health of the services on one screen (Backend · Banco · App · Site)
 ```
 
-Nothing builds or ships on push on its own — only the static frontends deploy automatically (via your static host / CDN). Cutting a version is always explicit.
+Nothing builds or ships the API on push — cutting and shipping a version is always explicit. Only the static web deploys on its own (CDN / static host, on push to `main`).
 
 ## Prerequisites (once)
 
-- `gh auth login` — the deploy runs via GitHub Actions with your account (if you use the Actions path).
+- `gh auth login` — the commands dispatch the GitHub Actions workflows with your account.
+- **Targets:** `cp infra/deploy.env.example infra/deploy.env` and fill `API_URL` (plus `WEB_URL` / `SITE_URL` / `APP_HOST` / `DATA_HOST` / `GH_REPO` for monitoring and the Makefile). The file is gitignored; a variable exported in your shell wins over it. Unset targets make the commands fail fast.
+- The **self-hosted runner** on the APP host (`make runner-setup`, see `infra/RUNBOOK.md`) and the repository variable **`API_URL`**. Without the runner, `yarn deploy` ends with "PRODUCTION UNTOUCHED" → fallback `make deploy-direct`.
+- Your SSH key on the hosts — for the DB block of `yarn monitor-status` and the Makefile targets.
+- Optional: `gh auth refresh -h github.com -s read:packages` — lets your local Docker pull the private image (local boot-smoke in `yarn deploy`). For `make deploy-direct`, prefer exporting `GHCR_TOKEN` (a token with `read:packages` only) — otherwise your `gh` session token is used.
 - Run the commands **from inside the repo**.
-- A deploy runner on the app host (or SSH access for the direct fallback). Without it, `yarn deploy` aborts with "PRODUCTION UNTOUCHED" → use the fallback `make deploy-direct`.
-- For the **DB** block of `yarn monitor-status` and the host targets (`make logs`, `make db-status`…): your SSH key on the hosts.
 
 ## How it works
 
-1. **`yarn make-tag`** — asks for the version bump (**minor** `v1.4 → v1.5`, **major** `→ v2.0`, or **exact**), runs the backend unit tests and the **boot-smoke** (boots the real image + ephemeral Postgres/Redis + migrate + `/healthz`), and only then publishes `<registry>…:vX.Y` + `:latest` and creates the git tag. If a test fails, **there is no image and no tag** — nothing to deploy.
-2. **`yarn deploy`** — shows the live version and **lists the 3 most recent `vX.Y` versions to pick from** (arrows + Enter; you can also choose `latest` or type another), asks for a typed confirmation, and triggers the deploy: **cutover on the host** → `docker compose pull && up -d --wait` (waits until the container is _healthy_ — a crash-loop fails here) → **verifies from outside** at `/api/health`. Honest verdict: ✅ confirmed · ❌ failed **before** touching the container = **production untouched** (nothing to revert) · ❌ touched production and didn't confirm = **suggests a rollback** (never reverts on its own).
-3. **`yarn rollback`** — **lists the 3 most recent `vX.Y` versions (below the live one) to pick from** and re-ships the chosen image (already in the registry, no rebuild). Same verification and verdict as deploy.
-4. **`yarn monitor-status`** — queries the services in parallel and prints a panel (details below). Read-only, triggers nothing.
+1. **`yarn make-tag`** — shows the live version and the newest tag, asks for the bump (**minor** `v1.4 → v1.5`, **major** `→ v2.0`, or an exact `vX.Y`), runs the backend unit tests locally, then dispatches `build-api.yml`: `[1/5]` validate the version · `[2/5]` type-check + unit tests · `[3/5]` build the image (not pushed) · `[4/5]` **boot-smoke** of that exact image (ephemeral Postgres/Redis + migrate + `/healthz`) · `[5/5]` push `ghcr.io/<owner>/pombo-api:vX.Y` + `:latest` and create the git tag. A failure before `[5/5]` leaves **no image and no tag**.
+2. **`yarn deploy`** — shows the live version, **lists the 3 most recent `vX.Y` tags** (or `latest`, or type another), optionally re-runs the boot-smoke locally, asks for confirmation, and dispatches `deploy-api.yml` on the APP host's runner: `[1/4]` pre-flight (tag, `API_URL`, compose file, `.env.prod` readable) · `[2/4]` pull from GHCR · `[3/4]` cutover — `docker compose up -d --wait` until the container is **healthy** (the old one drains its queues on SIGTERM; the new one migrates on boot) · `[4/4]` verify the exact version **from outside** at `/api/health`. Verdict: ✅ confirmed · ❌ failed at `[1/4]`/`[2/4]` = **PRODUCTION UNTOUCHED** · ❌ failed at `[3/4]`/`[4/4]` = production was touched → the command suggests `yarn rollback` (it never reverts on its own).
+3. **`yarn rollback`** — lists the most recent tags **other than the live one** and re-ships the chosen image (already in GHCR, no rebuild), through the same workflow and verdict. Migrations are **not** reverted — keep them additive so the previous version still runs on the current schema.
+4. **`yarn monitor-status`** — queries the configured targets in parallel and prints a panel (below). Read-only.
 
 ## Step-by-step release
 
-1. Merge `develop → main` + push (the static frontends deploy on their own; the API does **not**).
-2. `yarn make-tag` → choose the version → publishes `vX.Y` to the registry.
-3. `yarn deploy` → select the version from the list → confirm → watch until ✅.
-4. `yarn monitor-status` → confirm the **API** is on the new version and **everything is up**.
+1. Merge `develop → main` (the web deploys on its own; the API does **not**).
+2. `yarn make-tag` → choose the version → `vX.Y` is published.
+3. `yarn deploy` → select `vX.Y` → confirm → watch until ✅.
+4. `yarn monitor-status` → the Backend is on the new version and everything is up.
 
-**Rollback:** `yarn rollback` (select a previous version). Old images stay in the registry → reverting takes seconds, no rebuild.
+**Rollback:** `yarn rollback` (select a previous version). Old images stay in GHCR → reverting takes seconds.
 
 ## `yarn monitor-status` — what it shows
 
-One screen with the services. **API** and **DB** are the **critical** ones (the command exits `1` if either is down; `0` otherwise):
+**Backend** and **Banco** are the critical services (exit `1` if either configured one is down; `0` otherwise). A target that is not configured is skipped.
 
 ```
- Pombo — production status
+📊  Pombo — status de produção
 
-  API       <api-host>/api/health
+  Backend   api.your-domain.tld/api/health
   ● ONLINE   HTTP 200 · 131ms
-     version     v1.12 · latest published
-     stable      yes
+     versão      v1.12 · última publicada
+     estável     sim
      uptime      5h 38m
-     migrations  ✓ up to date · 0 pending
+     gateway     14/15 dispositivos conectados
+     migrations  ✓ em dia · 0 pendentes
 
-  DB        <data-host> · via SSH
-  ● UP
-     status      accepting connections
-     migration   20260711134904_first  1 applied · 0 pending
-     version     PostgreSQL 16
+  Banco     host de DATA 203.0.113.20 · via SSH
+  ● NO AR
+     status      aceitando conexões
+     migração    20260718005559_first  1 aplicadas · 0 pendentes
+     versão      PostgreSQL 15.8
 
-  Web       <web-host>
+  App       app.your-domain.tld
   ● ONLINE   HTTP 200 · 113ms
-     version     ddcbe65 · main · 21m ago
+     versão      ddcbe65 · main · há 21min
 
-  Site      <site-host>
+  Site      your-domain.tld
   ● ONLINE   HTTP 200 · 106ms
-     version     — (site publishes no version.json)
+     versão      — (site não publica version.json)
 
-  ✨ all up · 4/4 · 1.1s
+  ✨ tudo no ar · 4/4 · 1.1s
 ```
 
 **Where each field comes from:**
 
-- **API** — `GET /api/health` (public): `version`, `stable` (ok), `uptime`, and the drift (`latest published` vs. `outdated`) comparing against the newest git tag. `migrations` comes from the DB block (SSH); without SSH it is inferred from a healthy boot.
-- **DB** — **SSH into the data host** (same path as `make db-status`, no token): `status` (`pg_isready`), `migration` (latest + applied/pending from `_prisma_migrations`), Postgres `version`. `/api/health` **deliberately omits** the DB internals (that would be a fingerprint), hence the SSH. Without an SSH key, the block degrades to "UP (inferred)" from `/api/health`.
-- **Web** — `GET /version.json` (generated in the frontend build): commit + branch + build time. `status` = HTTP 200.
-- **Site** — just `GET /` (publishes no `version.json`): `status` = HTTP 200.
-
-Overrides via env (staging / renaming): `API_URL`, `WEB_URL`, `SITE_URL`, `DATA_HOST`, `SSH_USER`.
+- **Backend** — `GET /api/health` (public): `version`, `ok`, `uptimeSeconds`, `gateway.devices` (absent when `WHATSAPP_ENABLED=false`), and the drift against the newest local git tag. `migrations` comes from the Banco block; without SSH it is inferred from a healthy boot.
+- **Banco** — **SSH into `DATA_HOST`** (same path as `make db-status`, no token): `pg_isready`, `_prisma_migrations` (latest + applied/pending), Postgres version. `/api/health` deliberately omits DB internals (fingerprinting). Without SSH the block degrades to "NO AR (inferido)".
+- **App** — `GET WEB_URL/version.json` (written by `yarn build:web`): commit + branch + build time.
+- **Site** — `GET SITE_URL/` — status only.
 
 ## Versioning
 
-The version is a git tag **`vMAJOR.MINOR`** (e.g. `v1.5`), stamped into the image and exposed at `/api/health`. `yarn make-tag` validates the format and **refuses a tag that already exists**. There is no automatic build on push — cutting a version is always explicit.
+The version is a git tag **`vMAJOR.MINOR`** (e.g. `v1.5`), stamped into the image (`APP_VERSION`, plus `GIT_COMMIT`) and exposed at `/api/health`. `yarn make-tag` validates the format, refuses an existing tag, and warns when a build is already running.
 
 ## Advanced infra (Makefile)
 
-The normal flow is the four yarn commands above. The **Makefile** is the rare layer underneath: the deploy fallback, runner setup, deep SSH/logs/status of the hosts, and backup. `make help` lists everything.
+The Makefile is the rare layer underneath — it reads the same `infra/deploy.env` (`make VAR=…` overrides it). `make help` lists everything.
 
 ```bash
-make deploy-direct TAG=vX.Y   # fallback: cutover via SSH from your machine (no Actions/runner)
-make runner-setup             # register the self-hosted deploy runner on the app host (once)
-make app-status / db-status   # DEEP host status (containers, tunnel, disk, backup, redis)
+make deploy-direct TAG=vX.Y   # fallback: same cutover over SSH from your machine (no Actions/runner)
+make runner-setup             # register the self-hosted deploy runner on the APP host (once)
+make app-status / db-status   # DEEP host status (containers, version, gateway, tunnel, disk, backup)
 make logs / logs-caddy        # tail the logs (Ctrl-C to exit)
 make ssh-app / ssh-data       # SSH into the hosts
-make help                     # list all targets
 ```
 
 ## Special cases
 
-- **Migrations:** run on boot by the image entrypoint (`prisma migrate deploy`). Don't run them by hand. (`yarn monitor-status` shows applied/pending.) With one replica that is the whole story; on extra replicas set `RUN_MIGRATIONS=false` in `.env.prod` and run the migration once as a deploy step.
-- **`.env.prod`:** lives on the host, outside the image. Edit it there + `make deploy-direct` (or `up -d`) for the container to re-read. `APP_VERSION` stays commented (otherwise the `env_file` masks the real version). The deploy runner must be able to **read** that file — the deploy pre-flight aborts with "PRODUCTION UNTOUCHED" if it can't (never boots a container without env).
-- **Frontends:** automatic on push to `main` (static host / CDN).
+- **Migrations:** run on boot by the image entrypoint (`prisma migrate deploy`) — don't run them by hand; `yarn monitor-status` shows applied/pending. That is correct with the **single** production replica. A second replica needs `RUN_MIGRATIONS=false` **and** `WHATSAPP_ENABLED=false` (only one process may own the WhatsApp sockets — an advisory lock enforces it).
+- **`.env.prod`:** lives on the APP host (`/opt/pombo/app/infra/.env.prod`, template `infra/.env.prod.example`), outside the image. Edit it there, then `make deploy-direct TAG=<live version>` (or `docker compose up -d` on the host) so the container re-reads it. `APP_VERSION`/`GIT_COMMIT` stay commented (an `env_file` value would mask the stamped version). The runner must be able to **read** the file — the pre-flight aborts with "PRODUCTION UNTOUCHED" otherwise.
+- **Web:** automatic on push to `main` (static host). Its `VITE_*` variables are configured on the static host, not in `infra/`.
 
 ## Database backup
 
-An encrypted dump (`age`) to offsite object storage, keeping the most recent dumps + GFS retention, fully automated (systemd).
+An encrypted dump (`age`) to offsite object storage twice a day, keeping the most recent dumps + GFS weekly/monthly, fully automated (systemd timers).
 
 ```bash
 make backup-now       # run a dump now + log
@@ -112,5 +112,4 @@ Activation (once — secrets + `make backup-setup`): **`infra/RUNBOOK.md`** · d
 
 ---
 
-Architecture + full runbook (topology, provisioning, backup, CI/CD): **`.claude/knowledge/devops.md`** ·
-infra artifacts (composes, Caddyfile, tunnel config, backup): **`infra/`** (`infra/README.md`) · operations: `make help`.
+Architecture + runbook + backlog: **`.claude/knowledge/devops.md`** · infra artifacts: **`infra/`** (`infra/README.md`) · operations: `make help`.

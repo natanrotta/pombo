@@ -12,7 +12,7 @@ import { defineConfig } from "prisma/config";
 // own DSN validator and surfaces as `"the URL must start with the protocol
 // postgresql://"`. That message is less helpful than "DATABASE_URL is
 // required", but acceptable since the application's own runtime guard
-// (`src/infrastructure/config/env.ts`, validated by Zod at startup) is the
+// (`src/core/config/env.ts`, validated by Zod at startup) is the
 // authoritative env enforcement layer.
 const databaseUrl = process.env.DATABASE_URL ?? "";
 

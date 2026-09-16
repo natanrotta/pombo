@@ -1,21 +1,21 @@
-# infra/data/docker-compose.data.yml — STACK DE DADOS (VPS-DATA)
+# infra/data/docker-compose.data.yml — STACK DE DADOS (host de DATA, em /opt/pombo/app/infra/data)
 #
-# Postgres+pgvector + Redis. Esta VPS NÃO é pública. Ver .claude/knowledge/devops.md › VPS-DATA.
+# Postgres 15 + Redis (AOF, filas BullMQ) + node-exporter. Este host NÃO é
+# público. Ver .claude/knowledge/devops.md › Arquitetura.
 #
 # Regra de ouro: o banco NUNCA é exposto na internet. O isolamento vem do
 # bind de porta no IP do túnel WireGuard (10.8.0.2) — quem fala com o banco
-# é só a VPS-APP pelo túnel.
+# é só o host de APP pelo túnel.
 #
-# Antes do túnel (Step 2) existir, troque "10.8.0.2" por "127.0.0.1" nas duas
-# portas para testar localmente, e religue em 10.8.0.2 depois que o WireGuard
-# subir.
+# Antes do túnel existir, troque "10.8.0.2" por "127.0.0.1" nas duas portas
+# para testar localmente, e religue em 10.8.0.2 depois que o WireGuard subir.
 #
 # Subir:   docker compose -f docker-compose.data.yml up -d
-# Validar: docker exec pombo-db psql -U pombo -c '\dx'   # deve listar 'vector'
+# Validar: docker exec pombo-db psql -U pombo -c 'select version()'
 #
-# Segredos (NÃO versionados — criar na VPS):
-#   - infra/data/secrets/db_password.txt   (senha do Postgres)
-#   - REDIS_PASSWORD                        (via env / arquivo .env ao lado)
+# Segredos (NÃO versionados — gitignored — criar no host):
+#   - infra/data/secrets/db_password.txt   (senha do Postgres; chmod 600)
+#   - infra/data/.env com REDIS_PASSWORD=…  (lido pelo compose e pelo infra/status.sh)
 
 name: pombo-data
 
@@ -87,9 +87,9 @@ services:
   # node_exporter — host metrics (CPU/RAM/disk/load). Runs in network_mode: host
   # + pid: host to read the real host's /proc and /sys; bound ONLY to the
   # WireGuard tunnel IP (10.8.0.2:9100), never exposed to the internet. The API
-  # (VPS-APP) scrapes it across the tunnel via METRICS_DATA_URL.
+  # (APP host) scrapes it across the tunnel via METRICS_DATA_URL.
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v1.12.1
     container_name: pombo-node-exporter
     restart: unless-stopped
     network_mode: host

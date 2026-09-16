@@ -4,7 +4,21 @@ Operational checklist to make **one-click deploy** and **database backup** fully
 The artifacts are already in the repo; what's left is the **secret/registration setup** (outside the repo,
 done by the operator). Full detail: `.claude/knowledge/devops.md` · backup: `infra/backup/README.md`.
 
-> Recommended order: **A) deploy runner** → **B) database backup**. Both are idempotent (re-running is safe).
+> Recommended order: **0) targets** → **A) deploy runner** → **B) database backup**. All steps are idempotent
+> (re-running is safe). Both hosts keep the repo checkout at **`/opt/pombo/app`** — the scripts default to it
+> (a host with another checkout path needs `APP_DIR=` / `DATA_DIR=` overrides).
+
+---
+
+## 0) Targets — `infra/deploy.env` (your machine)
+
+```sh
+cp infra/deploy.env.example infra/deploy.env   # gitignored
+# fill: API_URL · APP_HOST · DATA_HOST · GH_REPO (owner/name) · optional WEB_URL / SITE_URL / SSH_USER / IMAGE
+```
+
+The same file feeds `yarn deploy|rollback|monitor-status` and every `make` target; a variable exported in the
+shell (or `make VAR=…`) wins over it. A target whose host is unset fails before any SSH.
 
 ---
 
@@ -13,20 +27,24 @@ done by the operator). Full detail: `.claude/knowledge/devops.md` · backup: `in
 The cutover in `deploy-api.yml` runs on a self-hosted runner on the APP host (no inbound SSH). Without it,
 the deploy via Actions fails fast with **"PRODUCTION UNTOUCHED"** and the fallback is `make deploy-direct TAG=…`.
 
-1. **Pre:** `gh auth login` (on your machine) + SSH root on the APP host.
+1. **Pre:** `gh auth login` (on your machine) + SSH root on the APP host + the production env in place:
+   `/opt/pombo/app/infra/.env.prod`, copied from `infra/.env.prod.example` with every `<PLACEHOLDER>` filled
+   (`WHATSAPP_ENABLED=true` — this is the single gateway replica).
 2. **Register (once):**
    ```sh
    make runner-setup
    ```
-   This installs the `actions/runner` as a systemd service (user `ghrunner`), registers it with the host
-   label, **and grants `ghrunner` read access to `.env.prod`** (group `ghrunner`, `chmod 640`) — the cutover's
-   `docker compose` needs to read that `env_file`.
+   This installs the `actions/runner` as a systemd service (user `ghrunner`), registers it on `GH_REPO` with
+   the `pombo-app` label, **and grants `ghrunner` read access to `.env.prod`** (group `ghrunner`, `chmod 640`) —
+   the cutover's `docker compose` needs to read that `env_file`.
 3. **Verify:** runner shows "Idle" in `Settings → Actions → Runners`.
 4. **Repository variable `API_URL`** (`Settings → Secrets and variables → Actions → Variables`): the public API base,
    e.g. `https://api.your-domain.tld`. `deploy-api.yml` reads `vars.API_URL` for the external `/api/health` check and
    aborts in pre-flight (**PRODUCTION UNTOUCHED**) when it is unset. No secret is needed by the workflows beyond the
-   automatic `GITHUB_TOKEN` (GHCR push in `build-api.yml`, GHCR pull in `deploy-api.yml`).
-5. **Test deploy:** `yarn deploy` → should end in **✅ confirmed** (then `yarn monitor-status` confirms everything is up).
+   automatic `GITHUB_TOKEN` (GHCR push in `build-api.yml`, GHCR pull in `deploy-api.yml`, logged out after the job).
+5. **Edge:** Caddy needs `API_DOMAIN` (export it or put it in `/opt/pombo/app/infra/app/.env`) and the origin
+   certificate in `/etc/caddy/certs/`; then `docker compose -f docker-compose.caddy.yml up -d` in `infra/app`.
+6. **Test deploy:** `yarn deploy` → should end in **✅ confirmed** (then `yarn monitor-status` confirms everything is up).
 
 > ⚠️ **The `.env.prod` grant is LOST if the file is recreated** (a new file inherits `root:root 600`). If you
 > recreate `.env.prod`, re-run `make runner-setup` (or `chgrp ghrunner .env.prod && chmod 640 .env.prod`). The

@@ -32,6 +32,8 @@ yarn-error.log*
 coverage/
 playwright-report/
 test-results/
+# Playwright HTML report + artifacts (apps/web/playwright.config.ts → .playwright/)
+apps/web/.playwright/
 apps/web/e2e/.auth/
 e2e/.auth/
 
@@ -56,8 +58,11 @@ Thumbs.db
 !.claude/.secrets/*.example
 !.claude/.secrets/.gitkeep
 
-# Deploy infra — real secrets NEVER versioned (only the *.example files are)
+# Deploy infra — real secrets and operator targets NEVER versioned (only the
+# *.example files are)
 infra/.env.prod
+infra/deploy.env
+infra/data/secrets/
 infra/wireguard/wg0.conf
 infra/wireguard/*.key
 infra/wireguard/privatekey

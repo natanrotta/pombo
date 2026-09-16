@@ -1,17 +1,19 @@
-# infra/app/docker-compose.caddy.yml — reverse proxy + TLS da VPS-APP
+# infra/app/docker-compose.caddy.yml — reverse proxy + TLS do host de APP
 #
 # Caddy como container em host network: enxerga a API em localhost:3333 e
 # publica 80/443 no host (atrás do Cloudflare proxied/laranja). TLS via
 # Cloudflare Origin Certificate, montado de /etc/caddy/certs. Config no
-# infra/app/Caddyfile ({$API_DOMAIN} → :3333, raw body Stripe, SSE).
+# infra/app/Caddyfile ({$API_DOMAIN} → :3333, corpo intacto, sem buffering).
 #
-# Pré-requisitos na VPS-APP (antes do `up`):
-#   - domínio Active no Cloudflare + DNS `api` A → IP da VPS (Proxied)
+# Pré-requisitos no host (antes do `up`):
+#   - domínio Active no Cloudflare + DNS `api` A → IP do host (Proxied)
 #   - /etc/caddy/certs/origin.crt + origin.key  (Cloudflare → SSL/TLS → Origin Server)
 #   - Cloudflare SSL/TLS no modo "Full (strict)"
+#   - API_DOMAIN exportado ou num infra/app/.env ao lado (gitignored):
+#       API_DOMAIN=api.your-domain.tld
 #
 # Subir:   docker compose -f docker-compose.caddy.yml up -d
-# Validar: curl -s https://{$API_DOMAIN}/healthz
+# Validar: curl -s https://<API_DOMAIN>/healthz   # → ok
 name: pombo-caddy
 
 services:
@@ -22,6 +24,8 @@ services:
     # host network: necessário p/ bind 80/443 no host E alcançar o
     # 127.0.0.1:3333 onde a API (pombo-api) publica.
     network_mode: host
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN (e.g. api.your-domain.tld)}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - /etc/caddy/certs:/etc/caddy/certs:ro

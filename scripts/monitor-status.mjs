@@ -1,19 +1,22 @@
 #!/usr/bin/env node
-// `yarn monitor-status` — a saúde da produção numa tela só, sem entrar no VPS.
+// `yarn monitor-status` — a saúde da produção numa tela só, sem entrar no servidor.
 // Consulta os serviços em paralelo e imprime um painel alinhado:
 //
-//   Backend  → GET /api/health           versão · estável · uptime · migrations
-//   Banco    → SSH na VPS-DATA (Postgres) status · migração · versão
-//   App      → GET app…/version.json      status · versão
-//   Site     → GET …/                     status · versão
+//   Backend  → GET /api/health           versão · estável · uptime · gateway · migrations
+//   Banco    → SSH no host de DATA        status · migração · versão
+//   App      → GET WEB_URL/version.json   status · versão
+//   Site     → GET SITE_URL/              status
+//
+// Alvos em infra/deploy.env (ou no shell). Um alvo não definido é PULADO — nunca
+// sondamos uma URL vazia nem fazemos ssh para um host em branco.
 //
 // Por que SSH no Banco? /api/health omite de propósito os internos do banco
 // (migrations, versão do Postgres) — expô-los sem auth seria fingerprint. O
-// caminho tokenless e já autorizado é o SSH na VPS-DATA (o mesmo do
+// caminho tokenless e já autorizado é o SSH no host de DATA (o mesmo do
 // `make db-status`). Sem SSH, o bloco degrada: infere "no ar" pelo /api/health.
 //
 // Read-only: não dispara deploy, não escreve nada. Sai 0 quando os serviços
-// críticos (Backend + Banco) estão no ar; 1 caso contrário — dá pra usar em check.
+// críticos configurados (Backend + Banco) estão no ar; 1 caso contrário.
 
 import { spawn } from "node:child_process";
 import {
@@ -100,7 +103,7 @@ async function frontendProbe(base, { versioned }) {
 }
 
 // ── SSH probe (Banco) ─────────────────────────────────────────────────────────
-// Roda um script curto na VPS-DATA e emite `chave=valor` parseável. Hardcode dos
+// Roda um script curto no host de DATA e emite `chave=valor` parseável. Hardcode dos
 // nomes de container/credenciais = os mesmos defaults do infra/status.sh.
 const DB_REMOTE = `set -uo pipefail
 PG_CONTAINER=pombo-db
@@ -110,7 +113,6 @@ q(){ docker exec "$PG_CONTAINER" psql -U "$PG_USER" -d "$PG_DB" -tAc "$1" 2>/dev
 if docker exec "$PG_CONTAINER" pg_isready -U "$PG_USER" -d "$PG_DB" >/dev/null 2>&1; then
   echo "reachable=1"
   echo "pg_version=$(q 'show server_version;')"
-  echo "pgvector=$(q "select extversion from pg_extension where extname='vector';")"
   if [ "$(q "select to_regclass('public._prisma_migrations') is not null;")" = "t" ]; then
     echo "applied=$(q 'select count(*) from _prisma_migrations where finished_at is not null;')"
     echo "pending=$(q 'select count(*) from _prisma_migrations where finished_at is null;')"
@@ -122,7 +124,7 @@ else
   echo "reachable=0"
 fi`;
 
-/** SSH na VPS-DATA e lê o Postgres. Nunca lança: sem chave/host/timeout →
+/** SSH no host de DATA e lê o Postgres. Nunca lança: sem chave/host/timeout →
  *  { ssh:false }. BatchMode=yes garante que nunca trava pedindo senha. */
 function dbProbe({ timeoutMs = 12000 } = {}) {
   return new Promise((resolve) => {
@@ -192,6 +194,12 @@ const YELLOW_DOT = c.yellow("●");
 const KEY_W = 11; // largura da coluna de rótulos (alinhamento)
 const row = (key, value) => log(`     ${c.dim(key.padEnd(KEY_W))} ${value}`);
 
+/** Serviço sem alvo configurado — pulado, sem probe. */
+function skipped(name, varName) {
+  log("");
+  log(`  ${c.bold(name.padEnd(9))} ${c.dim(`${varName} não definido — pulado`)}`);
+}
+
 /** Cabeçalho + linha de status de um serviço. `meta` é o "HTTP 200 · 149ms". */
 function head(name, target, dot, label, meta) {
   log("");
@@ -203,14 +211,14 @@ function head(name, target, dot, label, meta) {
 async function main() {
   log(c.bold("\n📊  Pombo — status de produção"));
 
-  // No targets configured → nothing to monitor. The boilerplate ships EMPTY on
+  // No targets configured → nothing to monitor. The repo ships them EMPTY on
   // purpose so it never probes/SSHes into an unrelated host. Configure and retry.
   if (!API_URL && !WEB_URL && !SITE_URL && !DATA_HOST) {
     log("");
-    log(`  ${c.yellow("!")} Monitoring not configured.`);
+    log(`  ${c.yellow("!")} Monitoramento não configurado.`);
     log(
       c.dim(
-        "    Set API_URL / WEB_URL / SITE_URL / DATA_HOST (env or infra/deploy.env) — see infra/README.md.",
+        "    Preencha API_URL / WEB_URL / SITE_URL / DATA_HOST em infra/deploy.env (modelo: infra/deploy.env.example).",
       ),
     );
     log("");
@@ -228,23 +236,28 @@ async function main() {
   }
 
   // Todos os probes em paralelo — o SSH (mais lento) não serializa os HTTP.
+  // Alvo não definido = probe pulado (null).
   const [api, app, site, db] = await Promise.all([
-    probe(HEALTH_URL, { json: true, timeoutMs: 8000 }),
-    frontendProbe(WEB_URL, { versioned: true }),
-    frontendProbe(SITE_URL, { versioned: false }),
-    dbProbe(),
+    HEALTH_URL ? probe(HEALTH_URL, { json: true, timeoutMs: 8000 }) : null,
+    WEB_URL ? frontendProbe(WEB_URL, { versioned: true }) : null,
+    SITE_URL ? frontendProbe(SITE_URL, { versioned: false }) : null,
+    DATA_HOST ? dbProbe() : { ssh: false },
   ]);
 
   // ── Backend ──────────────────────────────────────────────────────────────
-  const apiBody = api.body ?? {};
-  const apiOk = api.up && apiBody.ok === true;
-  head(
-    "Backend",
-    stripScheme(HEALTH_URL),
-    apiOk ? GREEN_DOT : RED_DOT,
-    apiOk ? c.bold(c.green("ONLINE")) : c.bold(c.red("OFFLINE")),
-    api.status ? `HTTP ${api.status} · ${api.ms}ms` : `sem resposta · ${api.ms}ms`
-  );
+  const apiBody = api?.body ?? {};
+  const apiOk = Boolean(api?.up && apiBody.ok === true);
+  if (!api) {
+    skipped("Backend", "API_URL");
+  } else {
+    head(
+      "Backend",
+      stripScheme(HEALTH_URL),
+      apiOk ? GREEN_DOT : RED_DOT,
+      apiOk ? c.bold(c.green("ONLINE")) : c.bold(c.red("OFFLINE")),
+      api.status ? `HTTP ${api.status} · ${api.ms}ms` : `sem resposta · ${api.ms}ms`
+    );
+  }
   if (apiOk) {
     const running = typeof apiBody.version === "string" ? apiBody.version : "desconhecida";
     const rn = verNum(running);
@@ -257,6 +270,14 @@ async function main() {
     row("versão", `${c.cyan(running)}${drift}`);
     row("estável", c.green("sim"));
     row("uptime", fmtUptime(apiBody.uptimeSeconds));
+    // gateway: ausente = WHATSAPP_ENABLED=false (em produção deveria estar ligado).
+    const devices = apiBody.gateway?.devices;
+    row(
+      "gateway",
+      devices
+        ? `${c.cyan(`${devices.connected}/${devices.total}`)} ${c.dim("dispositivos conectados")}`
+        : c.yellow("desligado (WHATSAPP_ENABLED=false)")
+    );
     // migrations: fonte de verdade é o SSH; sem ele, infere do boot healthy
     // (o container só fica healthy DEPOIS do prisma migrate deploy no boot).
     if (db.ssh && db.reachable === "1" && db.applied !== undefined) {
@@ -272,13 +293,15 @@ async function main() {
     } else {
       row("migrations", `${c.green("✓")} aplicadas ${c.dim("(inferido do boot healthy)")}`);
     }
-  } else {
+  } else if (api) {
     row("erro", c.red("a API não confirmou /api/health — produção pode estar fora"));
   }
 
   // ── Banco ────────────────────────────────────────────────────────────────
-  if (db.ssh && db.reachable === "1") {
-    head("Banco", `VPS-DATA ${DATA_HOST} · via SSH`, GREEN_DOT, c.bold(c.green("NO AR")), null);
+  if (!DATA_HOST && !api) {
+    skipped("Banco", "DATA_HOST");
+  } else if (db.ssh && db.reachable === "1") {
+    head("Banco", `host de DATA ${DATA_HOST} · via SSH`, GREEN_DOT, c.bold(c.green("NO AR")), null);
     row("status", "aceitando conexões");
     if (db.migrations === "absent") {
       row("migração", c.yellow("sem _prisma_migrations (a API ainda não migrou)"));
@@ -292,21 +315,20 @@ async function main() {
     }
     // server_version vem como "15.18 (Debian …)" — fica só o número.
     const pgNum = db.pg_version ? db.pg_version.split(" ")[0] : null;
-    const pg = pgNum ? `PostgreSQL ${pgNum}` : "PostgreSQL ?";
-    const vec = db.pgvector ? ` · pgvector ${db.pgvector}` : c.dim(" · sem pgvector");
-    row("versão", `${pg}${vec}`);
+    row("versão", pgNum ? `PostgreSQL ${pgNum}` : "PostgreSQL ?");
   } else if (db.ssh && db.reachable === "0") {
-    head("Banco", `VPS-DATA ${DATA_HOST} · via SSH`, RED_DOT, c.bold(c.red("FORA")), null);
+    head("Banco", `host de DATA ${DATA_HOST} · via SSH`, RED_DOT, c.bold(c.red("FORA")), null);
     row("status", c.red("Postgres não responde (pg_isready falhou)"));
   } else {
-    // Sem SSH: infere pelo Backend (a API não sobe healthy sem o banco).
+    // Sem SSH (ou DATA_HOST não definido): infere pelo Backend (a API não sobe
+    // healthy sem o banco).
     const inferred = apiOk;
     head(
       "Banco",
-      `VPS-DATA ${DATA_HOST}`,
+      DATA_HOST ? `host de DATA ${DATA_HOST}` : "DATA_HOST não definido",
       inferred ? YELLOW_DOT : RED_DOT,
       inferred ? c.bold(c.yellow("NO AR (inferido)")) : c.bold(c.red("DESCONHECIDO")),
-      "SSH indisponível"
+      DATA_HOST ? "SSH indisponível" : null
     );
     row(
       "status",
@@ -314,12 +336,13 @@ async function main() {
         ? "no ar — inferido do /api/health (a API não sobe sem o banco)"
         : c.red("sem SSH e a API não respondeu — não dá pra inferir")
     );
-    row("migração", c.dim("— (requer SSH na VPS-DATA)"));
-    row("versão", c.dim("— (requer SSH na VPS-DATA)"));
+    row("migração", c.dim("— (requer SSH no host de DATA)"));
+    row("versão", c.dim("— (requer SSH no host de DATA)"));
   }
 
   // ── App / Site ────────────────────────────────────────────────────────────
-  const frontend = (name, base, res) => {
+  const frontend = (name, base, res, varName) => {
+    if (!res) return skipped(name, varName);
     head(
       name,
       stripScheme(base),
@@ -337,16 +360,19 @@ async function main() {
       row("versão", c.dim(name === "Site" ? "— (site não publica version.json)" : "— (sem version.json)"));
     }
   };
-  frontend("App", WEB_URL, app);
-  frontend("Site", SITE_URL, site);
+  frontend("App", WEB_URL, app, "WEB_URL");
+  frontend("Site", SITE_URL, site, "SITE_URL");
 
   // ── Rodapé ───────────────────────────────────────────────────────────────
+  // Só entram na conta os serviços configurados. O Banco conta se houver
+  // DATA_HOST ou, na falta dele, pela inferência do Backend — nesse caso os dois
+  // itens críticos refletem o MESMO probe (/api/health), de propósito.
   const services = [
-    { ok: apiOk, critical: true },
-    { ok: db.ssh ? db.reachable === "1" : apiOk, critical: true },
-    { ok: app.up, critical: false },
-    { ok: site.up, critical: false },
-  ];
+    api && { ok: apiOk, critical: true },
+    (DATA_HOST || api) && { ok: db.ssh ? db.reachable === "1" : apiOk, critical: true },
+    app && { ok: app.up, critical: false },
+    site && { ok: site.up, critical: false },
+  ].filter(Boolean);
   const upCount = services.filter((s) => s.ok).length;
   const criticalDown = services.some((s) => s.critical && !s.ok);
   const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
