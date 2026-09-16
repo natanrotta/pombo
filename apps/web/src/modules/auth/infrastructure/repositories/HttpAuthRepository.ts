@@ -5,6 +5,8 @@ import type {
   SignUpResponseDTO,
   VerifyEmailPinResponseDTO,
 } from "@pombo/shared-types";
+import { ErrorCodes } from "@pombo/shared-types";
+import { AppError } from "@/core/errors/AppError";
 import { httpClient } from "@/core/http/httpClient";
 import type { AuthRepository } from "@/modules/auth/domain/repositories/AuthRepository";
 import type {
@@ -31,6 +33,15 @@ function mapToAuthUser(data: MeResponseDTO): AuthUser {
     avatarUrl: data.avatarUrl ?? "",
     language: data.language,
   };
+}
+
+/** Cookie-authenticated `/auth/me`; resolves only with a valid session. A 401
+ *  means "not signed in", so the probe opts out of the interceptor's
+ *  session-expired redirect (public pages must not bounce to /sign-in). */
+function fetchSessionUser(): Promise<MeResponseDTO> {
+  return httpClient.get<never, MeResponseDTO>("/auth/me", {
+    skipSessionExpiredRedirect: true,
+  });
 }
 
 export class HttpAuthRepository implements AuthRepository {
@@ -104,15 +115,19 @@ export class HttpAuthRepository implements AuthRepository {
     if (sessionStorage.getItem(STORAGE_KEYS.emailVerifyToken)) return null;
 
     try {
-      // Cookie-authenticated; resolves only with a valid session. A 401 here
-      // means "not signed in" — flag the probe so the interceptor doesn't run
-      // the session-expired redirect on public pages.
-      const data = await httpClient.get<never, MeResponseDTO>("/auth/me", {
-        skipSessionExpiredRedirect: true,
-      });
-      return mapToAuthUser(data);
-    } catch {
-      return null;
+      return mapToAuthUser(await fetchSessionUser());
+    } catch (error) {
+      // Only the access JWT (15 min) expired: the refresh cookie may still hold
+      // the session, so renew it once before treating the visitor as signed out.
+      if (!(error instanceof AppError) || error.code !== ErrorCodes.AUTH_TOKEN_EXPIRED) {
+        return null;
+      }
+      try {
+        await httpClient.post("/auth/refresh", {}, { skipSessionExpiredRedirect: true });
+        return mapToAuthUser(await fetchSessionUser());
+      } catch {
+        return null;
+      }
     }
   }
 

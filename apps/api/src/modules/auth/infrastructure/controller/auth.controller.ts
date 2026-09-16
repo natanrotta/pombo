@@ -32,7 +32,21 @@ import {
   setCsrfCookie,
   clearAuthCookies,
   REFRESH_TOKEN_COOKIE,
+  CSRF_TOKEN_COOKIE,
+  ACCESS_TOKEN_COOKIE,
 } from "@core/http/helpers/auth-cookies";
+
+/**
+ * The auth cookies are SameSite, so a cross-site request never carries them.
+ * Clearing only when one arrived keeps a forged cross-site POST to
+ * `/auth/refresh` from logging the user out.
+ */
+function carriesSessionCookie(req: Request): boolean {
+  const cookies = req.cookies ?? {};
+  return [ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE, CSRF_TOKEN_COOKIE].some(
+    (name) => Boolean(cookies[name]),
+  );
+}
 
 export class AuthController {
   async signIn(req: Request, res: Response): Promise<Response> {
@@ -164,7 +178,11 @@ export class AuthController {
     const refreshToken =
       req.cookies?.[REFRESH_TOKEN_COOKIE] || req.body.refreshToken;
 
+    // A session that can't be renewed is over: drop its cookies with the error
+    // so a dead `pombo_at` doesn't linger in the browser.
+    const hasSessionCookie = carriesSessionCookie(req);
     if (!refreshToken) {
+      if (hasSessionCookie) clearAuthCookies(res);
       throw new UnauthorizedError(
         "No refresh token",
         undefined,
@@ -172,7 +190,15 @@ export class AuthController {
       );
     }
 
-    const result = await refreshTokenUseCase.execute(refreshToken);
+    let result: Awaited<ReturnType<RefreshTokenUseCase["execute"]>>;
+    try {
+      result = await refreshTokenUseCase.execute(refreshToken);
+    } catch (error) {
+      if (error instanceof UnauthorizedError && hasSessionCookie) {
+        clearAuthCookies(res);
+      }
+      throw error;
+    }
 
     const csrfToken = randomUUID();
     setAuthCookies(res, result.refreshToken, csrfToken);

@@ -208,11 +208,18 @@ httpClient.interceptors.response.use(
         // Refresh token rides the httpOnly cookie; the backend sets a fresh
         // `pombo_at` cookie on success. We don't touch the token in JS —
         // replay the queued + original requests with the new cookie attached.
+        // Raw axios skips the request interceptor, so the CSRF double-submit
+        // header is attached here — the API rejects the refresh without it
+        // whenever the (expired) session cookie is still present.
+        const csrf = getCsrfToken();
         await axios.post(
           `${httpClient.defaults.baseURL}/auth/refresh`,
           {},
           {
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...(csrf && { "X-CSRF-Token": csrf }),
+            },
             withCredentials: true,
           }
         );

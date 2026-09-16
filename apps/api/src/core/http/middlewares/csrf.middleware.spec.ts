@@ -182,6 +182,58 @@ describe("csrfProtection", () => {
     });
   });
 
+  describe("credential-issuing public endpoints with a leftover session cookie", () => {
+    const PUBLIC_PATHS = [
+      "/api/auth/sign-up",
+      "/api/auth/sign-in",
+      "/api/auth/google",
+      "/api/auth/password/request-reset",
+      "/api/auth/password/reset",
+    ];
+
+    it.each(PUBLIC_PATHS)(
+      "lets %s through when a stale pombo_at remains but no CSRF cookie does",
+      (path) => {
+        const { req, res, next } = mockReqResNext({ path, accessCookie: true });
+
+        csrfProtection(req, res, next);
+
+        expect(next).toHaveBeenCalledWith();
+      },
+    );
+
+    it.each(PUBLIC_PATHS)(
+      "still enforces the double-submit on %s when a CSRF cookie is present",
+      (path) => {
+        const { req, res, next } = mockReqResNext({
+          path,
+          accessCookie: true,
+          cookie: "csrf-abc",
+        });
+
+        expect(() => csrfProtection(req, res, next)).toThrow(ForbiddenError);
+      },
+    );
+
+    it("does not relax a credential endpoint called with a Bearer token", () => {
+      const { req, res, next } = mockReqResNext({
+        path: "/api/auth/sign-in",
+        authorization: "Bearer api-client",
+      });
+
+      expect(() => csrfProtection(req, res, next)).toThrow(ForbiddenError);
+    });
+
+    it.each(["/api/auth/refresh", "/api/auth/sign-out", "/api/devices"])(
+      "keeps the session-cookie rule on %s",
+      (path) => {
+        const { req, res, next } = mockReqResNext({ path, accessCookie: true });
+
+        expect(() => csrfProtection(req, res, next)).toThrow(ForbiddenError);
+      },
+    );
+  });
+
   describe("admin routes (Bearer-token auth, CSRF-exempt)", () => {
     it("passes an authenticated /api/admin/* unsafe request without any CSRF cookie/header", () => {
       const { req, res, next } = mockReqResNext({

@@ -7,6 +7,18 @@ import {
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
+// Public endpoints that ISSUE credentials. They never act on an existing
+// session, so a leftover session cookie (expired JWT whose CSRF cookie is gone)
+// must not lock the user out of signing in again. `/auth/refresh` is NOT here:
+// it acts on the session and keeps the full double-submit.
+const PUBLIC_CREDENTIAL_PATHS = new Set([
+  "/api/auth/sign-up",
+  "/api/auth/sign-in",
+  "/api/auth/google",
+  "/api/auth/password/request-reset",
+  "/api/auth/password/reset",
+]);
+
 /**
  * Double-submit cookie CSRF protection.
  *
@@ -21,9 +33,15 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
  *
  * Public unsafe endpoints (sign-in, sign-up, password-reset) legitimately
  * arrive without either credential AND without the CSRF cookie, so they
- * continue to pass through. If the CSRF cookie IS present on an otherwise
- * unauthenticated request, enforcement still applies — this prevents an
- * attacker who obtained a stale cookie from reusing it.
+ * continue to pass through.
+ *
+ * The credential-issuing ones (PUBLIC_CREDENTIAL_PATHS) also pass when only a
+ * stale `pombo_at` is left in the browser; otherwise that cookie would lock the
+ * user out of signing in again.
+ *
+ * If the CSRF cookie IS present on an otherwise unauthenticated request,
+ * enforcement still applies — this prevents an attacker who obtained a stale
+ * cookie from reusing it.
  */
 export function csrfProtection(
   req: Request,
@@ -46,6 +64,17 @@ export function csrfProtection(
 
   const cookieToken: string | undefined = req.cookies?.[CSRF_TOKEN_COOKIE];
   const headerToken = req.headers["x-csrf-token"] as string | undefined;
+
+  // A credential-issuing endpoint with no CSRF cookie and no Bearer is as
+  // public as a first visit, whatever stale `pombo_at` the browser still holds.
+  // With a CSRF cookie present, the double-submit below still applies.
+  if (
+    PUBLIC_CREDENTIAL_PATHS.has(req.path) &&
+    !cookieToken &&
+    !req.headers.authorization
+  ) {
+    return next();
+  }
   // Either credential the API accepts marks the request as authenticated.
   const isAuthenticated =
     Boolean(req.headers.authorization) ||
