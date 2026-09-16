@@ -228,7 +228,10 @@ There is deliberately **no** generic `useEntityList` / `useEntityDetail` / `useL
 export function useDeviceDetail(id?: string) {
   return useQuery({
     queryKey: queryKeys.devices.detail(id!),
-    queryFn: () => repositories.devices.getById(id!),
+    // Forward the query's `signal` whenever the repository method takes one:
+    // cancelling the query (unmount, key change) then aborts the request
+    // instead of leaving it running.
+    queryFn: ({ signal }) => repositories.devices.getById(id!, signal),
     enabled: Boolean(id),
   });
 }
