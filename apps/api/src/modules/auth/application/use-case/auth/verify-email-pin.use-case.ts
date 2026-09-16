@@ -4,14 +4,14 @@ import { DI_TOKENS } from "@core/container/tokens";
 import { IUserRepository } from "@modules/user/domain/repository/user-repository.interface";
 import { IEmailVerificationPinRepository } from "@modules/auth/domain/repository/email-verification-pin-repository.interface";
 import { IJwtProvider, ILoggerProvider } from "@shared/provider";
-import { AuthResponseDTO, VerifyEmailPinDTO } from "../../dto/auth.dto";
+import { AuthSessionResult, VerifyEmailPinDTO } from "../../dto/auth.dto";
 import {
   BadRequestError,
   TooManyRequestsError,
   UnauthorizedError,
 } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
-import { AuthProfileBuilder } from "@modules/auth/application/service/auth/auth-profile.builder";
+import { AuthProfileBuilder } from "@modules/auth/application/service/auth-profile.builder";
 
 /** Wrong-PIN attempts before the code is locked and the user must resend. */
 export const EMAIL_VERIFICATION_MAX_ATTEMPTS = 5;
@@ -57,7 +57,7 @@ export class VerifyEmailPinUseCase {
     private readonly logger: ILoggerProvider,
   ) {}
 
-  async execute(data: VerifyEmailPinDTO): Promise<AuthResponseDTO> {
+  async execute(data: VerifyEmailPinDTO): Promise<AuthSessionResult> {
     let user = await this.userRepository.findById(data.userId);
     if (!user) {
       throw new UnauthorizedError(

@@ -1,60 +1,80 @@
-import { Flex, Icon, Text } from "@chakra-ui/react";
+import { Box, Button, Flex, Icon, Text } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
 import { FiActivity } from "@/shared/components/icons";
-import { SectionCard } from "@/shared/components/ui/SectionCard";
 import { SandboxQueueItem, type SandboxQueueEntry } from "./SandboxQueueItem";
 
 interface SandboxQueueProps {
   items: SandboxQueueEntry[];
+  /** Empties the panel without touching the composed message. */
+  onClear: () => void;
 }
 
 /** The Sandbox's "response" panel: the live send queue of the last burst. Each
  *  row polls its own delivery status, so the list drains top-to-bottom (FIFO)
  *  and the humanized pacing (typing + jitter + long pauses) is observable in
  *  real time. Empty placeholder before the first send. */
-export function SandboxQueue({ items }: SandboxQueueProps) {
+export function SandboxQueue({ items, onClear }: SandboxQueueProps) {
   const { t } = useTranslation("sandbox");
   const total = items.length;
 
-  if (total === 0) {
-    return (
-      <SectionCard>
+  return (
+    <Flex
+      direction="column"
+      minH="400px"
+      bg="bg.surface"
+      borderWidth="1px"
+      borderColor="border.default"
+      borderRadius="lg"
+      overflow="hidden"
+      data-cy="sandbox-queue"
+    >
+      <Flex
+        align="center"
+        justify="space-between"
+        gap={3}
+        px={4.5}
+        py={4}
+        borderBottomWidth="1px"
+        borderColor="border.default"
+      >
+        <Flex direction="column" gap={0.5} minW={0}>
+          <Text textStyle="sectionTitle" color="text.primary">
+            {t("queue.title")}
+          </Text>
+          <Text textStyle="caption" color="text.secondary">
+            {t("queue.subtitle")}
+          </Text>
+        </Flex>
+        {total > 0 && (
+          <Button variant="ghost" size="xs" color="text.brand" onClick={onClear}>
+            {t("actions.clear")}
+          </Button>
+        )}
+      </Flex>
+
+      {total === 0 ? (
         <Flex
+          flex="1"
           direction="column"
           align="center"
           justify="center"
-          gap={2}
+          gap={2.5}
           textAlign="center"
-          minH="240px"
-          py={8}
+          px={7}
+          py={10}
         >
-          <Icon boxSize={8} color="text.muted">
+          <Icon boxSize={10} color="border.strong">
             <FiActivity />
           </Icon>
-          <Text fontSize="sm" fontWeight="600" color="text.primary">
+          <Text textStyle="sectionTitle" color="text.secondary">
             {t("queue.empty.title")}
           </Text>
-          <Text fontSize="xs" color="text.muted" maxW="xs">
+          <Text textStyle="caption" color="text.muted" maxW="32ch">
             {t("queue.empty.description")}
           </Text>
         </Flex>
-      </SectionCard>
-    );
-  }
-
-  return (
-    <SectionCard>
-      <Flex direction="column" gap={3}>
-        <Flex align="center" justify="space-between" gap={3}>
-          <Text fontSize="sm" fontWeight="600" color="text.primary">
-            {t("queue.title")}
-          </Text>
-          <Text fontSize="xs" color="text.muted" flexShrink={0}>
-            {t("queue.summary", { total })}
-          </Text>
-        </Flex>
-
-        <Flex direction="column">
+      ) : (
+        <Box flex="1">
           {items.map((item, i) => (
             <SandboxQueueItem
               key={item.messageId}
@@ -64,12 +84,8 @@ export function SandboxQueue({ items }: SandboxQueueProps) {
               initialStatus={item.status}
             />
           ))}
-        </Flex>
-
-        <Text fontSize="xs" color="text.muted">
-          {t("queue.pacingHint")}
-        </Text>
-      </Flex>
-    </SectionCard>
+        </Box>
+      )}
+    </Flex>
   );
 }

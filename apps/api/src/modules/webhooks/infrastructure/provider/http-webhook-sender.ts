@@ -6,6 +6,8 @@ import {
 } from "@modules/webhooks/domain/provider/webhook-sender.interface";
 import type { ILoggerProvider } from "@shared/provider/logger-provider.interface";
 import { AppConfig } from "@shared/provider/app-config.interface";
+import { assertSafeOutboundUrl } from "@shared/util/ssrf-guard";
+import { AppError } from "@shared/error";
 import { signWebhook } from "./hmac-signer";
 
 const delay = (ms: number): Promise<void> =>
@@ -19,6 +21,13 @@ const delay = (ms: number): Promise<void> =>
  * NEVER throws to the caller — best-effort: the authoritative state is always
  * GET /devices, so a lost webhook is logged, not fatal. Retries transient
  * failures (network/timeout, 5xx, 429); does NOT retry a 4xx rejection.
+ *
+ * SSRF posture (SEC-C6): the URL is customer-supplied. Before EVERY attempt the
+ * host is re-resolved and must point only at public addresses
+ * (`assertSafeOutboundUrl`) — re-checking per attempt shrinks the DNS-rebinding
+ * window to the gap between our lookup and the socket's. Redirects are never
+ * followed (`redirect: "manual"`): a 3xx would let the customer bounce us to an
+ * internal address after the check, so it is treated as a final rejection.
  */
 @injectable()
 export class HttpWebhookSender implements IWebhookSender {
@@ -45,6 +54,7 @@ export class HttpWebhookSender implements IWebhookSender {
         headers,
         body,
         signal: controller.signal,
+        redirect: "manual",
       });
       return res.status;
     } finally {
@@ -54,6 +64,11 @@ export class HttpWebhookSender implements IWebhookSender {
 
   private retriable(status: number): boolean {
     return status === 429 || status >= 500;
+  }
+
+  /** A redirect is a rejection: following it would bypass the SSRF guard. */
+  private redirected(status: number): boolean {
+    return status >= 300 && status < 400;
   }
 
   async send({ url, secret, event }: WebhookDelivery): Promise<void> {
@@ -71,9 +86,27 @@ export class HttpWebhookSender implements IWebhookSender {
     const maxAttempts = this.config.WEBHOOK_MAX_ATTEMPTS;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
+        await assertSafeOutboundUrl(url);
+      } catch (error) {
+        // A blocked target is not transient — never retried, never thrown.
+        // Deliberately the same for "host does not resolve": a resolver blip
+        // costs this one delivery (the next event re-resolves), whereas
+        // retrying around the guard would keep hammering a host the customer
+        // pointed at something unresolvable. Fail closed, cheaply.
+        this.logger.warn(
+          {
+            type: event.type,
+            deviceId: event.deviceId,
+            code: error instanceof AppError ? error.code : "UNKNOWN",
+          },
+          "webhook target blocked by the outbound-url guard, giving up",
+        );
+        return;
+      }
+      try {
         const status = await this.post(url, rawBody, headers);
         if (status >= 200 && status < 300) return; // delivered
-        if (!this.retriable(status)) {
+        if (this.redirected(status) || !this.retriable(status)) {
           this.logger.warn(
             { type: event.type, deviceId: event.deviceId, status },
             "webhook rejected, giving up",

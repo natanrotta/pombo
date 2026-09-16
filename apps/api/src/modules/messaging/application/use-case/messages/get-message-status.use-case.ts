@@ -2,11 +2,9 @@ import { inject, injectable } from "tsyringe";
 import { DI_TOKENS } from "@core/container/tokens";
 import { IOutboxRepository } from "@modules/messaging/domain/repository/outbox-repository.interface";
 import { IDevicesRepository } from "@modules/devices/domain/repository/devices-repository.interface";
-import { OutboxMessage } from "@modules/messaging/domain/entity/outbox-message.entity";
+import type { MessageStatusResponseDTO } from "@pombo/shared-types";
 import { NotFoundError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
-
-type MessageStatusResponse = ReturnType<OutboxMessage["toJSON"]>;
 
 /**
  * The authoritative status of a message. `202` never meant delivered — this is
@@ -25,7 +23,10 @@ export class GetMessageStatusUseCase {
     private readonly devicesRepository: IDevicesRepository,
   ) {}
 
-  async execute(accountId: string, id: string): Promise<MessageStatusResponse> {
+  async execute(
+    accountId: string,
+    id: string,
+  ): Promise<MessageStatusResponseDTO> {
     const message = await this.outboxRepository.findById(id);
     // Ownership is resolved through the message's device: if the device is not
     // in the caller's account the message is treated as non-existent.

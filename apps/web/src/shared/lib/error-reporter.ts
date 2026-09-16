@@ -127,6 +127,18 @@ export const errorReporter = {
   },
 };
 
+/**
+ * Reports a React render crash caught by an error boundary. A tree crash is
+ * unambiguously an error; Bugsnag defaults handled notifications to "warning",
+ * so the severity is set explicitly for correct triage.
+ */
+export function reportRenderError(error: Error, componentStack?: string | null): void {
+  errorReporter.notify(error, (event) => {
+    event.severity = "error";
+    event.addMetadata("react", { componentStack });
+  });
+}
+
 function stripQueryString(rawUrl: string): string {
   try {
     const url = new URL(rawUrl);

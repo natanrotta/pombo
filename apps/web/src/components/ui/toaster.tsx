@@ -20,38 +20,39 @@ export const toaster = createToaster({
 });
 
 /**
- * Fixed light palette, on purpose: the toast floats over the app as its own
- * surface and reads the same in light and dark mode. These are the only raw hex
- * values sanctioned outside the theme — every other surface uses semantic tokens.
+ * One `status.*` token family per toast type — the same palette the badges
+ * use, so a toast follows the color mode like every other surface (it portals
+ * outside the page tree but still sits under the `<html>` class next-themes
+ * toggles).
  */
 const STATUS_CONFIG = {
   success: {
     icon: FiCheck,
-    bg: "#ecfdf5",
-    border: "#a7f3d0",
-    iconBg: "#10b981",
-    text: "#065f46",
+    tint: "status.success.bg",
+    border: "status.success.border",
+    iconBg: "status.success.solid",
+    fg: "status.success.fg",
   },
   info: {
     icon: FiInfo,
-    bg: "#eff6ff",
-    border: "#bfdbfe",
-    iconBg: "#3b82f6",
-    text: "#1e40af",
+    tint: "status.info.bg",
+    border: "status.info.border",
+    iconBg: "status.info.solid",
+    fg: "status.info.fg",
   },
   warning: {
     icon: FiAlertTriangle,
-    bg: "#faf5ff",
-    border: "#e9d8fd",
-    iconBg: "#805ad5",
-    text: "#553c9a",
+    tint: "status.warning.bg",
+    border: "status.warning.border",
+    iconBg: "status.warning.solid",
+    fg: "status.warning.fg",
   },
   error: {
     icon: FiXCircle,
-    bg: "#fef2f2",
-    border: "#fecaca",
-    iconBg: "#ef4444",
-    text: "#991b1b",
+    tint: "status.error.bg",
+    border: "status.error.border",
+    iconBg: "status.error.solid",
+    fg: "status.error.fg",
   },
 } as const;
 
@@ -72,14 +73,20 @@ export function Toaster() {
             // everything inside is the app's own chrome (v2 rendered this via
             // the `render` option, which v3 moved up to the Toaster).
             <Toast.Root
+              data-cy="toast"
               display="flex"
               alignItems="center"
               gap={3}
               px={4}
               py={3}
-              bg={config.bg}
+              // Opaque surface + the status tint layered on top: in dark mode
+              // `status.*.bg` is a translucent wash, and a floating toast must
+              // never let the page show through. A one-color gradient is the
+              // CSS way to paint a color as a layer over `background-color`.
+              bg="bg.elevated"
+              backgroundImage={`linear-gradient({colors.${config.tint}}, {colors.${config.tint}})`}
               borderRadius="xl"
-              boxShadow="0 4px 20px rgba(0,0,0,0.08)"
+              boxShadow="shadow.panel"
               borderWidth="1px"
               borderColor={config.border}
               mx="auto"
@@ -104,7 +111,7 @@ export function Toaster() {
                   <Toast.Title
                     fontSize="sm"
                     fontWeight="600"
-                    color={config.text}
+                    color={config.fg}
                     lineHeight="short"
                   >
                     {toast.title}
@@ -113,8 +120,8 @@ export function Toaster() {
                 {toast.description && (
                   <Text
                     fontSize="xs"
-                    color={config.text}
-                    opacity={0.75}
+                    color={config.fg}
+                    opacity={0.8}
                     lineHeight="short"
                   >
                     {toast.description}

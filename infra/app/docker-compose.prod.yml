@@ -1,25 +1,28 @@
-# infra/app/docker-compose.prod.yml — API (VPS-APP)
+# infra/app/docker-compose.prod.yml — API (host de APP, em /opt/pombo/app/infra/app)
 #
-# Roda a imagem da API publicada no GHCR pelo CI (.github/workflows/deploy-api.yml).
-# Ver .claude/knowledge/devops.md (API na VPS-APP + CI/CD) e DEPLOY.md (comandos).
+# Roda a imagem da API publicada no GHCR pelo build-api.yml (`yarn make-tag`).
+# Quem faz o cutover é o deploy-api.yml (`yarn deploy` / `yarn rollback`), no
+# runner self-hosted deste host; plano B: `make deploy-direct`. Ver DEPLOY.md e
+# .claude/knowledge/devops.md.
 #
-# A API expõe 3333 SÓ em localhost — quem publica na internet é o Caddy
-# (infra/app/Caddyfile), atrás do Cloudflare.
+# A API escuta em 3333 (API_PORT) e publica SÓ em 127.0.0.1 — quem expõe na
+# internet é o Caddy (docker-compose.caddy.yml), atrás do Cloudflare.
 #
-# Pré-requisitos na VPS-APP: docker, túnel WireGuard ativo (DATABASE_URL/REDIS_HOST
-# apontam 10.8.0.2), e o arquivo de env real ../.env.prod (chmod 600).
+# Pré-requisitos no host: docker, túnel WireGuard ativo (DATABASE_URL/REDIS_HOST
+# apontam 10.8.0.2) e o env real ../.env.prod (modelo: infra/.env.prod.example;
+# chmod 640, grupo do runner — `make runner-setup`).
 #
-# Deploy: docker compose -f docker-compose.prod.yml pull && up -d
-#
-# OBS migrate: o Dockerfile.prod roda `prisma migrate deploy` no CMD/boot.
-# Com 1 réplica está ok. Ao escalar p/ 2+ réplicas, tirar o migrate do CMD e
-# rodá-lo como step único do deploy (corrida de migrations). Ver knowledge.
+# UMA réplica: ela é a dona dos sockets do WhatsApp (WHATSAPP_ENABLED=true +
+# advisory lock no Postgres) e roda `prisma migrate deploy` no boot
+# (apps/api/docker-entrypoint.sh). Uma réplica extra precisa de
+# WHATSAPP_ENABLED=false e RUN_MIGRATIONS=false.
 
 name: pombo-app
 
 services:
   api:
-    # Tag fixada pelo CI (:<sha>) ou :latest. Sobrescreva via API_IMAGE.
+    # ghcr.io/<owner>/pombo-api:<vX.Y|latest> — exportado pelo deploy-api.yml
+    # (ou pelo make deploy-direct) antes do `up`.
     image: ${API_IMAGE:?set API_IMAGE to your published API image}
     container_name: pombo-api
     restart: unless-stopped
@@ -27,8 +30,10 @@ services:
       - ../.env.prod
     ports:
       - "127.0.0.1:3333:3333"   # só localhost; o Caddy expõe publicamente
-    # Respeita o graceful shutdown (main.ts: SIGTERM drena filas BullMQ +
-    # eventBus + flowProducer antes de fechar). Sem isso, deploy perde jobs em voo.
+    # Respeita o graceful shutdown (core/service/lifecycle: SIGTERM drena o HTTP,
+    # fecha os sockets do WhatsApp sem logout, filas BullMQ + eventBus +
+    # flowProducer). O app tem seu próprio teto (SHUTDOWN_TIMEOUT_MS, 30 s) —
+    # este valor precisa ficar ACIMA dele. Sem isso, deploy perde jobs em voo.
     stop_grace_period: 60s
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3333/healthz"]
@@ -47,7 +52,7 @@ services:
   # WireGuard tunnel IP (10.8.0.1:9100), never exposed to the internet. The API
   # scrapes it via METRICS_APP_URL.
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v1.12.1
     container_name: pombo-node-exporter
     restart: unless-stopped
     network_mode: host

@@ -20,18 +20,8 @@ export const SendGroupMessageDTOSchema = z.object({
   text: z.string().trim().min(1),
 });
 
-export const SendMessageParamSchema = z.object({
-  id: z.string().uuid("Invalid device ID format"),
-});
-
-export const MessageIdParamSchema = z.object({
-  id: z.string().uuid("Invalid message ID format"),
-});
-
 export type SendMessageDTO = z.infer<typeof SendMessageDTOSchema>;
 export type SendGroupMessageDTO = z.infer<typeof SendGroupMessageDTOSchema>;
-export type SendMessageParam = z.infer<typeof SendMessageParamSchema>;
-export type MessageIdParam = z.infer<typeof MessageIdParamSchema>;
 
 // ── Rich send DTOs (image / audio / video / document) ────────────────────────
 // Media fields are strings — a URL or base64 (the gateway resolves either), so

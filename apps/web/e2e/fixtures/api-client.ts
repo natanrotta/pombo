@@ -188,3 +188,31 @@ export const apiClient = {
 //
 // Add a typed helper here when a module ships its first spec that needs
 // API-driven setup. Keep helpers thin — one HTTP call per function.
+
+/** Mirrors `DeviceResponseDTO` (`packages/shared-types/src/devices.ts`) —
+ *  redeclared locally rather than imported so this fixture file stays
+ *  decoupled from the app source (same spirit as `ApiUser` above). */
+export interface DeviceApiResource {
+  id: string;
+  name: string;
+  identifier: string | null;
+  status: "DISCONNECTED" | "CONNECTING" | "QR_PENDING" | "CONNECTED" | "LOGGED_OUT";
+}
+
+/** `POST /devices` 201 — the only response that ever carries the one-time
+ *  `webhookSecret`. */
+export interface CreatedDeviceApiResource {
+  id: string;
+  webhookSecret: string;
+}
+
+/** Devices module — mirrors `POST/GET/DELETE /devices` (see
+ *  `apps/api/src/modules/devices/infrastructure/route/device.routes.ts`).
+ *  Used for non-assertion setup/cleanup only — specs that exercise the
+ *  create/delete UI flow itself drive it through the page object instead. */
+export const deviceApi = {
+  create: (name: string) =>
+    apiClient.post<CreatedDeviceApiResource>("/devices", { name }),
+  list: () => apiClient.get<DeviceApiResource[]>("/devices"),
+  delete: (id: string) => apiClient.delete<void>(`/devices/${id}`),
+};

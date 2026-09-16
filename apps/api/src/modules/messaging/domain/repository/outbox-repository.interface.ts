@@ -35,6 +35,12 @@ export interface IOutboxRepository {
    * re-queries in batches). This is the set reopened when the device reconnects.
    */
   findQueued(deviceId: string, limit: number): Promise<OutboxMessage[]>;
+  /**
+   * How many messages are waiting to be sent across every device of an account
+   * — the same set `findQueued` reopens per device, counted account-wide for
+   * the dashboard counter.
+   */
+  countQueuedForAccount(accountId: string): Promise<number>;
   setWaMessageId(id: string, waMessageId: string): Promise<void>;
   updateStatus(
     id: string,

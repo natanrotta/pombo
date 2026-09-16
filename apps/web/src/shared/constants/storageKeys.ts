@@ -1,6 +1,6 @@
 export const STORAGE_KEYS = {
   language: "@pombo-web:language",
-  sidebarCollapsed: "sidebar-collapsed",
+  sidebarCollapsed: "@pombo-web:sidebar-collapsed",
   /** Scoped `email:verify` token held during the (pre-session) signup flow.
    *  Kept in **sessionStorage** (survives a same-tab refresh of /verify-email,
    *  clears on tab close) and sent as a Bearer ONLY on /auth/email-verification/*
@@ -11,4 +11,19 @@ export const STORAGE_KEYS = {
    *  surfaced as suggestions when the recipient input is focused. Convenience
    *  only — cleared safely at any time, never contains sensitive data. */
   sandboxRecentRecipients: "@pombo-web:sandbox-recent-recipients",
+  /** Device list layout (`grid` | `list`). A browser preference, like the
+   *  sidebar state — it survives a sign-out. */
+  devicesView: "@pombo-web:devices-view",
 } as const;
+
+/** Prefix shared by every key this app writes to web storage. */
+export const STORAGE_KEY_PREFIX = "@pombo-web:";
+
+/** Device preferences — they belong to the browser, not to the signed-in
+ *  account, so they survive a sign-out. Everything else under the prefix is
+ *  session-scoped and is wiped (see `clearSessionScopedStorage`). */
+export const DEVICE_PREFERENCE_KEYS: readonly string[] = [
+  STORAGE_KEYS.language,
+  STORAGE_KEYS.sidebarCollapsed,
+  STORAGE_KEYS.devicesView,
+];

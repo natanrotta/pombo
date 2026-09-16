@@ -5,6 +5,8 @@
  * `FakeWhatsAppGateway` (in `test/`) backs the specs. This is what makes 100%
  * of the use cases testable with no real socket.
  */
+import type { DeviceGroupDTO } from "@pombo/shared-types";
+
 export interface SendResult {
   waMessageId: string;
 }
@@ -38,13 +40,10 @@ export interface SendDocumentPayload {
 
 /** A WhatsApp group the device participates in. `jid` is the canonical group id
  *  (`<id>@g.us`) used as the send recipient; `name` is the group subject. The
- *  domain shape the Baileys `GroupMetadata` is mapped down to inside
- *  `session-manager` — no Baileys type crosses this port. Mirrored on the
- *  frontend as `DeviceGroup` (keep in sync). */
-export interface GroupInfo {
-  jid: string;
-  name: string;
-}
+ *  shape the Baileys `GroupMetadata` is mapped down to inside `session-manager`
+ *  — no Baileys type crosses this port. It is exactly the wire item of
+ *  `GET /devices/:id/groups`, so it is the shared contract type. */
+export type GroupInfo = DeviceGroupDTO;
 
 export interface IWhatsAppGateway {
   connect(deviceId: string): Promise<void>;

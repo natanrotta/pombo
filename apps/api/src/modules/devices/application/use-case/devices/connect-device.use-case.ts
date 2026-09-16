@@ -2,14 +2,9 @@ import { inject, injectable } from "tsyringe";
 import { DI_TOKENS } from "@core/container/tokens";
 import { IDevicesRepository } from "@modules/devices/domain/repository/devices-repository.interface";
 import { IWhatsAppGateway } from "@modules/devices/domain/provider/whatsapp-gateway.interface";
-import { type DeviceStatus } from "@modules/devices/domain/value-object/device-status";
+import type { DeviceConnectionResponseDTO } from "@pombo/shared-types";
 import { ConflictError, NotFoundError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
-
-export interface ConnectDeviceResponse {
-  id: string;
-  status: DeviceStatus;
-}
 
 /**
  * Starts a connection: it does NOT wait for the human. Re-runnable (the
@@ -27,7 +22,10 @@ export class ConnectDeviceUseCase {
     private readonly gateway: IWhatsAppGateway,
   ) {}
 
-  async execute(accountId: string, id: string): Promise<ConnectDeviceResponse> {
+  async execute(
+    accountId: string,
+    id: string,
+  ): Promise<DeviceConnectionResponseDTO> {
     const device = await this.devicesRepository.findById(accountId, id);
     if (!device) {
       throw new NotFoundError(
@@ -45,7 +43,7 @@ export class ConnectDeviceUseCase {
       );
     }
 
-    if (device.status === "CONNECTED" || this.gateway.isConnected(device.id)) {
+    if (device.isConnected || this.gateway.isConnected(device.id)) {
       throw new ConflictError(
         "The device is already connected",
         undefined,

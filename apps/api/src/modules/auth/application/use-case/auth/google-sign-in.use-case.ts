@@ -3,13 +3,12 @@ import { DI_TOKENS } from "@core/container/tokens";
 import { OAuth2Client } from "google-auth-library";
 import { IUserRepository } from "@modules/user/domain/repository/user-repository.interface";
 import { IJwtProvider } from "@shared/provider";
-import { GoogleSignInDTO, GoogleSignInResponseDTO } from "../../dto/auth.dto";
+import { GoogleSignInDTO, GoogleSignInResult } from "../../dto/auth.dto";
 import { UnauthorizedError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
 import { DEFAULT_LOCALE } from "@shared/constant/defaults";
-import { UserStatus } from "@shared/type/enums";
 import type { User } from "@modules/user/domain/entity/user.entity";
-import { AuthProfileBuilder } from "@modules/auth/application/service/auth/auth-profile.builder";
+import { AuthProfileBuilder } from "@modules/auth/application/service/auth-profile.builder";
 
 /**
  * Google ID-token sign-in — single-user boilerplate. Find-or-create the user
@@ -38,7 +37,7 @@ export class GoogleSignInUseCase {
     this.googleClient = new OAuth2Client(googleClientId);
   }
 
-  async execute(data: GoogleSignInDTO): Promise<GoogleSignInResponseDTO> {
+  async execute(data: GoogleSignInDTO): Promise<GoogleSignInResult> {
     const payload = await this.verifyGoogleToken(data.credential);
 
     const googleId = payload.sub!;
@@ -107,8 +106,8 @@ export class GoogleSignInUseCase {
   private async issueSession(
     user: User,
     kind: "sign-in" | "sign-up",
-  ): Promise<GoogleSignInResponseDTO> {
-    if (user.status !== UserStatus.ACTIVE) {
+  ): Promise<GoogleSignInResult> {
+    if (!user.isActive) {
       throw new UnauthorizedError(
         "Account is not active",
         undefined,
@@ -142,7 +141,7 @@ export class GoogleSignInUseCase {
     name: string;
     picture?: string;
     language?: string;
-  }): Promise<GoogleSignInResponseDTO> {
+  }): Promise<GoogleSignInResult> {
     const { refreshToken, tokenExpiresAt, refreshTokenExpiresAt } =
       this.jwtProvider.issueRefreshCredential();
 

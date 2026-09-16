@@ -1,0 +1,38 @@
+# Build context for apps/api/Dockerfile = the repo root. Everything the image
+# does not need stays out — smaller context, stable cache, and no way for a
+# host .env or the web app to end up in a layer.
+.git
+.github
+.claude
+.vscode
+.idea
+docs
+infra
+scripts
+apps/web
+
+**/node_modules
+**/dist
+**/.turbo
+**/coverage
+**/*.log
+**/*.tsbuildinfo
+**/.DS_Store
+
+# Secrets never enter the context (the runtime reads env_file / the orchestrator).
+**/.env
+**/.env.*
+!**/.env.example
+
+# Regenerated inside the build stage.
+apps/api/src/generated
+
+# Tests and tooling the image never runs.
+**/*.spec.ts
+apps/api/src/test
+apps/api/vitest.config.ts
+apps/api/.eslintrc.js
+
+docker-compose*.yml
+Makefile
+**/*.md

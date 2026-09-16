@@ -1,6 +1,10 @@
+import type { z } from "zod";
+import type {
+  RegisterDeviceRequestDTO,
+  UpdateDeviceWebhooksRequestDTO,
+} from "@pombo/shared-types";
 import {
   RegisterDeviceDTOSchema,
-  DeviceIdParamSchema,
   UpdateDeviceWebhooksDTOSchema,
 } from "./device.dto";
 
@@ -59,15 +63,17 @@ describe("device DTOs", () => {
       ).toThrow();
     });
   });
+});
 
-  describe("DeviceIdParamSchema", () => {
-    it("accepts a uuid", () => {
-      const id = "11111111-1111-1111-1111-111111111111";
-      expect(DeviceIdParamSchema.parse({ id }).id).toBe(id);
-    });
-
-    it("rejects a non-uuid", () => {
-      expect(() => DeviceIdParamSchema.parse({ id: "nope" })).toThrow();
-    });
+describe("device request DTOs ↔ @pombo/shared-types", () => {
+  it("accept exactly the body the shared contract declares", () => {
+    // Type-level — enforced by `yarn type-check`: a schema that drifts from
+    // the contract the web client sends breaks the build.
+    expectTypeOf<
+      z.input<typeof RegisterDeviceDTOSchema>
+    >().toEqualTypeOf<RegisterDeviceRequestDTO>();
+    expectTypeOf<
+      z.input<typeof UpdateDeviceWebhooksDTOSchema>
+    >().toEqualTypeOf<UpdateDeviceWebhooksRequestDTO>();
   });
 });

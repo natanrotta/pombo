@@ -93,6 +93,11 @@ describe("error-reporter", () => {
       const config = mockBugsnag.start.mock.calls[0]![0];
       expect(config.apiKey).toBe("test-key");
       expect(config.collectUserIp).toBe(false);
+      // The lifecycle owns process exit — the SDK must not race it.
+      expect(config.enabledErrorTypes).toEqual({
+        unhandledExceptions: false,
+        unhandledRejections: false,
+      });
       expect(config.onError).toBeTypeOf("function");
       expect(config.onBreadcrumb).toBeTypeOf("function");
     });
@@ -167,6 +172,7 @@ describe("error-reporter", () => {
 
       expect(mockBugsnag.notify).toHaveBeenCalledWith(
         error,
+        expect.any(Function),
         expect.any(Function),
       );
     });

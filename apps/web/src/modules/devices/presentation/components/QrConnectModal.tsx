@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Flex, Icon, Image, Skeleton, Text } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
-import { useQueryClient } from "@tanstack/react-query";
 import QRCode from "qrcode";
-import { FiAlertTriangle } from "@/shared/components/icons";
+import { ErrorCodes } from "@pombo/shared-types";
+import { FiAlertTriangle, FiSlash } from "@/shared/components/icons";
 import { AppModal } from "@/shared/components/ui/AppModal";
+import { EmptyState } from "@/shared/components/ui/EmptyState";
 import { useNotify } from "@/shared/hooks/useNotify";
-import { queryKeys } from "@/core/query/queryKeys";
+import { AppError } from "@/core/errors/AppError";
 import {
   useConnectDevice,
   useDeviceQr,
+  useRefreshDevice,
 } from "@/modules/devices/presentation/hooks/useDevices";
 
 interface QrConnectModalProps {
@@ -32,27 +34,34 @@ export function QrConnectModal({
 }: QrConnectModalProps) {
   const { t } = useTranslation("devices");
   const { showSuccess } = useNotify();
-  const queryClient = useQueryClient();
+  const refreshDevice = useRefreshDevice();
   const { mutate: connectMutate } = useConnectDevice();
 
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [connectFailed, setConnectFailed] = useState(false);
+  // Why the pairing session didn't start: the WhatsApp gateway is switched off
+  // in this environment (nothing to retry), or any other failure (retryable).
+  const [connectFailure, setConnectFailure] = useState<
+    "gatewayDisabled" | "failed" | null
+  >(null);
   const connectStartedRef = useRef(false);
   const connectedRef = useRef(false);
 
   // Poll only while open AND the pairing session actually started (a failed
   // connect has no session behind it — stop hammering /qr until the user retries).
-  const qrQuery = useDeviceQr(deviceId, isOpen && !connectFailed);
+  const qrQuery = useDeviceQr(deviceId, isOpen && connectFailure === null);
 
   const startConnect = useCallback(() => {
-    setConnectFailed(false);
+    setConnectFailure(null);
     connectStartedRef.current = true;
     connectMutate(deviceId, {
       // The hook's onError already toasts. Surface an in-modal recovery path
       // instead of trapping the user on an endless skeleton.
-      onError: () => {
+      onError: (error) => {
         connectStartedRef.current = false;
-        setConnectFailed(true);
+        const gatewayDisabled =
+          error instanceof AppError &&
+          error.code === ErrorCodes.WA_GATEWAY_DISABLED;
+        setConnectFailure(gatewayDisabled ? "gatewayDisabled" : "failed");
       },
     });
   }, [connectMutate, deviceId]);
@@ -63,7 +72,7 @@ export function QrConnectModal({
       connectStartedRef.current = false;
       connectedRef.current = false;
       setQrDataUrl(null);
-      setConnectFailed(false);
+      setConnectFailure(null);
       return;
     }
     if (connectStartedRef.current) return;
@@ -96,12 +105,9 @@ export function QrConnectModal({
     if (status !== "CONNECTED" || connectedRef.current) return;
     connectedRef.current = true;
     showSuccess(t("qr.connected"));
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.devices.detail(deviceId),
-    });
-    queryClient.invalidateQueries({ queryKey: queryKeys.devices.list() });
+    refreshDevice(deviceId);
     onClose();
-  }, [status, deviceId, showSuccess, t, queryClient, onClose]);
+  }, [status, deviceId, showSuccess, t, refreshDevice, onClose]);
 
   return (
     <AppModal
@@ -112,7 +118,14 @@ export function QrConnectModal({
       cancelActionLabel={t("qr.close")}
     >
       <Flex direction="column" align="center" gap={4} py={2}>
-        {connectFailed ? (
+        {connectFailure === "gatewayDisabled" ? (
+          <EmptyState
+            icon={FiSlash}
+            title={t("qr.gatewayDisabled.title")}
+            description={t("qr.gatewayDisabled.description")}
+            size="sm"
+          />
+        ) : connectFailure === "failed" ? (
           <Flex direction="column" align="center" gap={3} py={4}>
             <Icon color="status.error.fg" boxSize={8}>
               <FiAlertTriangle />
@@ -120,7 +133,7 @@ export function QrConnectModal({
             <Text fontSize="sm" color="text.secondary" textAlign="center">
               {t("qr.error")}
             </Text>
-            <Button colorPalette="brand" onClick={startConnect}>
+            <Button onClick={startConnect}>
               {t("qr.retry")}
             </Button>
           </Flex>

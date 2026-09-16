@@ -14,6 +14,18 @@ describe("Device entity", () => {
     expect(device.identifier).toBe("5599");
   });
 
+  it("isConnected is true only for the CONNECTED status", () => {
+    expect(makeDevice({ status: "CONNECTED" }).isConnected).toBe(true);
+    for (const status of [
+      "DISCONNECTED",
+      "CONNECTING",
+      "QR_PENDING",
+      "LOGGED_OUT",
+    ] as const) {
+      expect(makeDevice({ status }).isConnected).toBe(false);
+    }
+  });
+
   it("toJSON never leaks the webhookSecret, exposes the webhook URLs, and ISO-formats dates", () => {
     const device = makeDevice({
       webhookSecret: "top-secret",

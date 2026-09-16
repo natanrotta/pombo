@@ -1,98 +1,64 @@
 import { memo } from "react";
 import { Box, Flex, Icon, Text } from "@chakra-ui/react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  FiCode,
-  FiSend,
-  FiSmartphone,
-  FiUser,
-} from "@/shared/components/icons";
-import type { IconType } from "@/shared/components/icons";
-import { ROUTE_PATHS } from "@/app/router/RoutePaths";
+  navigationSections,
+  type NavigationItem,
+} from "@/shared/components/layout/navigation";
 
-interface BottomNavItem {
-  labelKey: string;
-  to: string;
-  icon: IconType;
-  matchPaths?: string[];
-}
+// Same source as the sidebar: the bottom nav is the flat list of every item.
+const bottomNavItems: NavigationItem[] = navigationSections.flatMap(
+  (section) => section.items,
+);
 
-const bottomNavItems: BottomNavItem[] = [
-  {
-    labelKey: "nav.devices",
-    to: ROUTE_PATHS.devices,
-    icon: FiSmartphone,
-    matchPaths: [ROUTE_PATHS.devices],
-  },
-  {
-    labelKey: "nav.sandbox",
-    to: ROUTE_PATHS.sandbox,
-    icon: FiSend,
-  },
-  {
-    labelKey: "nav.profile",
-    to: ROUTE_PATHS.profile,
-    icon: FiUser,
-  },
-  {
-    labelKey: "nav.api",
-    to: ROUTE_PATHS.api,
-    icon: FiCode,
-  },
-];
-
-const NavItem = memo(function NavItem({
-  item,
-  isActive,
-}: {
-  item: BottomNavItem;
-  isActive: boolean;
-}) {
+const NavItem = memo(function NavItem({ item }: { item: NavigationItem }) {
   const { t } = useTranslation("common");
+  const ItemIcon = item.icon;
 
   return (
     <NavLink to={item.to} style={{ flex: 1 }}>
-      <Flex
-        direction="column"
-        align="center"
-        justify="center"
-        gap={0.5}
-        py={1.5}
-        color={isActive ? "text.brand" : "text.muted"}
-        cursor="pointer"
-        transition="color 0.15s ease"
-        _active={{ transform: "scale(0.92)" }}
-        role="group"
-      >
+      {({ isActive }) => (
         <Flex
+          direction="column"
           align="center"
           justify="center"
-          w={10}
-          h={7}
-          borderRadius="full"
-          bg={isActive ? "bg.brand.subtle" : "transparent"}
-          transition="background 0.2s ease"
+          gap={0.5}
+          py={1.5}
+          color={isActive ? "text.brand" : "text.muted"}
+          cursor="pointer"
+          transition="color 0.15s ease"
+          _active={{ transform: "scale(0.92)" }}
         >
-          <Icon boxSize={5}>
-            <item.icon />
-          </Icon>
+          <Flex
+            align="center"
+            justify="center"
+            w={10}
+            h={7}
+            borderRadius="full"
+            bg={isActive ? "bg.brand.subtle" : "transparent"}
+            transition="background 0.2s ease"
+          >
+            <Icon boxSize={5}>
+              <ItemIcon />
+            </Icon>
+          </Flex>
+          <Text
+            fontSize="2xs"
+            fontWeight={isActive ? "700" : "500"}
+            lineHeight="1"
+            letterSpacing="0.01em"
+          >
+            {t(item.labelKey)}
+          </Text>
         </Flex>
-        <Text
-          fontSize="2xs"
-          fontWeight={isActive ? "700" : "500"}
-          lineHeight="1"
-          letterSpacing="0.01em"
-        >
-          {t(item.labelKey)}
-        </Text>
-      </Flex>
+      )}
     </NavLink>
   );
 });
 
 export const MobileBottomNav = memo(function MobileBottomNav() {
-  const location = useLocation();
+  const { t } = useTranslation("common");
 
   return (
     <Box
@@ -110,15 +76,10 @@ export const MobileBottomNav = memo(function MobileBottomNav() {
       boxShadow="shadow.cardHover"
       overflow="hidden"
     >
-      <Flex as="nav" role="navigation" aria-label="Main navigation">
-        {bottomNavItems.map((item) => {
-          const isActive =
-            location.pathname === item.to ||
-            (item.matchPaths?.some((p) => location.pathname.startsWith(p)) ??
-              false);
-
-          return <NavItem key={item.to} item={item} isActive={isActive} />;
-        })}
+      <Flex as="nav" aria-label={t("layout.mainNavigation")}>
+        {bottomNavItems.map((item) => (
+          <NavItem key={item.to} item={item} />
+        ))}
       </Flex>
     </Box>
   );

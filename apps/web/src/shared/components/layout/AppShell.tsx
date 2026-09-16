@@ -5,6 +5,7 @@ import { SidebarNav } from "@/shared/components/layout/SidebarNav";
 import { MobileHeader } from "@/shared/components/layout/MobileHeader";
 import { MobileBottomNav } from "@/shared/components/layout/MobileBottomNav";
 import { useSidebar } from "@/shared/contexts/useSidebar";
+import { SIDEBAR_WIDTH } from "@/shared/constants/layout";
 
 export function AppShell({ children }: PropsWithChildren) {
   const { open: isOpen, onOpen, onClose } = useDisclosure();
@@ -14,7 +15,7 @@ export function AppShell({ children }: PropsWithChildren) {
     <Flex minH="100vh">
       <Box
         as="aside"
-        w={isCollapsed ? "68px" : "248px"}
+        w={isCollapsed ? SIDEBAR_WIDTH.collapsed : SIDEBAR_WIDTH.expanded}
         borderRightWidth="1px"
         borderColor="border.subtle"
         bg="bg.surface"
@@ -35,7 +36,7 @@ export function AppShell({ children }: PropsWithChildren) {
           if (!open) onClose();
         }}
       >
-        <DrawerContent maxW="248px">
+        <DrawerContent maxW={SIDEBAR_WIDTH.expanded}>
           <DrawerBody p={0}>
             <SidebarNav forceExpanded onNavigate={onClose} />
           </DrawerBody>
@@ -47,11 +48,11 @@ export function AppShell({ children }: PropsWithChildren) {
 
         <Box
           as="main"
-          px={{ base: 4, md: 6, xl: 8 }}
-          py={{ base: 4, md: 6 }}
+          px={{ base: 4, md: 8, xl: "40px" }}
+          py={{ base: 4, md: "34px" }}
           // Clears the floating bottom nav on mobile: ~50px pill height +
           // 12px bottom offset + ~34px breathing room, above the safe-area inset.
-          pb={{ base: "calc(env(safe-area-inset-bottom) + 96px)", lg: 6 }}
+          pb={{ base: "calc(env(safe-area-inset-bottom) + 96px)", lg: "72px" }}
         >
           {children}
         </Box>

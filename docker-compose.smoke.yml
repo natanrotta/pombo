@@ -2,7 +2,7 @@
 #
 # Boots the SAME image that ships to production (${API_IMAGE}) against an
 # ephemeral Postgres + Redis, runs the `prisma migrate deploy` from the
-# Dockerfile.prod CMD and waits for /healthz to answer.
+# image entrypoint (apps/api/docker-entrypoint.sh) and waits for /healthz to answer.
 #
 # WHY: unit tests never import the real DI container (it resolves eagerly on
 # boot), so a wiring/DI error, a missing required env var or a broken migration
@@ -10,9 +10,13 @@
 # boot, with a real database, before the image is published.
 #
 # USAGE:
-#   CI: builds the image with `load`, sets API_IMAGE=<temp tag> and runs
-#     `docker compose -f docker-compose.smoke.yml up --wait` BEFORE the push.
-#   Local: `make smoke` (tests :latest) · `make smoke TAG=vX.Y`.
+#   CI (build-api.yml, step [4/5]): builds the image with `--load`, sets
+#     API_IMAGE=<the not-yet-pushed tag> and runs `up --wait` BEFORE the push.
+#   `yarn deploy`: offers the same smoke of the published image as an optional
+#     local pre-flight.
+#   By hand: API_IMAGE=ghcr.io/<owner>/pombo-api:vX.Y \
+#     docker compose -f docker-compose.smoke.yml up --wait --wait-timeout 180
+#     (then `down -v`).
 #
 # PASS/FAIL = the `api` service healthcheck. `up --wait` exits 0 when it turns
 # healthy; non-zero if the container crashes/exits or never gets healthy within
@@ -47,7 +51,8 @@ services:
 
   api:
     # The image UNDER TEST. CI sets API_IMAGE=<freshly built, not-yet-published
-    # temp tag>; local uses the requested tag.
+    # tag>; `yarn deploy` uses the tag being shipped. It boots with the defaults
+    # of the env schema (API_PORT=3333, WHATSAPP_ENABLED=false).
     image: ${API_IMAGE:?set API_IMAGE to your published API image}
     depends_on:
       postgres-smoke:

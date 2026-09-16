@@ -38,6 +38,7 @@ For full architectural context, see `.claude/patterns/backend.md` and `.claude/p
 | B-C11 | **Auth middleware missing** on a route that's not explicitly public | Anyone can call it |
 | B-C12 | **CSRF token check skipped** on a state-changing route in cookie-auth flow | CSRF vulnerability |
 | B-C13 | **Direct LLM API/SDK call** (fetch/axios to OpenAI/Anthropic, or the vendor SDK imported outside `core/provider/llm/`) instead of an `ILlmProvider` port | No cost tracking, no fallback, no observability (R23) |
+| B-C14 | **Middleware factory mounted without being called** — `router.use(authMiddleware)` / `requireScope` instead of `authMiddleware()` / `requireScope("x")` | Express runs the factory as the handler: it returns a function and never calls `next()` → every request on that router hangs AND the guard is never applied. Type-level invisible; caught by the hook + `core/http/routes/route-mount.spec.ts` |
 
 ### High (should fix)
 
@@ -64,7 +65,7 @@ For full architectural context, see `.claude/patterns/backend.md` and `.claude/p
 
 | # | Anti-pattern | Fix |
 |---|--------------|-----|
-| B-M1 | DTO not reusing `UuidParamSchema` / `PaginationQuerySchema` / `BulkDeleteDTOSchema` | Compose from `shared/dto/common.dto.ts` |
+| B-M1 | A `/:id` param schema redeclared per module, or a Zod check with a custom message (`.uuid("…")`, `.min(1, "…")`) — a schema-level message overrides the per-request error map, so the client gets untranslated English | Reuse `UuidParamSchema` from `shared/dto/common.dto.ts`; plain checks, the error map localizes |
 | B-M2 | Date received as `z.string()` instead of `z.coerce.date()` | Use `z.coerce.date()` so the use case receives a `Date` |
 | B-M3 | Bulk-delete route declared **after** `/:id` (route conflict) | Declare `/bulk` BEFORE `/:id` |
 | B-M4 | Write on a cached entity (`Cached*Repository`) without the matching eviction, or eviction ordered before the write | Evict after the write; document the sub-TTL stale window (see `knowledge/code-review.md`) |
@@ -122,7 +123,7 @@ For full architectural context, see `.claude/patterns/backend.md` and `.claude/p
 | F-H10 | Component rendered inside `.map()` without `memo()` | Wrap with `memo()`; pass stable handlers via `useCallback` |
 | F-H11 | Handler defined inline in render and passed to memoized child | Move to `useCallback` |
 | F-H12 | Date received from API as string but passed straight to `Date` math without conversion | Convert at the render boundary; entity type stays `string` (ISO) |
-| F-H13 | Frontend entity field name diverges from API DTO (e.g., `birth_date` instead of `birthDate`) | Mirror the API DTO 1:1 |
+| F-H13 | Frontend entity redeclares a wire shape (or diverges from it) instead of aliasing the DTO from `@pombo/shared-types` | Alias the shared DTO; add missing DTOs to the package first |
 | F-H14 | Repository method missing explicit return type | Add `: Promise<X>` so consumers don't infer wrong types |
 | F-H15 | i18n key added to one locale only | Add to all 3 (pt-BR, en, es) |
 | F-H16 | Color-mode conditional in component (`useColorMode().colorMode === "dark" ? ... : ...`) | Use semantic token with `_dark` variant |

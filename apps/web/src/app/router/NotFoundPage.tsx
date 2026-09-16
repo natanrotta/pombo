@@ -14,19 +14,16 @@ export function NotFoundPage() {
           404
         </Heading>
         <Heading size="md" color="text.primary">
-          {t("notFound.title", "Página não encontrada")}
+          {t("notFound.title")}
         </Heading>
         <Text color="text.secondary">
-          {t(
-            "notFound.description",
-            "A página que você procura não existe ou foi movida.",
-          )}
+          {t("notFound.description")}
         </Text>
         <Button
           data-cy="not-found-home"
           onClick={() => navigate(ROUTE_PATHS.devices)}
         >
-          {t("notFound.backHome", "Voltar ao início")}
+          {t("notFound.backHome")}
         </Button>
       </Stack>
     </Center>

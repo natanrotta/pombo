@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Badge, type BadgeProps } from "@chakra-ui/react";
+import { Badge, Box, type BadgeProps } from "@chakra-ui/react";
 
 type StatusType = "success" | "warning" | "error" | "info" | "neutral";
 
@@ -45,12 +45,31 @@ const statusStyles: Record<
 interface StatusBadgeProps extends Omit<BadgeProps, "colorScheme"> {
   status: StatusType;
   label: string;
+  /** A live state blinks its dot (pairing, sending). */
+  isPending?: boolean;
 }
 
-function StatusBadgeComponent({ status, label, ...props }: StatusBadgeProps) {
+function StatusBadgeComponent({
+  status,
+  label,
+  isPending = false,
+  ...props
+}: StatusBadgeProps) {
   const style = statusStyles[status];
   return (
-    <Badge {...style} borderRadius="full" px={2.5} py={1} {...props}>
+    <Badge {...style} display="inline-flex" alignItems="center" gap={2} {...props}>
+      <Box
+        as="span"
+        w="5px"
+        h="5px"
+        borderRadius="full"
+        bg="currentColor"
+        flexShrink={0}
+        // Only a connected device carries the halo — the design reserves any
+        // glow for a live state.
+        boxShadow={status === "success" ? "0 0 8px currentColor" : undefined}
+        animation={isPending ? "statusBlink 1.8s ease-in-out infinite" : undefined}
+      />
       {label}
     </Badge>
   );

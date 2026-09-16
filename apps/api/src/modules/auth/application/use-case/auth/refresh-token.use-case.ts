@@ -2,7 +2,7 @@ import { inject, injectable } from "tsyringe";
 import { DI_TOKENS } from "@core/container/tokens";
 import { IUserRepository } from "@modules/user/domain/repository/user-repository.interface";
 import { IJwtProvider } from "@shared/provider";
-import { RefreshTokenResponseDTO } from "../../dto/auth.dto";
+import { RefreshTokenResult } from "../../dto/auth.dto";
 import { UnauthorizedError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
 
@@ -21,7 +21,7 @@ export class RefreshTokenUseCase {
     private readonly jwtProvider: IJwtProvider,
   ) {}
 
-  async execute(currentRefreshToken: string): Promise<RefreshTokenResponseDTO> {
+  async execute(currentRefreshToken: string): Promise<RefreshTokenResult> {
     const currentHash = this.jwtProvider.hashRefreshToken(currentRefreshToken);
     const user = await this.userRepository.findByRefreshTokenHash(currentHash);
 
@@ -42,7 +42,7 @@ export class RefreshTokenUseCase {
       );
     }
 
-    if (user.status !== "ACTIVE") {
+    if (!user.isActive) {
       throw new UnauthorizedError(
         "Account is not active",
         undefined,

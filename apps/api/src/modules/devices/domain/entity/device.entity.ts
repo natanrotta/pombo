@@ -1,18 +1,8 @@
+import type { DeviceResponseDTO, DeviceWebhooks } from "@pombo/shared-types";
 import { type DeviceStatus } from "../value-object/device-status";
 
-/**
- * Per-event webhook delivery URLs. One HMAC `webhookSecret` (on the device)
- * signs every event; each URL is where that event type is POSTed. A null URL
- * means "don't deliver this event". `onReceive` is persisted but dormant in
- * this version (inbound messages are not processed — see PLANO §4).
- */
-export interface DeviceWebhooks {
-  onConnect: string | null;
-  onDisconnect: string | null;
-  onReceive: string | null;
-  onMessageStatus: string | null;
-  onSend: string | null;
-}
+/** Per-event webhook delivery URLs — declared in the shared wire contract. */
+export type { DeviceWebhooks };
 
 export interface DeviceProps {
   id: string;
@@ -57,6 +47,11 @@ export class Device {
     return this.props.status;
   }
 
+  /** The socket is live — the only status that can send (ADR-005). */
+  get isConnected(): boolean {
+    return this.props.status === "CONNECTED";
+  }
+
   get webhookSecret(): string | null {
     return this.props.webhookSecret;
   }
@@ -82,7 +77,7 @@ export class Device {
    * `webhookSecret` (shown exactly once, at registration). The per-event
    * webhook URLs ARE exposed so the settings screen can populate the form.
    */
-  public toJSON() {
+  public toJSON(): DeviceResponseDTO {
     return {
       id: this.id,
       name: this.name,

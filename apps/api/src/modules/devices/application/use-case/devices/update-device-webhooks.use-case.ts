@@ -1,10 +1,8 @@
 import { inject, injectable } from "tsyringe";
 import { DI_TOKENS } from "@core/container/tokens";
 import { IDevicesRepository } from "@modules/devices/domain/repository/devices-repository.interface";
-import { Device } from "@modules/devices/domain/entity/device.entity";
+import type { DeviceResponseDTO } from "@pombo/shared-types";
 import { UpdateDeviceWebhooksDTO } from "@modules/devices/application/dto/device.dto";
-
-type DeviceResponse = ReturnType<Device["toJSON"]>;
 
 /**
  * Configures a device's per-event webhook URLs. Partial update: only the keys
@@ -23,7 +21,7 @@ export class UpdateDeviceWebhooksUseCase {
     accountId: string,
     id: string,
     webhooks: UpdateDeviceWebhooksDTO,
-  ): Promise<DeviceResponse> {
+  ): Promise<DeviceResponseDTO> {
     const device = await this.devicesRepository.updateWebhooks(
       accountId,
       id,

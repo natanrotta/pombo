@@ -52,7 +52,8 @@ function DeviceDetailContent({ device }: { device: Device }) {
       try {
         await deleteDevice.mutateAsync(id);
         showSuccess(t("detail.deleted"));
-        navigate(ROUTE_PATHS.devices);
+        // Replace: "back" must not land on the deleted device.
+        navigate(ROUTE_PATHS.devices, { replace: true });
       } catch {
         // Error surfaced by the mutation's onError toast.
       }
@@ -96,7 +97,7 @@ function DeviceDetailContent({ device }: { device: Device }) {
         >
           <SimpleGrid columns={{ base: 1, sm: 3 }} gap={5} flex="1">
             <Stack gap={1.5} align="flex-start">
-              <Text fontSize="xs" color="text.secondary">
+              <Text textStyle="eyebrow" color="text.muted">
                 {t("detail.statusLabel")}
               </Text>
               <Box>
@@ -125,7 +126,6 @@ function DeviceDetailContent({ device }: { device: Device }) {
             {isConnected ? (
               <Button
                 variant="outline"
-                colorPalette="gray"
                 onClick={() => disconnectConfirm.requestConfirm(device.id)}
               >
                 <Icon>
@@ -134,7 +134,7 @@ function DeviceDetailContent({ device }: { device: Device }) {
                 {t("detail.disconnect")}
               </Button>
             ) : (
-              <Button colorPalette="brand" onClick={qrModal.onOpen}>
+              <Button onClick={qrModal.onOpen}>
                 <Icon>
                   <FiZap />
                 </Icon>
@@ -142,13 +142,9 @@ function DeviceDetailContent({ device }: { device: Device }) {
               </Button>
             )}
             <Button
-              variant="outline"
-              colorPalette="red"
-              _hover={{
-                bg: "status.error.bg",
-                borderColor: "status.error.border",
-                color: "status.error.fg",
-              }}
+              // The recipe's destructive outline; Chakra's generated types
+              // don't know custom variant names.
+              variant={"dangerOutline" as "outline"}
               onClick={() => deleteConfirm.requestConfirm(device.id)}
             >
               <Icon>

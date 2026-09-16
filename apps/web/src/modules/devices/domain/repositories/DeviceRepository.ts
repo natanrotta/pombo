@@ -16,13 +16,14 @@ import type {
  * `connect`/`getQr`).
  */
 export interface DeviceRepository {
-  list(): Promise<Device[]>;
-  getById(id: string): Promise<Device>;
+  /** Reads take the query's `signal`, so a cancelled query aborts the request. */
+  list(signal?: AbortSignal): Promise<Device[]>;
+  getById(id: string, signal?: AbortSignal): Promise<Device>;
   create(input: CreateDeviceInput): Promise<CreatedDevice>;
   updateWebhooks(id: string, input: UpdateDeviceWebhooksInput): Promise<Device>;
   connect(id: string): Promise<ConnectDeviceResult>;
   disconnect(id: string): Promise<DisconnectDeviceResult>;
-  getQr(id: string): Promise<DeviceQr>;
-  listGroups(id: string): Promise<DeviceGroup[]>;
+  getQr(id: string, signal?: AbortSignal): Promise<DeviceQr>;
+  listGroups(id: string, signal?: AbortSignal): Promise<DeviceGroup[]>;
   delete(id: string): Promise<void>;
 }

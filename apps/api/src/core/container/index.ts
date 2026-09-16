@@ -12,7 +12,6 @@ import { registerWebhooksModule } from "@modules/webhooks/webhooks.module";
 import { IMailProvider } from "@shared/provider/mail-provider.interface";
 import { ConsoleMailProvider } from "@core/provider/mail/console-mail-provider";
 import { ResendMailProvider } from "@core/provider/mail/resend-mail-provider";
-import { AuthProfileBuilder } from "@modules/auth/application/service/auth/auth-profile.builder";
 
 import {
   AppConfig,
@@ -146,12 +145,6 @@ container.register<(waMessageId: string) => Promise<string | null>>(
 container.registerSingleton<IMailProvider>(
   DI_TOKENS.MailProvider,
   env.RESEND_API_KEY ? ResendMailProvider : ConsoleMailProvider,
-);
-
-// ── Application services ──
-container.registerSingleton<AuthProfileBuilder>(
-  DI_TOKENS.AuthProfileBuilder,
-  AuthProfileBuilder,
 );
 
 // ── Config values ──

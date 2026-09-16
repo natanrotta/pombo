@@ -7,7 +7,7 @@ import {
 import { makeUser } from "@test/factories";
 import { NotFoundError, BadRequestError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
-import { AuthProfileBuilder } from "@modules/auth/application/service/auth/auth-profile.builder";
+import { AuthProfileBuilder } from "@modules/auth/application/service/auth-profile.builder";
 
 vi.mock("@shared/util/extract-s3-key", () => ({
   extractS3Key: vi.fn((url: string) => `key-from-${url}`),
@@ -67,6 +67,38 @@ describe("UpdateAvatarUseCase", () => {
       "https://s3/new-avatar.png",
     );
     expect(result.avatarUrl).toBe("https://s3/new-avatar.png");
+  });
+
+  it("derives the S3 key extension from the validated MIME, never from the filename (SEC-H6)", async () => {
+    const user = makeUser({ avatarUrl: null });
+    userRepository.findById.mockResolvedValue(user);
+    storageProvider.upload.mockResolvedValue({ url: "https://s3/a", key: "k" });
+    userRepository.updateAvatarUrl.mockResolvedValue(user);
+
+    await sut.execute(user.id, {
+      ...file,
+      mimetype: "image/png",
+      originalname: "evil.svg",
+    } as Express.Multer.File);
+
+    expect(storageProvider.upload).toHaveBeenCalledWith(
+      file.buffer,
+      `avatars/${user.id}.png`,
+      "image/png",
+    );
+  });
+
+  it("rejects a MIME outside the allowlist even if the middleware was bypassed", async () => {
+    userRepository.findById.mockResolvedValue(makeUser());
+
+    await expect(
+      sut.execute("user-1", {
+        ...file,
+        mimetype: "image/svg+xml",
+        originalname: "x.png",
+      } as Express.Multer.File),
+    ).rejects.toMatchObject({ code: ErrorCodes.FILE_INVALID_TYPE });
+    expect(storageProvider.upload).not.toHaveBeenCalled();
   });
 
   it("throws NotFoundError when the user does not exist", async () => {

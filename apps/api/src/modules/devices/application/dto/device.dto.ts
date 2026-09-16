@@ -1,11 +1,9 @@
 import { z } from "zod";
 
+export type { RegisterDeviceResponseDTO } from "@pombo/shared-types";
+
 export const RegisterDeviceDTOSchema = z.object({
   name: z.string().trim().min(1).max(100),
-});
-
-export const DeviceIdParamSchema = z.object({
-  id: z.string().uuid("Invalid device ID format"),
 });
 
 // An http(s) URL, or null to clear the hook. Absent key = leave unchanged.
@@ -29,13 +27,6 @@ export const UpdateDeviceWebhooksDTOSchema = z
   .strict();
 
 export type RegisterDeviceDTO = z.infer<typeof RegisterDeviceDTOSchema>;
-export type DeviceIdParam = z.infer<typeof DeviceIdParamSchema>;
 export type UpdateDeviceWebhooksDTO = z.infer<
   typeof UpdateDeviceWebhooksDTOSchema
 >;
-
-/** Returned exactly once at registration — carries the one-time webhookSecret. */
-export interface RegisterDeviceResponseDTO {
-  id: string;
-  webhookSecret: string;
-}

@@ -2,14 +2,9 @@ import { inject, injectable } from "tsyringe";
 import { DI_TOKENS } from "@core/container/tokens";
 import { IDevicesRepository } from "@modules/devices/domain/repository/devices-repository.interface";
 import { IWhatsAppGateway } from "@modules/devices/domain/provider/whatsapp-gateway.interface";
-import { type DeviceStatus } from "@modules/devices/domain/value-object/device-status";
+import type { DeviceConnectionResponseDTO } from "@pombo/shared-types";
 import { NotFoundError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
-
-export interface DisconnectDeviceResponse {
-  id: string;
-  status: DeviceStatus;
-}
 
 /**
  * Ends a device's WhatsApp session WITHOUT deleting it. Unpairs via
@@ -30,7 +25,7 @@ export class DisconnectDeviceUseCase {
   async execute(
     accountId: string,
     id: string,
-  ): Promise<DisconnectDeviceResponse> {
+  ): Promise<DeviceConnectionResponseDTO> {
     const device = await this.devicesRepository.findById(accountId, id);
     if (!device) {
       throw new NotFoundError(

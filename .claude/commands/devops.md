@@ -14,8 +14,9 @@ A arquitetura de referência: **frontends estáticos atrás de um CDN + API e da
 
 ## 📍 Status
 
-- **Esqueleto de infra no repo.** `infra/` traz um exemplo de topologia (Compose, proxy/TLS, rede privada, backup) que você adapta ao provedor real. Nada está "no ar" por padrão — é um starter.
-- **CI/CD de referência:** versão `vX.Y` publicada numa registry de imagem (`yarn make-tag`) → deploy com verificação via `/api/health` (`yarn deploy` / `yarn rollback` / `yarn monitor-status`).
+- **Esqueleto de infra completo e coerente com o app** (`infra/`: Caddy, WireGuard, compose do app e do banco, backup 3-2-1, runner). A produção **ainda não está no ar** — quando subir, registre provedor/hosts/domínios em `.claude/knowledge/devops.md` › "Live environment".
+- **CI/CD:** `yarn make-tag` → `build-api.yml` publica `ghcr.io/<owner>/pombo-api:vX.Y` (só por dispatch, nunca no push) → `yarn deploy` / `yarn rollback` → `deploy-api.yml` no runner self-hosted do host de APP, com verificação da versão em `/api/health` → `yarn monitor-status`.
+- **O app que você opera:** API module-first multi-tenant + gateway WhatsApp em **UMA réplica** (`WHATSAPP_ENABLED=true` + advisory lock no Postgres, migrate-on-boot); web estático (React 19 + Chakra v3).
 - **Ambiente:** **greenfield** — 1 migration baseline. Endurecer o banco é progressivo.
 
 ---
@@ -27,7 +28,7 @@ A arquitetura de referência: **frontends estáticos atrás de um CDN + API e da
 3. **Regra de ouro:** o host de dados nunca expõe `5432`/`6379` na internet. App↔banco só pela rede privada / túnel. Qualquer artefato que viole isso está errado.
 4. **Backup é só seu.** Nenhuma feature de infra está "pronta" sem: dump diário criptografado offsite + dead-man switch + **restore drill testado**. Backup nunca restaurado não conta.
 5. **Criptografia client-side antes do offsite.** Dado sensível nunca sai da máquina em claro. Chave **privada de cifra fora do host de dados**.
-6. **Respeite os gotchas que quebram em silêncio:** raw body de webhook intacto, SSE sem buffering (`flush_interval -1`), TLS via cert de origem no proxy (ou Let's Encrypt/DNS-01, sua escolha), health é **`/healthz`** (texto) + **`/api/health`** (JSON com `version`), `node-cron` dispara por réplica, `migrate deploy` está no CMD do container (ok em 1 réplica), mídia (uploads) vive no **S3** e **não** está no escopo do `pg_dump`.
+6. **Respeite os gotchas que quebram em silêncio:** raw body de webhook intacto, SSE sem buffering (`flush_interval -1`), TLS via cert de origem no proxy (ou Let's Encrypt/DNS-01, sua escolha), health é **`/healthz`** (texto) + **`/api/health`** (JSON com `version`), `node-cron` dispara por réplica, `migrate deploy` roda no entrypoint do container (ok na réplica única; réplica extra = `RUN_MIGRATIONS=false` + `WHATSAPP_ENABLED=false`), mídia (uploads) vive no **S3** e **não** está no escopo do `pg_dump`.
 7. **Segredos só via `.env` (`chmod 600`) ou Docker secrets.** Nunca hardcoded, nunca em log, nunca no front. O `.env.prod` vive no servidor e **não** está na imagem (exceto `APP_VERSION`, carimbado pelo CI).
 8. **PITR quando o dado justificar.** Antes de dado real de valor, ligar backups incrementais / PITR vira prioridade.
 9. **Não invente custo gerenciado.** A decisão é custo-mínimo-viável com banco robusto. Antes de sugerir um managed caro, justifique contra a topologia self-hosted.
@@ -43,17 +44,18 @@ A arquitetura de referência: **frontends estáticos atrás de um CDN + API e da
 | 3 | Compose da API + Caddy (host de app) | `infra/app/docker-compose.prod.yml` · `docker-compose.caddy.yml` · `Caddyfile` |
 | 4 | Compose do banco (host de dados) | `infra/data/docker-compose.data.yml` |
 | 5 | CI/CD | `.github/workflows/build-api.yml` · `deploy-api.yml` |
-| 6 | Operações | `Makefile` · `infra/status.sh` · `infra/status-app.sh` |
-| 8 | Dockerfile de produção | `apps/api/Dockerfile.prod` |
+| 6 | Operações | `Makefile` · `infra/status.sh` · `infra/status-app.sh` · `scripts/*.mjs` (make-tag/deploy/rollback/monitor-status) |
+| 7 | Alvos do operador + ativação única | `infra/deploy.env.example` (lido pelo `Makefile` e pelo `scripts/lib/deploy-cli.mjs`) · `infra/RUNBOOK.md` |
+| 8 | Dockerfile da API (multi-stage: `runtime` = produção, `dev` = compose local) | `apps/api/Dockerfile` + `apps/api/docker-entrypoint.sh` |
 | 9 | Bootstrap do processo (crons + workers + shutdown) | `apps/api/src/main.ts` |
-| 10 | Schema de env (vars de produção) | `apps/api/src/core/config/env.ts` · `infra/.env.prod.example` |
+| 10 | Schema de env (vars de produção) | `apps/api/src/core/config/schema/` · `infra/.env.prod.example` (gate: `env-example.spec.ts`) |
 
 ### On-demand
 | Fonte | Quando usar |
 |---|---|
 | `apps/api/src/core/http/routes/index.ts` + `core/http/app.ts` | Mexer em `/healthz` / `/api/health` (versão) ou no raw body de webhook |
 | Rotas de SSE (se houver) | Configurar proxy sem buffering |
-| `apps/web/.env.production` | Ajustar build/headers do frontend no CDN/host estático |
+| `apps/web/.env.example` + `apps/web/vite.config.ts` | Ajustar build/vars do frontend no CDN/host estático |
 | Docs do provedor (host estático / CDN / cert de origem) / pgBackRest / rclone / age | Contratos externos sob demanda |
 
 ---
@@ -67,23 +69,24 @@ A arquitetura de referência: **frontends estáticos atrás de um CDN + API e da
 | **Rede privada / túnel** | Túnel criptografado (ex.: WireGuard `10.8.0.0/24`) entre os hosts, quando o provedor não oferece VPC. |
 | **Caddy** | Reverse proxy + TLS no host de app (host network). TLS via cert de origem do CDN ou Let's Encrypt/DNS-01. |
 | **CDN / borda** | DNS, hosting dos frontends estáticos, proxy que esconde o IP do origin, WAF/CDN, cert de origem. |
-| **Host estático dos frontends** | Onde rodam os frontends (`site`/`web`). Deploy automático no push p/ `main`. |
-| **Registry de imagem** | Onde a imagem da API é publicada (`<registry>/pombo-api:vX.Y`/`:latest`). |
-| **APP_VERSION / vX.Y** | a versão `vX.Y` (release): o build calcula a próxima (`v1.0`→`v1.1`…), carimba na imagem e cria o git tag → `/api/health` + monitoramento. É como se confirma "a versão certa subiu". MAJOR (`vN.0`) é manual. |
-| **CI deploy token** | Um PAT/token com permissão de disparar o workflow de deploy, se você quiser um gatilho de deploy fora do terminal (ex.: um botão numa UI interna). Opcional. |
+| **Host estático dos frontends** | Onde roda o web (`yarn build:web` → `apps/web/dist` + `version.json`). Deploy automático no push p/ `main`. |
+| **Registry de imagem** | GHCR: `ghcr.io/<owner>/pombo-api:vX.Y` + `:latest` (privada; login/logout a cada job). |
+| **APP_VERSION / vX.Y** | a versão `vX.Y` (release): o `yarn make-tag` propõe a próxima (`v1.0`→`v1.1`…), o build carimba na imagem e cria o git tag → `/api/health` + monitoramento. É como se confirma "a versão certa subiu". MAJOR (`vN.0`) é escolha explícita. |
+| **Runner self-hosted** | `actions/runner` no host de APP (label `pombo-app`, usuário `ghrunner`) — o cutover roda LOCAL, sem SSH de entrada. `make runner-setup`. |
+| **infra/deploy.env** | Alvos do operador (API_URL, hosts, GH_REPO) — um arquivo gitignored para `yarn` e `make`; env do shell vence. |
 | **node-exporter** | Agente de métricas de host (bind no túnel `:9100`) scrapeado pelo seu monitoramento (Prometheus/Grafana ou similar). |
 | **Nível 1 / 2 / 3** | Backup: dump lógico diário / PITR (WAL) / snapshot de disco. |
-| **age / R2 / dead-man switch / GFS** | Cifra dos dumps / object storage offsite / alerta-se-o-backup-falhar / retenção 7-4-12. |
+| **age / R2 / dead-man switch / GFS** | Cifra dos dumps / object storage offsite / alerta-se-o-backup-falhar / retenção: os 5 dumps diários mais recentes (2x/dia) + 4 semanais + 12 mensais. |
 
 ---
 
 ## Modos de operação
 
-**1. Operar / fazer deploy** — via **`make deploy`** (terminal) ou **Actions → "Deploy API (1-click)"**. `Makefile`: `make deploy` (sobe a última versão e verifica), `make deploy TAG=vX.Y` (versão exata), `make rollback TAG=vX.Y`, `make status` / `make version` / `make app-status` / `make db-status` / `make logs`. O fluxo: push em `main` → `build-api.yml` calcula `vX.Y`, builda+carimba+publica na registry + cria o git tag → o deploy dispara `deploy-api.yml`, que puxa no host e **verifica a versão** em `/api/health`. Runbook "quando rodar migration/env/dados" no knowledge › "Runbook — quando rodar o quê".
+**1. Operar / fazer deploy** — pelos **comandos guiados**: `yarn make-tag` (dispara `build-api.yml`: testes → build → boot-smoke → publica `vX.Y` no GHCR + git tag; nada builda no push), `yarn deploy` (escolhe a tag → `deploy-api.yml` no runner: pre-flight → pull → `up --wait` → verifica a versão em `/api/health`), `yarn rollback` (reenvia uma tag anterior — não reverte migrations), `yarn monitor-status` (Backend · Banco · App · Site). Camada avançada no `Makefile`: `make deploy-direct TAG=vX.Y` (plano B sem runner), `make runner-setup`, `make app-status` / `make db-status`, `make logs`, `make backup-*`. Alvos em `infra/deploy.env`. Runbook "quando rodar migration/env/dados" no knowledge › "Runbook — when to run what".
 
 **2. Tirar dúvida / decidir trade-off** — responda ancorado no knowledge (fonte única). Se a decisão muda a arquitetura travada, diga explicitamente e proponha atualizar `.claude/knowledge/devops.md`.
 
-**3. Implementar artefato de infra** — escreva/edite o arquivo real em `infra/` (Compose, Caddyfile, `wg0.conf`, scripts de backup, workflow). Aterre nos paths/portas/env reais (ex.: `3333`, o IP privado do host de dados, `postgres:16`, o domínio da sua API). Respeite os 9 Ground Rules. Em modo inline, edite na branch atual e pare; o usuário decide commit/PR.
+**3. Implementar artefato de infra** — escreva/edite o arquivo real em `infra/` (Compose, Caddyfile, `wg0.conf`, scripts de backup, workflow). Aterre nos paths/portas/env reais (ex.: `3333`, `10.8.0.2`, `postgres:15-alpine`, `/opt/pombo/app`, o domínio da sua API). Toda var nova de env entra no schema + nos DOIS templates (`apps/api/.env.example`, `infra/.env.prod.example`) — o `env-example.spec.ts` barra o drift. Respeite os 9 Ground Rules. Em modo inline, edite na branch atual e pare; o usuário decide commit/PR.
 
 **4. Debugar produção** — `make app-status`/`db-status` + `make logs` + seu monitoramento. Para incidente de dado, o caminho de restore por cenário está no knowledge › Backup 3-2-1.
 

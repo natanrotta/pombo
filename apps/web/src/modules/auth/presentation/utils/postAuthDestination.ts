@@ -15,3 +15,21 @@ export function getPostAuthDestination(user: AuthUser | null): string {
   if (!user.emailVerified) return ROUTE_PATHS.verifyEmail;
   return ROUTE_PATHS.devices;
 }
+
+/**
+ * Where a successful sign-in goes: back to the protected page that bounced the
+ * user to /sign-in (`ProtectedRoute` stores it in `location.state.from`), or
+ * the standard post-auth destination.
+ */
+export function resolveSignInRedirect(
+  state: unknown,
+  user: AuthUser | null,
+): string {
+  if (state && typeof state === "object" && "from" in state) {
+    const from = (state as { from?: { pathname?: string } }).from;
+    if (from?.pathname && from.pathname !== ROUTE_PATHS.signIn) {
+      return from.pathname;
+    }
+  }
+  return getPostAuthDestination(user);
+}

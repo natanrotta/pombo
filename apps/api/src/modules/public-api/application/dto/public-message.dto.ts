@@ -27,7 +27,7 @@ export const SendVideoPublicDTOSchema = z.object({ phone, ...videoBody });
 export const SendDocumentPublicDTOSchema = z.object({ phone, ...documentBody });
 
 export const PublicDeviceIdParamSchema = z.object({
-  deviceId: z.string().uuid("Invalid device ID format"),
+  deviceId: z.string().uuid(),
 });
 
 export type SendTextPublicDTO = z.infer<typeof SendTextPublicDTOSchema>;

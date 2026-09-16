@@ -65,7 +65,8 @@ const TERMINAL_STATUSES: ReadonlySet<MessageStatus> = new Set<MessageStatus>([
 export function useMessageStatus(messageId: string | null, enabled: boolean) {
   return useQuery({
     queryKey: queryKeys.messaging.messageStatus(messageId ?? ""),
-    queryFn: () => repositories.messaging.getStatus(messageId as string),
+    queryFn: ({ signal }) =>
+      repositories.messaging.getStatus(messageId as string, signal),
     enabled: enabled && Boolean(messageId),
     refetchInterval: (query) => {
       // Stop on a hard error (retries already exhausted) — otherwise a

@@ -4,6 +4,7 @@ import {
   SendTextMessageUseCase,
   SendRichMessageUseCase,
   GetMessageStatusUseCase,
+  CountQueuedMessagesUseCase,
 } from "@modules/messaging/application/use-case/messages";
 import { type RichMessageType } from "@modules/messaging/domain/value-object/message-type";
 import { BadRequestError } from "@shared/error";
@@ -99,6 +100,13 @@ export class MessageController {
     const { id } = req.params as { id: string };
     const useCase = container.resolve(GetMessageStatusUseCase);
     const result = await useCase.execute(req.auth.accountId, id);
+    return res.status(200).json({ ok: true, data: result });
+  }
+
+  /** How many messages are waiting to be sent for this account. */
+  async getQueueSummary(req: Request, res: Response): Promise<Response> {
+    const useCase = container.resolve(CountQueuedMessagesUseCase);
+    const result = await useCase.execute(req.auth.accountId);
     return res.status(200).json({ ok: true, data: result });
   }
 }

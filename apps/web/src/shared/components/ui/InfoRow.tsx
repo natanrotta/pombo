@@ -17,19 +17,19 @@ export const InfoRow = memo(function InfoRow({
   action,
 }: InfoRowProps) {
   return (
-    <Stack gap={0.5}>
-      <Text fontSize="xs" color="text.secondary">
+    <Stack gap={1.5}>
+      <Text textStyle="eyebrow" color="text.muted">
         {label}
       </Text>
       {action ? (
         <Flex align="center" gap={1}>
-          <Text fontSize="sm" fontWeight="600" color="text.primary">
+          <Text textStyle="bodyStrong" color="text.primary">
             {value}
           </Text>
           {action}
         </Flex>
       ) : (
-        <Text fontSize="sm" fontWeight="600" color="text.primary">
+        <Text textStyle="bodyStrong" color="text.primary">
           {value}
         </Text>
       )}

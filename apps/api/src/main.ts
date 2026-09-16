@@ -1,33 +1,42 @@
 import "reflect-metadata";
 import "@core/container";
-import { initErrorReporter } from "@core/service/error-reporter";
+import { errorReporter, initErrorReporter } from "@core/service/error-reporter";
 
 initErrorReporter();
 
-import http from "http";
+import http from "node:http";
 import { app } from "@core/http";
 import { logger } from "@core/http/logger";
 import { env } from "@core/config";
 import { container } from "@core/container";
-import { DI_TOKENS } from "@core/container/tokens";
-import type { ICacheProvider } from "@shared/provider/cache-provider.interface";
-import type { IEventBus } from "@shared/provider/event-bus.interface";
-import type { IFlowProducer } from "@shared/provider/flow-producer.interface";
-import type { IQueueProvider } from "@shared/provider/queue-provider.interface";
-import { shutdownRateLimitStore } from "@core/http/middlewares/rate-limit-store";
 import { startWhatsAppGateway } from "@core/service/whatsapp/gateway-boot";
+import {
+  buildShutdownPlan,
+  installGracefulShutdown,
+} from "@core/service/lifecycle";
 
 const server = http.createServer(app);
 
-// WhatsApp gateway boot (pombo). Only runs when WHATSAPP_ENABLED=true: acquires
-// the single-replica advisory lock, wires the bus listeners, rehydrates
-// CONNECTED devices from authState, and starts the outbox-prune interval.
-// Returns a shutdown that closes sockets WITHOUT logging out + releases the
-// lock. When disabled (default), NONE of this runs and Baileys is never
-// imported — the API still boots and every HTTP endpoint responds.
+// Set once the gateway is up (WHATSAPP_ENABLED=true only); the teardown step
+// is a no-op until then — and forever when the gateway is disabled.
 let stopWhatsAppGateway: (() => Promise<void>) | null = null;
 
+// Installed BEFORE boot so a crash during startup still tears down cleanly.
+installGracefulShutdown({
+  logger,
+  timeoutMs: env.SHUTDOWN_TIMEOUT_MS,
+  report: (error) => errorReporter.notify(error),
+  plan: buildShutdownPlan({
+    container,
+    server,
+    stopWhatsAppGateway: () => stopWhatsAppGateway?.() ?? Promise.resolve(),
+  }),
+});
+
 const start = async (): Promise<void> => {
+  // Acquires the single-replica advisory lock, wires the bus listeners,
+  // rehydrates CONNECTED devices and starts the outbox prune. When disabled,
+  // Baileys is never even imported — every HTTP endpoint still responds.
   if (env.WHATSAPP_ENABLED) {
     stopWhatsAppGateway = await startWhatsAppGateway();
   }
@@ -45,40 +54,3 @@ const start = async (): Promise<void> => {
 };
 
 void start();
-
-const gracefulShutdown = async (signal: string) => {
-  logger.info({ signal }, "Shutting down gracefully");
-  const queueProvider = container.resolve<IQueueProvider>(
-    DI_TOKENS.QueueProvider,
-  );
-  const eventBus = container.resolve<IEventBus>(DI_TOKENS.EventBus);
-  const flowProducer = container.resolve<IFlowProducer>(DI_TOKENS.FlowProducer);
-  const cacheProvider = container.resolve<ICacheProvider>(
-    DI_TOKENS.CacheProvider,
-  );
-  // Close WhatsApp sockets (close(), NEVER logout()) + release the advisory
-  // lock before the rest of the teardown. No-op when the gateway is disabled.
-  if (stopWhatsAppGateway) {
-    await stopWhatsAppGateway().catch((error: unknown) =>
-      logger.error(
-        { message: error instanceof Error ? error.message : String(error) },
-        "WhatsApp gateway shutdown failed",
-      ),
-    );
-  }
-  await Promise.all([
-    queueProvider.shutdown(),
-    eventBus.shutdown(),
-    flowProducer.shutdown(),
-  ]);
-  await Promise.all([cacheProvider.disconnect(), shutdownRateLimitStore()]);
-  server.close(() => {
-    logger.info({ signal }, "Server closed");
-    process.exit(0);
-  });
-};
-
-process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-process.on("SIGINT", () => gracefulShutdown("SIGINT"));
-
-export { server };

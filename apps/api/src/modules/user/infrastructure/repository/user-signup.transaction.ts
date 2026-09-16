@@ -6,7 +6,7 @@ import { User } from "@modules/user/domain/entity/user.entity";
 import { prisma } from "@core/database/prisma/prisma-client";
 import { mapPrismaError } from "@core/database/prisma/prisma-error-mapper";
 import { Prisma } from "@generated/prisma/client";
-import type { UserStatusType } from "@shared/type/enums";
+import type { UserStatus } from "@modules/user/domain/value-object/user-status";
 
 /**
  * Provisions the tenant `account` a brand-new user belongs to and returns its
@@ -66,7 +66,7 @@ export async function executeSignUpTransaction(
       email: user.email,
       password: user.password,
       googleId: user.google_id,
-      status: user.status as UserStatusType,
+      status: user.status as UserStatus,
       emailVerified: user.email_verified,
       avatarUrl: user.avatar_url,
       language: user.language,

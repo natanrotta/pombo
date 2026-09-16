@@ -1,9 +1,7 @@
 import { inject, injectable } from "tsyringe";
 import { DI_TOKENS } from "@core/container/tokens";
 import { IApiTokenRepository } from "@modules/account/domain/repository/api-token-repository.interface";
-import { ApiToken } from "@modules/account/domain/entity/api-token.entity";
-
-type ApiTokenMetadata = ReturnType<ApiToken["toMetadata"]>;
+import type { ApiTokenMetadataDTO } from "@pombo/shared-types";
 
 /**
  * Reads the account's active API-token metadata for the settings screen.
@@ -18,7 +16,7 @@ export class GetApiTokenMetadataUseCase {
     private readonly apiTokenRepository: IApiTokenRepository,
   ) {}
 
-  async execute(accountId: string): Promise<ApiTokenMetadata | null> {
+  async execute(accountId: string): Promise<ApiTokenMetadataDTO | null> {
     const token = await this.apiTokenRepository.findActiveByAccount(accountId);
     return token ? token.toMetadata() : null;
   }

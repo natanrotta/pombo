@@ -1,10 +1,10 @@
 import { memo } from "react";
-import { Flex, IconButton, Image, Text } from "@chakra-ui/react";
+import { Flex, IconButton } from "@chakra-ui/react";
 import { Avatar } from "@/components/ui/avatar";
 import { FiMenu } from "@/shared/components/icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/modules/auth";
-import pomboIcon from "@assets/pombo-icon.svg";
+import { BrandMark } from "@/shared/components/layout/BrandMark";
 
 interface MobileHeaderProps {
   onOpenSidebar: () => void;
@@ -42,25 +42,7 @@ export const MobileHeader = memo(function MobileHeader({
         >
           <FiMenu />
         </IconButton>
-        <Flex align="center" gap={2}>
-          <Image
-            src={pomboIcon}
-            alt="Pombo"
-            w={7}
-            h={7}
-            borderRadius="22%"
-            objectFit="cover"
-            flexShrink={0}
-          />
-          <Text
-            fontSize="sm"
-            fontWeight="700"
-            color="text.primary"
-            letterSpacing="-0.01em"
-          >
-            Pombo
-          </Text>
-        </Flex>
+        <BrandMark variant="header" />
       </Flex>
 
       <Flex align="center" gap={1}>
@@ -69,7 +51,7 @@ export const MobileHeader = memo(function MobileHeader({
             size="sm"
             name={user.name}
             src={user.avatarUrl || undefined}
-            bg="brand.500"
+            bg="bg.brand.solid"
             color="text.onBrand"
             fontSize="xs"
             fontWeight="700"

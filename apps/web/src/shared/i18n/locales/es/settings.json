@@ -40,107 +40,40 @@
     },
     "regenerateConfirm": {
       "title": "Generar nuevo token",
-      "description": "El token actual se revocará de inmediato y dejará de funcionar. Esta acción no se puede deshacer."
-    }
-  },
-  "account": {
-    "title": "Datos de la Cuenta",
-    "accountName": "Nombre de la Cuenta",
-    "saved": "Configuración guardada"
-  },
-  "team": {
-    "title": "Usuarios",
-    "invite": "Invitar",
-    "emptyTitle": "Ningún usuario",
-    "emptyDesc": "Invite a miembros del equipo para acceder a la plataforma.",
-    "nameCol": "Nombre",
-    "emailCol": "Correo electrónico",
-    "roleCol": "Rol",
-    "modulesCol": "Módulos",
-    "statusCol": "Estado",
-    "removeAction": "Eliminar",
-    "inviteTitle": "Invitar Miembro",
-    "nameLabel": "Nombre",
-    "emailLabel": "Correo electrónico",
-    "emailRequired": "Ingrese el correo electrónico.",
-    "emailInvalid": "Correo inválido.",
-    "passwordLabel": "Contraseña",
-    "sendInvite": "Enviar Invitación",
-    "fillAll": "Complete todos los campos",
-    "inviteSent": "Invitación enviada a {{email}}",
-    "memberRemoved": "{{name}} eliminado",
-    "memberPromoted": "¡{{name}} ahora es admin!",
-    "namePlaceholder": "Nombre completo",
-    "emailPlaceholder": "email@ejemplo.com",
-    "passwordPlaceholder": "Contraseña de acceso",
-    "inviteAction": "Invitar",
-    "you": "Tú",
-    "allModules": "Todos",
-    "modulesLabel": "módulos",
-    "manageModules": "Gestionar Módulos",
-    "manageModulesDesc": "Seleccione los módulos a los que {{name}} podrá acceder.",
-    "modulesUpdated": "¡Módulos actualizados!",
-    "promoteAdmin": "Promover a Admin",
-    "removeConfirmTitle": "Eliminar miembro",
-    "removeConfirmMsg": "¿Desea eliminar a {{name}} del equipo? Los datos creados se mantendrán.",
-    "promoteConfirmTitle": "Promover a Admin",
-    "promoteConfirmMsg": "¿Desea promover a {{name}} a Administrador? Tendrá acceso total a la plataforma.",
-    "selectModules": "Módulos de acceso",
-    "inviteSubtitle": "Seleccione los módulos a los que este secretario podrá acceder.",
-    "generateLink": "Generar Enlace",
-    "linkGenerated": "¡Enlace generado exitosamente!",
-    "inviteReady": "¡Enlace de invitación listo!",
-    "inviteExpiry": "Este enlace expira en 7 días.",
-    "pendingInvites": "Invitaciones pendientes",
-    "expiresAt": "Expira el",
-    "revoke": "Revocar",
-    "inviteRevoked": "Invitación revocada.",
-    "copyInviteLink": "Copiar enlace de la invitación",
-    "copyInviteLinkCopied": "¡Enlace copiado!",
-    "maxUsersReached": "Límite de 3 usuarios alcanzado",
-    "adminAllAccess": "Los administradores tienen acceso a todos los módulos.",
-    "adminReadOnlyLabel": "Tienen acceso a todos los módulos"
-  },
-  "modules": {
-    "available": "Disponibles",
-    "assigned": "Asignados",
-    "addAll": "Todos",
-    "removeAll": "Limpiar",
-    "allAssigned": "Todos asignados",
-    "noneAssigned": "Ningún módulo",
-    "add": "Agregar",
-    "remove": "Quitar"
+      "description": "El token actual se revoca y deja de funcionar en hasta 60 segundos. Esta acción no se puede deshacer."
+    },
+    "title": "Token público",
+    "createdAtValue": "Creado el {{date}}",
+    "lastUsedAtValue": "Último uso el {{date}}",
+    "rotationNote": "Generar un nuevo token revoca el actual — deja de funcionar en hasta 60 segundos. Guarda el token en una variable de entorno: solo aparece una vez, justo después de generarlo."
   },
   "profile": {
     "changeAvatar": "Cambiar foto de perfil",
     "personalData": "Datos Personales",
     "fullName": "Nombre completo",
     "email": "Correo electrónico",
-    "phone": "Teléfono",
-    "document": "Documento",
-    "documentPlaceholder": "Solo dígitos",
-    "documentLengthError": "Documento inválido — ingresa un CPF (11 dígitos) o CNPJ (14 dígitos).",
-    "profileUpdated": "Perfil actualizado",
     "profileUpdateError": "Error al actualizar perfil",
     "avatarUpdated": "Foto actualizada",
     "avatarUpdateError": "Error al actualizar foto",
-    "shareCode": "¡Encuéntrame en Pombo! Agrega por código: #{{code}}",
-    "adminCard": {
-      "title": "Administrador",
-      "description": "Acceso total a esta cuenta."
-    },
-    "codeCard": {
-      "title": "Tu código",
-      "copy": "Copiar",
-      "copied": "Copiado"
-    },
+    "avatarTooLarge": "La foto supera el límite de 5 MB.",
+    "avatarInvalidType": "Formato no compatible. Usa JPG, PNG, WebP o GIF.",
+    "nameRequired": "Ingresa tu nombre.",
     "security": {
-      "title": "Seguridad",
-      "description": "Le enviaremos un enlace por correo para crear una nueva contraseña.",
       "changePassword": "Cambiar contraseña",
       "sending": "Enviando...",
       "resetEmailSent": "Enviamos un enlace a {{email}}. El enlace expira en 1 hora.",
-      "resetEmailError": "No fue posible enviar el enlace. Intente nuevamente en unos momentos."
+      "resetEmailError": "No fue posible enviar el enlace. Intente nuevamente en unos momentos.",
+      "title": "Contraseña",
+      "description": "Te enviamos un enlace por correo para crear una nueva contraseña"
+    },
+    "personalDataDescription": "Cómo aparece tu nombre en el panel y en las notificaciones",
+    "preferences": {
+      "title": "Preferencias",
+      "description": "Valen para este navegador",
+      "language": "Idioma",
+      "languageDescription": "Interfaz y mensajes del sistema",
+      "theme": "Tema",
+      "themeDescription": "El oscuro es el estándar de Pombo"
     }
   }
 }

@@ -1,3 +1,12 @@
+import type { z } from "zod";
+import type {
+  SendAudioMessageRequestDTO,
+  SendDocumentMessageRequestDTO,
+  SendGroupMessageRequestDTO,
+  SendImageMessageRequestDTO,
+  SendTextMessageRequestDTO,
+  SendVideoMessageRequestDTO,
+} from "@pombo/shared-types";
 import {
   SendMessageDTOSchema,
   SendGroupMessageDTOSchema,
@@ -5,8 +14,6 @@ import {
   SendAudioDTOSchema,
   SendVideoDTOSchema,
   SendDocumentDTOSchema,
-  SendMessageParamSchema,
-  MessageIdParamSchema,
 } from "./message.dto";
 
 describe("message DTOs", () => {
@@ -140,13 +147,28 @@ describe("message DTOs", () => {
       expect(parsed.fileName).toBeUndefined();
     });
   });
+});
 
-  it("SendMessageParamSchema requires a uuid device id", () => {
-    expect(() => SendMessageParamSchema.parse({ id: "nope" })).toThrow();
-  });
-
-  it("MessageIdParamSchema requires a uuid message id", () => {
-    const id = "11111111-1111-1111-1111-111111111111";
-    expect(MessageIdParamSchema.parse({ id }).id).toBe(id);
+describe("message request DTOs ↔ @pombo/shared-types", () => {
+  it("accept exactly the bodies the shared contract declares", () => {
+    // Type-level — enforced by `yarn type-check`.
+    expectTypeOf<
+      z.input<typeof SendMessageDTOSchema>
+    >().toEqualTypeOf<SendTextMessageRequestDTO>();
+    expectTypeOf<
+      z.input<typeof SendGroupMessageDTOSchema>
+    >().toEqualTypeOf<SendGroupMessageRequestDTO>();
+    expectTypeOf<
+      z.input<typeof SendImageDTOSchema>
+    >().toEqualTypeOf<SendImageMessageRequestDTO>();
+    expectTypeOf<
+      z.input<typeof SendAudioDTOSchema>
+    >().toEqualTypeOf<SendAudioMessageRequestDTO>();
+    expectTypeOf<
+      z.input<typeof SendVideoDTOSchema>
+    >().toEqualTypeOf<SendVideoMessageRequestDTO>();
+    expectTypeOf<
+      z.input<typeof SendDocumentDTOSchema>
+    >().toEqualTypeOf<SendDocumentMessageRequestDTO>();
   });
 });

@@ -1,12 +1,12 @@
-import type { ErrorCode } from "./errorCodes";
+import type { ErrorCode } from "@pombo/shared-types";
 
 /**
  * Domain-shaped error class for the frontend. Wraps any backend or network
  * failure with a typed `code` field that pages/hooks can branch on.
  *
- * `code` is typed as `ErrorCode | string` because the backend emits ~110
- * codes and the frontend only catalogs the ones it cares about. Unknown
- * codes still flow through — they just don't auto-complete in `===` checks.
+ * `code` is typed as `ErrorCode | string`: the catalog is the shared wire
+ * contract, and the extra `string` keeps a code newer than this bundle (or a
+ * client-side one like `NETWORK_ERROR`) from breaking anything.
  */
 export class AppError extends Error {
   public readonly code: ErrorCode | string;
@@ -25,4 +25,10 @@ export class AppError extends Error {
     this.statusCode = statusCode;
     this.details = details;
   }
+}
+
+/** A 429 from the API (any limiter); `details.retryAfter` carries the wait in
+ *  seconds when the response exposed a `Retry-After` header. */
+export function isRateLimitError(error: unknown): error is AppError {
+  return error instanceof AppError && error.statusCode === 429;
 }

@@ -7,7 +7,11 @@ import { MeResponseDTO } from "../../dto/auth.dto";
 import { NotFoundError, BadRequestError } from "@shared/error";
 import { ErrorCodes } from "@shared/error/error-codes";
 import { safeS3Delete } from "@shared/util/safe-s3-delete";
-import { AuthProfileBuilder } from "@modules/auth/application/service/auth/auth-profile.builder";
+import {
+  IMAGE_MIME_EXTENSION,
+  isAllowedImageMimeType,
+} from "@shared/constant/image-upload";
+import { AuthProfileBuilder } from "@modules/auth/application/service/auth-profile.builder";
 
 @injectable()
 export class UpdateAvatarUseCase {
@@ -44,8 +48,19 @@ export class UpdateAvatarUseCase {
       );
     }
 
-    const ext = file.originalname.split(".").pop() || "jpg";
-    const key = `avatars/${userId}.${ext}`;
+    // The upload middleware already rejected anything outside the allowlist;
+    // this re-check keeps the use case honest on its own (a direct caller, a
+    // future route without the filter) and narrows the type for the map.
+    if (!isAllowedImageMimeType(file.mimetype)) {
+      throw new BadRequestError(
+        "Invalid image file type",
+        undefined,
+        ErrorCodes.FILE_INVALID_TYPE,
+      );
+    }
+    // Extension + ContentType come from the VALIDATED type — `originalname` is
+    // client-controlled and would otherwise land verbatim in the object key.
+    const key = `avatars/${userId}.${IMAGE_MIME_EXTENSION[file.mimetype]}`;
 
     if (user.avatarUrl) {
       await safeS3Delete(user.avatarUrl, this.storageProvider, this.logger, {

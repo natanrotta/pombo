@@ -1,0 +1,25 @@
+{
+  "name": "@pombo/theme",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pombo design system foundations (Chakra v3 tokens, semantic tokens, text styles and recipes) consumed by every Pombo frontend.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@chakra-ui/react": "^3.36.0"
+  },
+  "devDependencies": {
+    "@chakra-ui/react": "^3.36.0",
+    "typescript": "^5.2.2"
+  },
+  "files": [
+    "src"
+  ]
+}

@@ -32,7 +32,7 @@ apps/api/
     shared/             # pure kernel: zero domain knowledge, reusable anywhere
     core/               # the chassis: wires the app, no business rule
     test/               # cross-cutting test kit (aggregator mocks, vitest setup)
-    main.ts             # bootstrap only (listen, cron registration, queue wiring)
+    main.ts             # bootstrap only: error reporter → shutdown plan → gateway boot → listen
 ```
 
 Responsibility in one line each:
@@ -51,17 +51,22 @@ Every folder in `modules/` has **exactly** this tree. Predictability is the poin
 modules/<domain>/
   domain/
     entity/            <x>.entity.ts            (+ <x>.entity.spec.ts)
+    value-object/      <x>-status.ts            (vocabulary + pure rules, only if any)
     repository/        <x>.repository.ts        (interface = port)
     provider/          <x>-provider.ts          (module-owned port, only if any)
   application/
     use-case/          create-<x>.use-case.ts   (+ .spec.ts)
     dto/               <x>.dto.ts               (Zod)
-    service/           <x>.service.ts           (app service, only if any)
+    service/           <x>.service.ts           (app service, only if any — registered in <domain>.module.ts)
+    listener/          register-<x>-listeners.ts (domain-event subscribers, only if any)
   infrastructure/
     controller/        <x>.controller.ts        (+ .spec.ts)
-    route/             <x>.route.ts
+    route/             <x>.routes.ts
     repository/        prisma-<x>.repository.ts  (implementation)
     provider/          <adapter>.ts             (port implementation, only if any)
+    middleware/        <x>.middleware.ts        (module-owned HTTP guard, only if any)
+    job/               <x>.job.ts               (BullMQ processor, only if any)
+    health/            <x>-health.ts            (contribution to GET /api/health, only if any)
   util/                <x>-helper.ts            (domain-flavored helpers — see below)
   constant/            <x>.constant.ts          (domain constants)
   test/                <x>.factory.ts           (test data builders)
@@ -99,6 +104,7 @@ core/     →  may import  →  shared/
 shared/   →  imports nobody
 modules/  →  NEVER import another module's infrastructure/
              (only its domain/ or application/ — the interface / use-case)
+any layer →  may import  →  @pombo/shared-types (the wire contract; type-only in domain/)
 ```
 
 The direction always points **inward** (`infrastructure → application → domain`),
@@ -139,11 +145,11 @@ reusable library — it's the skeleton.
 core/
   http/          app.ts, middleware/ (auth, csrf, rate-limit, error-handler, locale…)
   container/     index.ts, tokens.ts, boot-guard/           (tsyringe DI)
-  config/        env.ts (Zod)
+  config/        env.ts (dotenv + parse) over schema/<concern>.schema.ts (Zod, one file per concern)
   database/      prisma-client.ts, seed/
   provider/      redis-cache.ts, bullmq-queue.ts, event-bus.ts, s3-storage.ts,
                  jwt.ts, bcrypt-hash.ts   (IMPLEMENTATIONS of the generic ports)
-  service/       error-reporter/, scheduler/, aes-gcm-encryption.service.ts
+  service/       error-reporter/, scheduler/, lifecycle/ (graceful shutdown), whatsapp/ (gateway boot)
 ```
 
 **Port vs impl split:** `shared/provider/` holds the **interface**

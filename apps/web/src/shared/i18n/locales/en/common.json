@@ -2,43 +2,16 @@
   "actions": {
     "save": "Save",
     "cancel": "Cancel",
-    "delete": "Delete",
-    "edit": "Edit",
-    "create": "Create",
-    "add": "Add",
-    "search": "Search",
-    "filter": "Filter",
     "clear": "Clear",
     "back": "Back",
     "confirm": "Confirm",
     "close": "Close",
-    "copy": "Copy",
     "copied": "Copied!",
-    "share": "Share",
-    "shared": "Shared!",
     "signOut": "Sign out",
-    "continue": "Continue",
     "send": "Send",
-    "remove": "Remove",
-    "select": "Select",
-    "upload": "Upload file",
-    "download": "Download",
     "retry": "Try again",
-    "link": "Link",
-    "unlink": "Unlink",
     "reload": "Reload page",
-    "selectAll": "Select all",
     "actions": "Actions"
-  },
-  "avatar": {
-    "change": "Change photo",
-    "remove": "Remove photo",
-    "updated": "Photo updated",
-    "updateError": "Could not update the photo",
-    "removed": "Photo removed",
-    "removeError": "Could not remove the photo",
-    "removeConfirmTitle": "Remove photo",
-    "removeConfirmDescription": "Are you sure you want to remove this photo? This action cannot be undone."
   },
   "status": {
     "active": "Active",
@@ -50,18 +23,6 @@
     "empty": "No items yet",
     "pending": "Pending"
   },
-  "entities": {
-    "item": "item",
-    "items": "items",
-    "tag": "tag",
-    "tags": "tags",
-    "member": "member",
-    "members": "members",
-    "field": "field",
-    "fields": "fields",
-    "document": "document",
-    "documents": "documents"
-  },
   "nav": {
     "devices": "Devices",
     "sandbox": "Sandbox",
@@ -72,39 +33,6 @@
     "title": "Page not found",
     "description": "The page you are looking for doesn't exist or has been moved.",
     "backHome": "Back to home"
-  },
-  "crud": {
-    "createError": "Failed to create {{entity}}",
-    "updateError": "Failed to update {{entity}}",
-    "deleteError": "Failed to delete {{entity}}",
-    "bulkDeleteError": "Failed to delete {{entity}}s",
-    "created": "{{entity}} created successfully",
-    "updated": "{{entity}} updated successfully",
-    "deleted": "{{entity}} removed",
-    "bulkDeleted_one": "{{count}} {{singular}} removed",
-    "bulkDeleted_other": "{{count}} {{plural}} removed",
-    "actionError": "Failed to {{action}} {{entity}}"
-  },
-  "confirm": {
-    "delete": "Are you sure you want to delete {{entity}}? All related data will be lost.",
-    "bulkDelete": "Are you sure you want to delete {{count}} {{entity}}? All related data will be lost."
-  },
-  "autoSave": {
-    "saving": "Saving…",
-    "saved": "Saved",
-    "error": "Save failed",
-    "retry": "Try again"
-  },
-  "unsavedChanges": {
-    "warning": "You have unsaved changes. Do you want to leave without saving?"
-  },
-  "roles": {
-    "ADMIN": "Administrator",
-    "SECRETARY": "Secretary"
-  },
-  "memberStatus": {
-    "ACTIVE": "Active",
-    "PENDING": "Pending"
   },
   "age": {
     "year_one": "{{count}} year",
@@ -122,157 +50,48 @@
     "unexpectedError": "Unexpected server error.",
     "rateLimited": "Too many requests. Please wait a moment and try again.",
     "somethingWentWrong": "Something went wrong",
-    "tryAgainLater": "Please try again later",
     "reloadDescription": "An unexpected error occurred. Try reloading the page.",
     "pageLoadError": "Error loading page",
     "pageLoadDescription": "An unexpected error occurred. Try again or go back to the previous page.",
     "loadError": "Failed to load data. Please try again.",
-    "notFound": "Record not found",
-    "createFailed": "Failed to create {{entity}}",
-    "updateFailed": "Failed to update {{entity}}",
-    "deleteFailed": "Failed to delete {{entity}}",
-    "bulkDeleteFailed": "Failed to delete {{entity}}s",
-    "actionFailed": "Failed to {{action}} {{entity}}"
+    "notFound": "Record not found"
   },
   "language": {
-    "label": "Language",
-    "changed": "Language changed to {{language}}",
-    "en": "English",
-    "pt-BR": "Português",
-    "es": "Español"
-  },
-  "pagination": {
-    "previous": "Previous",
-    "next": "Next",
-    "previousPage": "Previous page",
-    "nextPage": "Next page",
-    "itemsPerPage": "Items per page",
-    "page": "Page {{page}} of {{total}}",
-    "showing": "Showing {{from}}-{{to}} of {{total}}",
-    "endOfList": "End of results"
+    "changed": "Language changed to {{language}}"
   },
   "confirmDialog": {
     "defaultTitle": "Confirm action",
     "defaultDescription": "Are you sure you want to continue? This action cannot be undone."
   },
   "filter": {
-    "searchPlaceholder": "Search...",
-    "tags": "Tags",
-    "tagsLabel": "Filter by tags",
-    "tagSearch": "Search tag...",
-    "noTagsFound": "No tags found",
-    "noTagsAvailable": "No tags available",
-    "clearFilters": "Clear filters"
-  },
-  "list": {
-    "deleteTitle": "Confirm deletion",
-    "deleteDescription": "Are you sure you want to continue? This action cannot be undone.",
-    "noResultsHint": "Try searching with different terms or clear the filters."
-  },
-  "bulk": {
-    "selected_one": "{{count}} selected",
-    "selected_other": "{{count}} selected",
-    "maxSelectionReached": "Limit of {{max}} items at a time"
-  },
-  "tags": {
-    "removeTag": "Remove tag {{name}}"
+    "searchPlaceholder": "Search..."
   },
   "notify": {
     "autoSaved": "Saved automatically",
     "defaultError": "An unexpected error occurred",
-    "errorTitle": "Error"
-  },
-  "permissions": {
-    "moduleDenied": "You don't have permission to access this module.",
-    "moduleDeniedNamed": "You don't have permission to access \"{{module}}\"."
+    "errorTitle": "Error",
+    "retryIn": "Wait {{time}}."
   },
   "layout": {
-    "openMenu": "Open menu"
+    "openMenu": "Open menu",
+    "mainNavigation": "Main navigation"
   },
   "forms": {
     "showPassword": "Show password",
-    "hidePassword": "Hide password",
-    "clearSearch": "Clear search",
-    "selectPlaceholder": "Select...",
-    "datePlaceholder": "mm/dd/yyyy",
-    "timeCaption": "Time",
-    "timePlaceholder": "HH:mm",
-    "monetaryPlaceholder": "0.00",
-    "currencySymbol": "$",
-    "documentPlaceholder": "ID or Tax number",
-    "phonePlaceholder": "(00) 00000-0000",
-    "countryLabel": "Country",
-    "colorLabel": "Color",
-    "fileUpload": {
-      "invalidType": "One or more files were ignored due to invalid type.",
-      "exceedsSize": "File exceeds the {{size}} limit.",
-      "exceedsLimit": "Maximum limit of {{max}} file(s) reached.",
-      "addFile": "Add file",
-      "dragMultiple": "Click or drag files",
-      "dragSingle": "Click or drag a file",
-      "anyType": "Any type",
-      "remove": "Remove"
-    },
-    "richText": {
-      "placeholder": "Type here...",
-      "bold": "Bold",
-      "italic": "Italic",
-      "underline": "Underline",
-      "heading": "Heading",
-      "bulletList": "Bullet list",
-      "orderedList": "Numbered list",
-      "blockquote": "Quote",
-      "code": "Code"
-    }
+    "hidePassword": "Hide password"
   },
   "platform": {
     "name": "Pombo",
     "tagline": "Your messaging gateway"
   },
-  "topbar": {
-    "myProfile": "My profile",
-    "signOut": "Sign out"
-  },
   "sidebar": {
     "expand": "Expand menu",
-    "collapse": "Collapse menu",
-    "copyCode": "Copy my code",
-    "shareCode": "Find me on Pombo! Add by code: #{{code}}",
-    "devOpenWelcome": "Open welcome modal (dev)"
+    "collapse": "Collapse menu"
   },
   "theme": {
-    "light": "Light",
-    "dark": "Dark",
     "switchToLight": "Switch to light theme",
-    "switchToDark": "Switch to dark theme"
-  },
-  "address": {
-    "title": "Address",
-    "fields": {
-      "street": "Street",
-      "number": "Number",
-      "complement": "Apt / Suite",
-      "district": "District / Neighborhood",
-      "city": "City",
-      "state": "State / Province",
-      "postalCode": "Postal code / ZIP",
-      "countryCode": "Country"
-    },
-    "placeholder": {
-      "street": "Main Street",
-      "number": "1000",
-      "complement": "Apt 12B",
-      "district": "",
-      "city": "",
-      "state": "",
-      "postalCode": "",
-      "countryCode": "Select a country",
-      "countrySearch": "Search country..."
-    },
-    "actions": {
-      "remove": "Remove address",
-      "add": "Add address"
-    },
-    "noCountryResults": "No country found"
+    "switchToDark": "Switch to dark theme",
+    "dark": "Dark theme",
+    "light": "Light theme"
   }
 }

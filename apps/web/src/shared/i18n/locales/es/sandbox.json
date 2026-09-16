@@ -16,6 +16,7 @@
     "groupLoading": "Cargando grupos...",
     "groupEmpty": "Ningún grupo encontrado",
     "groupError": "No se pudieron cargar los grupos",
+    "groupOffline": "El dispositivo está sin conexión: reconéctalo para ver sus grupos",
     "text": "Mensaje",
     "textPlaceholder": "Escribe el mensaje de prueba...",
     "media": {
@@ -31,7 +32,8 @@
     "caption": "Leyenda",
     "captionPlaceholder": "Leyenda opcional",
     "count": "Cantidad",
-    "countHelper": "Encola varios mensajes para ver la cola y el ritmo humanizado (escribiendo + variación) en la práctica."
+    "countHelper": "Encola varios mensajes para ver la cola y el ritmo humanizado (escribiendo + variación) en la práctica.",
+    "textCount": "{{count}} caracteres"
   },
   "type": {
     "text": "Texto",
@@ -55,6 +57,7 @@
   "errors": {
     "deviceRequired": "Selecciona un dispositivo.",
     "phoneInvalid": "Ingresa un número válido.",
+    "phoneNotOnWhatsApp": "Este número no está en WhatsApp.",
     "textRequired": "Escribe un mensaje.",
     "mediaRequired": "Indica la URL o el base64 de la media.",
     "groupRequired": "Selecciona un grupo.",
@@ -65,14 +68,16 @@
     "clear": "Limpiar"
   },
   "queue": {
-    "title": "Cola de envío",
-    "summary": "{{total}} en la cola",
+    "title": "Cola en tiempo real",
     "item": "Mensaje {{index}}/{{total}}",
-    "pacingHint": "Con el ritmo humanizado activo, el destinatario ve \"escribiendo…\" y los mensajes salen espaciados — sigue la cola vaciarse arriba.",
+    "pacingPending": "Esperando el ritmo humanizado: se envía después de los mensajes anteriores y las pausas.",
     "empty": {
       "title": "Aún no hay envíos",
       "description": "Envía uno o más mensajes de prueba para seguir la cola vaciarse aquí en tiempo real."
-    }
+    },
+    "subtitle": "Sigue cada mensaje al salir"
   },
-  "success": "{{total}} mensaje(s) en la cola de envío."
+  "success": "{{total}} mensaje(s) en la cola de envío.",
+  "ready_one": "{{count}} device listo",
+  "ready_other": "{{count}} devices listos"
 }

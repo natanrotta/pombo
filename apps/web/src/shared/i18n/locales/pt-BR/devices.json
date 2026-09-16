@@ -23,12 +23,15 @@
       "connected": "Conectados",
       "connectedHint": "Dispositivos online agora",
       "disconnected": "Desconectados",
-      "disconnectedHint": "Dispositivos offline"
+      "disconnectedHint": "Dispositivos offline",
+      "queued": "Na fila"
     },
     "filter": {
       "all": "Todos",
       "connected": "Conectados",
-      "disconnected": "Desconectados"
+      "disconnected": "Desconectados",
+      "label": "Filtrar por status",
+      "pairing": "Pareando"
     },
     "empty": {
       "title": "Nenhum dispositivo ainda",
@@ -45,6 +48,28 @@
     "disconnectConfirm": {
       "title": "Desconectar dispositivo",
       "description": "A sessão do WhatsApp será encerrada. Para reconectar, escaneie o QR Code novamente."
+    },
+    "view": {
+      "grid": "Ver em grade",
+      "list": "Ver em lista"
+    },
+    "columns": {
+      "device": "Dispositivo",
+      "status": "Status"
+    },
+    "connect": {
+      "title": "Conectar número",
+      "hint": "Escaneie o QR no WhatsApp"
+    },
+    "meta": {
+      "since": "Ativo desde {{date}}",
+      "left": "Saiu em {{date}}",
+      "created": "Criado em {{date}}"
+    },
+    "action": {
+      "open": "Abrir",
+      "reconnect": "Reconectar",
+      "qr": "Ver QR code"
     }
   },
   "create": {
@@ -72,7 +97,11 @@
     "waiting": "Gerando o QR Code...",
     "connected": "Dispositivo conectado.",
     "error": "Não foi possível iniciar a conexão. Tente novamente.",
-    "retry": "Tentar de novo"
+    "retry": "Tentar de novo",
+    "gatewayDisabled": {
+      "title": "Conexão indisponível neste ambiente",
+      "description": "O gateway do WhatsApp está desligado neste servidor, então nenhum dispositivo pode ser pareado aqui."
+    }
   },
   "webhooks": {
     "title": "Webhooks",
