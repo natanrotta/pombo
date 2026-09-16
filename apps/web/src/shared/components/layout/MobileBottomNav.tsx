@@ -29,7 +29,6 @@ const NavItem = memo(function NavItem({ item }: { item: NavigationItem }) {
           cursor="pointer"
           transition="color 0.15s ease"
           _active={{ transform: "scale(0.92)" }}
-          role="group"
         >
           <Flex
             align="center"

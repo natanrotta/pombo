@@ -1,4 +1,5 @@
 import { test, expect } from "../../fixtures/auth.fixture";
+import { waitForSettledUi } from "../../fixtures/visual";
 import type { Page } from "@playwright/test";
 
 /**
@@ -27,21 +28,6 @@ const SECTIONS = [
   "overlays",
 ] as const;
 const SCHEMES = ["light", "dark"] as const;
-
-/** Finite animations (entrances, fades) must finish before a screenshot;
- *  infinite ones (skeleton pulse) are frozen by `animations: "disabled"`. */
-async function waitForSettledUi(page: Page) {
-  await page.evaluate(() => document.fonts.ready);
-  await page.waitForFunction(() =>
-    document
-      .getAnimations()
-      .every(
-        (animation) =>
-          animation.playState !== "running" ||
-          animation.effect?.getTiming().iterations === Infinity,
-      ),
-  );
-}
 
 async function openStyleguide(page: Page) {
   await page.goto(STYLEGUIDE_PATH);

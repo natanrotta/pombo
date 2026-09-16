@@ -92,8 +92,18 @@ function buildApiEnv(): NodeJS.ProcessEnv {
   if (Object.keys(override).length === 0) {
     fail("env", "neither apps/api/.env.e2e nor apps/api/.env.e2e.example found");
   }
-  // The suite must never open real WhatsApp sessions, whatever the dev `.env` says.
-  return { ...process.env, ...base, ...override, WHATSAPP_ENABLED: "false" };
+  const merged = { ...process.env, ...base, ...override };
+  return {
+    ...merged,
+    // Whatever the dev `.env` says, the suite never opens real WhatsApp
+    // sessions and never sends real e-mail (an empty key selects the console
+    // mail provider).
+    WHATSAPP_ENABLED: "false",
+    RESEND_API_KEY: "",
+    // The auth specs hit the IP-keyed auth limiter more than its default (10 /
+    // 15 min) allows across one run.
+    RATE_LIMIT_AUTH_MAX: merged.RATE_LIMIT_AUTH_MAX ?? "100",
+  };
 }
 
 function run(cmd: string, args: string[], opts: { cwd?: string; env?: NodeJS.ProcessEnv } = {}) {

@@ -118,6 +118,11 @@ export default defineConfig(({ command }) => ({
       "/api": {
         target: apiProxyTarget,
         changeOrigin: true,
+        // `/api` is also an app route (the API token page). A browser
+        // navigation asks for HTML and gets the SPA; only the client's own
+        // calls reach the API.
+        bypass: (req) =>
+          req.headers.accept?.includes("text/html") ? "/index.html" : undefined,
       },
     },
   },

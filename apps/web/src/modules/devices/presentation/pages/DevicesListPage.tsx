@@ -118,7 +118,7 @@ export function DevicesListPage() {
         title={t("list.title")}
         description={t("list.description")}
         actions={
-          <Button onClick={createModal.onOpen}>
+          <Button onClick={createModal.onOpen} data-cy="devices-add">
             <Icon>
               <FiPlus />
             </Icon>

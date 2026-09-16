@@ -80,7 +80,7 @@ yarn test:e2e:down        # docker compose down -v
 
 - **`docker-compose.e2e.yml`** (repo root) — Postgres on `:5433` (tmpfs) + Redis on `:6380`.
 - **`apps/api/.env.e2e.example`** — committed, test-only overrides on top of `apps/api/.env` (DB URL, port, origin, JWT secret, `WHATSAPP_ENABLED=false`). A local, gitignored `apps/api/.env.e2e` wins when present; CI and fresh worktrees use the example. Inherits any third-party keys from the dev `.env` so you don't duplicate secrets.
-- The runner always forces `WHATSAPP_ENABLED=false`: the suite never opens real WhatsApp sessions, so `connect` answers `WA_GATEWAY_DISABLED`.
+- The runner always forces `WHATSAPP_ENABLED=false` (the suite never opens real WhatsApp sessions, so `connect` answers `WA_GATEWAY_DISABLED`) and `RESEND_API_KEY=` (e-mail goes to the console provider), and defaults `RATE_LIMIT_AUTH_MAX` to 100 (the auth specs exceed the limiter's default of 10).
 - **`apps/web/scripts/e2e-run.ts`** — orchestrator. Reads both env files, merges, spawns API, runs Playwright, tears down.
 
 ### Reliability notes
