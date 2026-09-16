@@ -53,7 +53,7 @@ Internally:
 2. `docker compose up -d --wait` — fresh Postgres (tmpfs) + Redis.
 3. `prisma migrate deploy` — apply all migrations.
 4. `prisma/seed.ts` — populate the seed user (+ any demo data you add).
-5. Spawn API on `:3334` (env merged from `apps/api/.env` + `apps/api/.env.e2e`).
+5. Spawn API on `:3334` (env merged from `apps/api/.env` + `apps/api/.env.e2e`, or the committed `.env.e2e.example`).
 6. Run `npx playwright test --project=chromium`. Playwright's `webServer`
    brings up Vite on `:3001` with `VITE_API_PROXY_TARGET=http://localhost:3334`.
 7. Stop API. `docker compose down -v`. Exit with Playwright's status code.
@@ -79,7 +79,8 @@ yarn test:e2e:down        # docker compose down -v
 ### Where the env lives
 
 - **`docker-compose.e2e.yml`** (repo root) — Postgres on `:5433` (tmpfs) + Redis on `:6380`.
-- **`apps/api/.env.e2e`** — committed overrides on top of `apps/api/.env` (DB URL, port, origin, JWT secret). Inherits any third-party keys from the dev `.env` so you don't duplicate secrets.
+- **`apps/api/.env.e2e.example`** — committed, test-only overrides on top of `apps/api/.env` (DB URL, port, origin, JWT secret, `WHATSAPP_ENABLED=false`). A local, gitignored `apps/api/.env.e2e` wins when present; CI and fresh worktrees use the example. Inherits any third-party keys from the dev `.env` so you don't duplicate secrets.
+- The runner always forces `WHATSAPP_ENABLED=false`: the suite never opens real WhatsApp sessions, so `connect` answers `WA_GATEWAY_DISABLED`.
 - **`apps/web/scripts/e2e-run.ts`** — orchestrator. Reads both env files, merges, spawns API, runs Playwright, tears down.
 
 ### Reliability notes

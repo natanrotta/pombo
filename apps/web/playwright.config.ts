@@ -29,6 +29,9 @@ export default defineConfig({
   // suffix keeps a macOS baseline from being compared against Linux (CI)
   // rendering — fonts antialias differently.
   snapshotPathTemplate: "{testDir}/__screenshots__/{testFilePath}/{arg}-{platform}{ext}",
+  // Baselines only exist for macOS (`-darwin`). Elsewhere (the Linux CI job)
+  // the visual specs still drive the UI but skip the pixel comparison.
+  ignoreSnapshots: process.platform !== "darwin",
   expect: {
     toHaveScreenshot: {
       animations: "disabled",

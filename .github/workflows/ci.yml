@@ -46,7 +46,55 @@ jobs:
       - name: Unit tests
         run: yarn test
 
+      # Production bundle of the web app. The build also fails if a dev-only
+      # module (the /dev/styleguide gallery) leaks into a chunk.
+      - name: Build web
+        run: yarn build:web
+
       # The workflows lint themselves — the same actionlint the repo runs
       # locally, from the maintainer's official image.
       - name: actionlint
         run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color
+
+  e2e-web:
+    name: web e2e (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install (frozen lockfile)
+        run: yarn install --frozen-lockfile
+
+      # The API imports the shared contract from its built CommonJS dist.
+      - name: Build shared types
+        run: yarn shared:build
+
+      - name: Generate Prisma client
+        run: yarn prisma:generate
+
+      - name: Install Chromium
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+
+      # One command owns the whole cycle: docker compose (Postgres 15 + Redis 7
+      # from docker-compose.e2e.yml), migrations, seed, the API on :3334 with
+      # apps/api/.env.e2e (WhatsApp gateway disabled), Vite on :3001 and
+      # Playwright. Visual baselines are macOS-only for now, so the screenshot
+      # assertions are skipped here (playwright.config.ts `ignoreSnapshots`).
+      - name: E2E
+        working-directory: apps/web
+        run: yarn test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/.playwright/report
+          retention-days: 14
