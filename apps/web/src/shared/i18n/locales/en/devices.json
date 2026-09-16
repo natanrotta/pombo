@@ -62,7 +62,7 @@
       "hint": "Scan the QR in WhatsApp"
     },
     "meta": {
-      "since": "Connected since {{date}}",
+      "since": "Up since {{date}}",
       "left": "Left on {{date}}",
       "created": "Created on {{date}}"
     },

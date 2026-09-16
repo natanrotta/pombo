@@ -63,7 +63,8 @@ export class SandboxPage {
     this.groupSelect = page.getByRole("combobox", {
       name: /grupo de destino|recipient group/i,
     });
-    this.textArea = page.getByLabel(/^mensagem$|^message$/i);
+    // The label reads "Mensagem 12 caracteres" — the counter rides along.
+    this.textArea = page.getByLabel(/^mensagem|^message/i);
     this.mediaUrlInput = page.getByLabel(
       /url da imagem|image url|url do áudio|audio url|url do vídeo|video url|url do documento|document url/i,
     );

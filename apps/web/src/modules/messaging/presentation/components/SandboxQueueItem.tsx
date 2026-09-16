@@ -81,10 +81,16 @@ export const SandboxQueueItem = memo(function SandboxQueueItem({
         <Text textStyle="mono" color="text.primary" lineClamp={1}>
           {messageId}
         </Text>
-        <Text textStyle="caption" color="text.muted" lineClamp={2}>
-          {failureReason ??
-            (showPacingHint ? t("queue.pacingPending") : t(`status.${status}`))}
-        </Text>
+        {/* Only what the badge does NOT already say. */}
+        {(failureReason || showPacingHint) && (
+          <Text
+            textStyle="caption"
+            color={failureReason ? "status.error.fg" : "text.muted"}
+            lineClamp={2}
+          >
+            {failureReason ?? t("queue.pacingPending")}
+          </Text>
+        )}
       </Flex>
 
       <Flex align="center" gap={2} flexShrink={0}>

@@ -126,6 +126,9 @@ test.describe("Register + Verify Email", () => {
       await page.route("**/api/devices", (route) =>
         fulfillJson(route, 200, { ok: true, data: [] }),
       );
+      await page.route("**/api/messages/queue", (route) =>
+        fulfillJson(route, 200, { ok: true, data: { pending: 0 } }),
+      );
 
       await verifyEmailPage.goto();
       await verifyEmailPage.verifyPin("123456");

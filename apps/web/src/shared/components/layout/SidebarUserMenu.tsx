@@ -18,7 +18,6 @@ import {
   FiSun,
   FiUser,
 } from "@/shared/components/icons";
-import { AppVersion } from "@/shared/components/layout/AppVersion";
 import { useAuth } from "@/modules/auth";
 import { ROUTE_PATHS } from "@/app/router/RoutePaths";
 
@@ -149,7 +148,6 @@ export function SidebarUserMenu({ isCollapsed }: SidebarUserMenuProps) {
               <FiLogOut />
             </Icon>
             {t("actions.signOut")}
-            <AppVersion ml="auto" pl={3} />
           </MenuItem>
         </MenuContent>
       </MenuRoot>

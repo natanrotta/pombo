@@ -32,7 +32,7 @@ export function SandboxMessageFields({
         label={
           <Flex justify="space-between" align="baseline" gap={3} w="full">
             {t("fields.text")}
-            <Text as="span" color="text.muted" textTransform="none">
+            <Text as="span" color="text.muted" textTransform="none" aria-hidden="true">
               {t("fields.textCount", { count: formData.text.length })}
             </Text>
           </Flex>
