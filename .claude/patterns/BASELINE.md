@@ -60,7 +60,7 @@ A new file that fails questions 1–3 is a code smell. Stop and reconsider.
 
 | ID | Rule | Anchor |
 |----|------|--------|
-| R10 | Semantic tokens only (`bg.*`, `text.*`, `border.*`, `status.*`). **No hardcoded hex.** Chakra **v3**: `colorPalette` (not `colorScheme`); compound components come from the snippets in `src/components/ui/*`. | `F-C2` |
+| R10 | Semantic tokens only (`bg.*`, `text.*`, `border.*`, `status.*`), defined in `packages/theme` (`@pombo/theme`). **No hardcoded hex/rgba outside the theme** — a new visual need is a new token. Chakra **v3**: `colorPalette` (not `colorScheme`); compound components come from the snippets in `src/components/ui/*`. `app/theme/tokenContract.spec.ts` fails on a token without `_dark`, a warm hue, or an unknown token name. | `F-C2` |
 | R11 | **No yellow / orange / amber.** Purple for warnings, red for errors, accent (green) for success. | `F-C3` (hard project rule) |
 | R12 | Components never call `httpClient` directly. Always: hook → repository → httpClient. | `F-C1`, `F-C7` |
 | R13 | New repository → registered in `core/di/repositories.ts`. New query key → added to `core/query/queryKeys.ts` (factory: `all` / `list` / `search` / `detail` / `linked*`). | `F-H1`, `F-H2` |

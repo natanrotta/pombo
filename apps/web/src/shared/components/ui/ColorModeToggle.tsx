@@ -76,17 +76,13 @@ function ColorModeToggleComponent({ size = "sm" }: ColorModeToggleProps) {
         // Track gradient — barely-there in light, more present in dark
         // so the night side reads as "atmosphere".
         bgGradient="to-br"
-        gradientFrom={isDark ? "gray.800" : "bg.muted"}
-        gradientTo={isDark ? "gray.900" : "bg.sunken"}
+        gradientFrom="bg.switch.track"
+        gradientTo="bg.switch.trackEnd"
         cursor="pointer"
         flexShrink={0}
         overflow="hidden"
         transition="background 0.3s ease, border-color 0.2s ease, box-shadow 0.3s ease"
-        boxShadow={
-          isDark
-            ? "inset 0 1px 2px rgba(0,0,0,0.4)"
-            : "inset 0 1px 2px rgba(15,23,42,0.06)"
-        }
+        boxShadow="shadow.switchTrack"
         _hover={{ borderColor: "border.default" }}
         _focusVisible={{
           outline: "2px solid",
@@ -142,14 +138,10 @@ function ColorModeToggleComponent({ size = "sm" }: ColorModeToggleProps) {
           borderRadius="full"
           align="center"
           justify="center"
-          bg={isDark ? "gray.900" : "white"}
-          color={isDark ? "white" : "text.primary"}
-          // Stack: subtle drop shadow + brand-tinted halo in dark mode.
-          boxShadow={
-            isDark
-              ? "0 2px 6px rgba(0,0,0,0.5), 0 0 12px rgba(99,102,241,0.35)"
-              : "0 1px 3px rgba(15,23,42,0.2), 0 0 6px rgba(15,23,42,0.05)"
-          }
+          bg="bg.switch.thumb"
+          color="text.switchThumb"
+          // Subtle drop shadow, plus a brand halo in dark mode (token).
+          boxShadow="shadow.switchThumb"
           transform={
             isDark
               ? `translateX(${dims.translate}) rotate(360deg)`

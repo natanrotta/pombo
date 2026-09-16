@@ -137,7 +137,7 @@ If a shared component is missing, propose it as a shared addition rather than du
 3. **Auto-save** — `useDetailPageController` (1500ms debounce) + `showAutoSaved()` toast on save. Inline saves should never need a Save button.
 4. **Unsaved-changes guard** — `useUnsavedChangesGuard(isDirty)` on every editable detail page.
 5. **Optimistic delete** — implement `onMutate`/`onError` rollback in the module's mutation hook (see `patterns/frontend.md` § Optimistic Updates).
-6. **Hover lift on cards** — `_hover={{ boxShadow: "card-hover", transform: "translateY(-2px)", borderColor: "brand.200" }}`.
+6. **Hover lift on cards** — `_hover={{ boxShadow: "shadow.cardHover", transform: "translateY(-2px)", borderColor: "brand.200" }}`.
 7. **Quick-action reveal** — `<Flex opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.15s ease">`.
 8. **Fetching fade** — `<Box opacity={isFetching ? 0.5 : 1} transition="opacity 0.15s ease">`.
 9. **Toast feedback** — every user action: `showSuccess` / `showError`. Silent operations are bugs.

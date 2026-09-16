@@ -2,6 +2,8 @@
 
 The Pombo dashboard — a React + Vite single-page app where an account manages its WhatsApp devices, tries sends in a sandbox, and manages its public API token.
 
+**Design system:** `@pombo/theme` (`packages/theme`) — tokens, semantic tokens, text styles and recipes. The app only composes it.
+
 **Stack:** React 19 · Vite 5 · TypeScript (strict) · Chakra UI v3 (+ `next-themes`) · TanStack Query 5 · axios · react-hook-form + Zod · react-i18next (pt-BR / en / es) · lucide-react · Bugsnag · Vitest (unit) · Playwright (e2e).
 
 The rebuild plan for this app lives in [`docs/web-rebuild/roadmap.md`](../../docs/web-rebuild/roadmap.md).
@@ -23,7 +25,7 @@ apps/web
     │   ├── App.tsx             # GlobalErrorBoundary → AppProviders → SidebarProvider → AppRouter
     │   ├── providers/          # Chakra (next-themes) · Toaster · QueryClient · Google OAuth · Auth
     │   ├── router/             # AppRouter, RoutePaths, guards, lazyWithRetry, NotFoundPage
-    │   └── theme/              # createSystem(defaultConfig, config) + foundations
+    │   └── theme/              # createSystem(defaultConfig, pomboThemeConfig, globalCss) + token contract spec
     ├── components/ui/          # Chakra v3 snippets — the only place compound components are assembled
     ├── core/
     │   ├── di/                 # repository singletons (page → hook → repository → httpClient)

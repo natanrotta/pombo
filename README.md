@@ -12,6 +12,7 @@ Everything you need to build and ship — clone it, rename it, start shipping.
 |---|---|---|---|
 | **API** | `apps/api` | Node.js · Express 4 · Prisma 7 (Postgres) · tsyringe DI · Zod · Vitest | `4444` |
 | **Web** | `apps/web` | React 19 · Vite 5 · Chakra UI 3 · TanStack Query 5 · react-i18next · Vitest + Playwright | `4000` |
+| **Theme** | `packages/theme` | `@pombo/theme` — the design system (Chakra v3 tokens, semantic tokens, text styles, recipes), consumed as source | — |
 | **Shared types** | `packages/shared-types` | `@pombo/shared-types` — the wire contract (DTOs, status unions, `ErrorCodes`, envelope) shared by API + web | — |
 
 `apps/api` and `apps/web` are Turborepo/yarn workspaces.

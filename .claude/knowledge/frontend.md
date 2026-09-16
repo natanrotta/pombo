@@ -30,6 +30,9 @@
 
 - [Medium] **Renaming a persisted web-storage key is a silent one-time UX regression** (tests always start from empty storage). Read the old key as a `??` fallback (`??`, not `||`, so a stored `"false"` survives) and remove it on the next write — see `SidebarContext` (`sidebar-collapsed` → `@pombo-web:sidebar-collapsed`).
 
+- [High] **A design-token contract spec has one input set per assertion — check each one's scope.** `app/theme/tokenContract.spec.ts` was proven blind three times in the same task, always on the theme-package side: template-literal token names (fixed by keeping literal names in config maps + scanning any `bg|text|border|status|shadow.*` string that is not an i18n key), a source scan rooted only at `apps/web/src` (now also `packages/theme/src`), and a warm-hue check that skipped the recipes (now walks every exported recipe). Also: Chakra's defaultConfig ships `orange`/`yellow` palettes, so "is it a known token?" never implies "is it allowed". Prove every new assertion with a throwaway failing probe.
+- [Medium] Chakra v3 resolves `{colors.x.y}` inside any raw CSS value (`backgroundImage="radial-gradient(circle, {colors.bg.glow.primary}, …)"`), and the CSS var flips with `.dark` even inside a Portal. To paint a semantic color as a layer over `bg`, use a one-color gradient: `backgroundImage="linear-gradient({colors.t}, {colors.t})"`.
+
 ## Testing Gotchas
 - [High] jsdom ships no `PointerEvent`. Chakra v3's press tracking constructs one on blur, so any zag control that is clicked and then loses focus throws out of an event listener: Vitest reports an unhandled error and exits non-zero **even though every assertion passed**. Stub it in `test/setup.ts` (subclassing `MouseEvent` is enough).
 - [High] Polyfill `window.matchMedia` as a **plain function**, not a `vi.fn()` — a test calling `vi.clearAllMocks()` wipes the implementation and `next-themes` then reads `.matches` off `undefined`.

@@ -1,16 +1,7 @@
 import { createSystem, defaultConfig, defineConfig } from "@chakra-ui/react";
-import { colors } from "@/app/theme/foundations/colors";
-import { fonts } from "@/app/theme/foundations/typography";
-import { radii } from "@/app/theme/foundations/radii";
-import {
-  badgeRecipe,
-  buttonRecipe,
-  inputRecipe,
-  textareaRecipe,
-} from "@/app/theme/foundations/recipes";
-import { shadows } from "@/app/theme/foundations/shadows";
-import { semanticTokens } from "@/app/theme/foundations/semantic-tokens";
-import { textStyles } from "@/app/theme/foundations/text-styles";
+// Palettes, semantic aliases, type scale, radii, shadows and component recipes
+// live in `@pombo/theme`. Everything below is web-only surface styling.
+import { pomboThemeConfig } from "@pombo/theme";
 
 /**
  * Preserved from the pre-v3 theme so a returning user keeps the color mode they
@@ -21,17 +12,6 @@ import { textStyles } from "@/app/theme/foundations/text-styles";
 export const COLOR_MODE_STORAGE_KEY = "pombo-color-mode";
 
 const config = defineConfig({
-  theme: {
-    tokens: { colors, fonts, radii, shadows },
-    semanticTokens,
-    textStyles,
-    recipes: {
-      badge: badgeRecipe,
-      button: buttonRecipe,
-      input: inputRecipe,
-      textarea: textareaRecipe,
-    },
-  },
   globalCss: {
     body: {
       bg: "bg.canvas",
@@ -55,4 +35,4 @@ const config = defineConfig({
   },
 });
 
-export const system = createSystem(defaultConfig, config);
+export const system = createSystem(defaultConfig, pomboThemeConfig, config);

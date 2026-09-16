@@ -34,6 +34,25 @@ export const semanticTokens = defineSemanticTokens({
           _dark: "rgba(18, 25, 23, 0.78)",
         },
       },
+      // Pill switch (ColorModeToggle): the track gradient ends and the thumb.
+      switch: {
+        track: { value: { base: "{colors.bg.muted}", _dark: "{colors.gray.800}" } },
+        trackEnd: { value: { base: "{colors.bg.sunken}", _dark: "{colors.gray.900}" } },
+        thumb: { value: { base: "{colors.white}", _dark: "{colors.gray.900}" } },
+      },
+      // Decorative ambient glows behind the auth screens (radial gradients).
+      // Same in both modes — they sit on the canvas as light, not as surface.
+      glow: {
+        primary: {
+          value: { base: "rgba(16, 185, 129, 0.22)", _dark: "rgba(16, 185, 129, 0.22)" },
+        },
+        secondary: {
+          value: { base: "rgba(4, 120, 87, 0.20)", _dark: "rgba(4, 120, 87, 0.20)" },
+        },
+        tertiary: {
+          value: { base: "rgba(110, 231, 183, 0.12)", _dark: "rgba(110, 231, 183, 0.12)" },
+        },
+      },
       topbar: {
         value: {
           base: "rgba(255, 255, 255, 0.92)",
@@ -103,6 +122,8 @@ export const semanticTokens = defineSemanticTokens({
       // mode (on deep emerald), near-black emerald-ink in dark mode (on bright
       // emerald). Both directions clear WCAG AA.
       onBrand: { value: { base: "#ffffff", _dark: "#052e21" } },
+      // Icon on the ColorModeToggle thumb (`bg.switch.thumb`).
+      switchThumb: { value: { base: "{colors.text.primary}", _dark: "{colors.white}" } },
     },
     border: {
       subtle: {
@@ -146,6 +167,10 @@ export const semanticTokens = defineSemanticTokens({
         fg: {
           value: { base: "{colors.green.600}", _dark: "{colors.green.300}" },
         },
+        // Filled badge behind a status icon (e.g. the toast glyph).
+        solid: {
+          value: { base: "{colors.green.500}", _dark: "{colors.green.400}" },
+        },
         bg: {
           value: {
             base: "{colors.green.50}",
@@ -165,6 +190,9 @@ export const semanticTokens = defineSemanticTokens({
         fg: {
           value: { base: "{colors.purple.600}", _dark: "{colors.purple.300}" },
         },
+        solid: {
+          value: { base: "{colors.purple.500}", _dark: "{colors.purple.400}" },
+        },
         bg: {
           value: {
             base: "{colors.purple.50}",
@@ -180,6 +208,7 @@ export const semanticTokens = defineSemanticTokens({
       },
       error: {
         fg: { value: { base: "{colors.red.600}", _dark: "{colors.red.300}" } },
+        solid: { value: { base: "{colors.red.500}", _dark: "{colors.red.400}" } },
         bg: {
           value: { base: "{colors.red.50}", _dark: "rgba(239, 68, 68, 0.12)" },
         },
@@ -193,6 +222,9 @@ export const semanticTokens = defineSemanticTokens({
       info: {
         fg: {
           value: { base: "{colors.blue.600}", _dark: "{colors.blue.300}" },
+        },
+        solid: {
+          value: { base: "{colors.blue.500}", _dark: "{colors.blue.400}" },
         },
         bg: {
           value: {
@@ -279,6 +311,39 @@ export const semanticTokens = defineSemanticTokens({
         value: {
           base: "inset 0 2px 4px 0 rgba(13, 26, 22, 0.06)",
           _dark: "inset 0 1px 2px 0 rgba(0, 0, 0, 0.30)",
+        },
+      },
+      // Pill switch (ColorModeToggle). The dark thumb carries a brand halo.
+      switchTrack: {
+        value: {
+          base: "inset 0 1px 2px rgba(15, 23, 42, 0.06)",
+          _dark: "inset 0 1px 2px rgba(0, 0, 0, 0.40)",
+        },
+      },
+      switchThumb: {
+        value: {
+          base: "0 1px 3px rgba(15, 23, 42, 0.20), 0 0 6px rgba(15, 23, 42, 0.05)",
+          _dark: "0 2px 6px rgba(0, 0, 0, 0.50), 0 0 12px rgba(52, 211, 153, 0.35)",
+        },
+      },
+      // Brand mark (logo tile) and the floating card on the auth screens.
+      // Same value in both modes on purpose: they sit on the canvas as light.
+      brandMark: {
+        value: {
+          base: "0 24px 48px -16px rgba(16, 185, 129, 0.45), 0 8px 24px -8px rgba(4, 120, 87, 0.25)",
+          _dark: "0 24px 48px -16px rgba(16, 185, 129, 0.45), 0 8px 24px -8px rgba(4, 120, 87, 0.25)",
+        },
+      },
+      brandMarkSm: {
+        value: {
+          base: "0 12px 28px -10px rgba(16, 185, 129, 0.45)",
+          _dark: "0 12px 28px -10px rgba(16, 185, 129, 0.45)",
+        },
+      },
+      authCard: {
+        value: {
+          base: "0 24px 64px -24px rgba(15, 23, 42, 0.18), 0 8px 24px -16px rgba(15, 23, 42, 0.12)",
+          _dark: "0 24px 64px -24px rgba(15, 23, 42, 0.18), 0 8px 24px -16px rgba(15, 23, 42, 0.12)",
         },
       },
     },

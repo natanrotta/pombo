@@ -1,6 +1,6 @@
 import { NativeSelect as Select } from "@chakra-ui/react";
 import * as React from "react";
-import { fieldBase } from "@/app/theme/foundations/recipes";
+import { fieldBase } from "@pombo/theme";
 
 interface NativeSelectRootProps extends Select.RootProps {
   icon?: React.ReactNode;

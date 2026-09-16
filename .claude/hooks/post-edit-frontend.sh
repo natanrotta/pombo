@@ -30,8 +30,7 @@ esac
 
 # Skip the Chakra v3 snippets — vendored design-system primitives, not feature
 # code. `color-mode.tsx` *defines* useColorMode (F-H16 can't tell a definition
-# from a call site) and `toaster.tsx` owns the toast's fixed light palette,
-# which is deliberately mode-independent. Same rationale as the
+# from a call site). Same rationale as the
 # `react-refresh/only-export-components` override in apps/web/.eslintrc.cjs.
 case "$file" in
   *apps/web/src/components/ui/*) exit 0 ;;

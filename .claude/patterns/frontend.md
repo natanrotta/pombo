@@ -11,7 +11,7 @@ Every frontend skill (`/frontend`, `/fullstack`, `/ui-design`, `/code-review`, `
 - **Bundler:** Vite
 - **Framework:** React 19 (functional + hooks, no class components)
 - **Router:** React Router v6 (config-based, lazy + Suspense)
-- **UI:** Chakra UI **v3** with a custom system + semantic tokens. The theme is composed in `app/theme/index.ts` via `createSystem(defaultConfig, defineConfig({...}))`; the **snippets** in `src/components/ui/*` (the upstream `chakra snippet` shape) are the ONLY place a v3 compound component (Dialog, Menu, Popover, Field, Drawer, NativeSelect, NumberInput, PinInput, Tooltip, Avatar, Toaster) is assembled — product components consume the snippet, never `Dialog.Root` directly.
+- **UI:** Chakra UI **v3** with a custom system + semantic tokens. The design system (palettes, semantic tokens, text styles, recipes, `fieldBase`) lives in the source-only package `packages/theme` (`@pombo/theme`); `app/theme/index.ts` only composes it — `createSystem(defaultConfig, pomboThemeConfig, config)`, where `config` holds the app's `globalCss`; the **snippets** in `src/components/ui/*` (the upstream `chakra snippet` shape) are the ONLY place a v3 compound component (Dialog, Menu, Popover, Field, Drawer, NativeSelect, NumberInput, PinInput, Tooltip, Avatar, Toaster) is assembled — product components consume the snippet, never `Dialog.Root` directly.
 - **Color mode:** `next-themes` (class strategy) behind `components/ui/color-mode`. `useColorMode()` / `useColorModeValue()` come from there, never from `@chakra-ui/react`. Storage key: `pombo-color-mode`; `defaultTheme="system"`.
 - **State (server):** TanStack Query v5
 - **State (global UI):** React Context only (Auth, Sidebar) — **no Redux, no Zustand**. If a feature needs its own navigation/UI state (never server data — that lives in TanStack Query), use a small feature-scoped Context under `presentation/context/` and document why.
@@ -31,9 +31,10 @@ Every frontend skill (`/frontend`, `/fullstack`, `/ui-design`, `/code-review`, `
 app/                              # App-level setup (one-time)
   router/AppRouter.tsx            # Lazy + Suspense + guards
   router/RoutePaths.ts            # All paths centralized — no string literals in components
-  theme/index.ts                  # createSystem(defaultConfig, config) -> `system` + COLOR_MODE_STORAGE_KEY
-  theme/foundations/semantic-tokens.ts  # bg.*, text.*, border.*, status.* ({ base, _dark } values)
-  theme/foundations/recipes.ts    # button / badge / input / textarea recipes + the shared `fieldBase`
+  theme/index.ts                  # createSystem(defaultConfig, pomboThemeConfig, globalCss) -> `system` + COLOR_MODE_STORAGE_KEY
+  theme/tokenContract.spec.ts     # every semantic token has _dark · no warm hues · no unknown token in src
+                                  # (foundations live in packages/theme/src/foundations: colors, typography,
+                                  #  radii, shadows, semantic-tokens, text-styles, recipes + `fieldBase`)
   providers/                      # AppProviders (Chakra v3 Provider + Toaster, QueryClient, Auth)
 
 components/ui/                    # Chakra v3 snippets — vendored primitives, not product code
@@ -459,20 +460,16 @@ Use this pattern only when the operation is fast and rollback is cheap; otherwis
 
 ### Semantic Tokens (mandatory — never hardcode hex)
 
-| Category | Token | Light → Dark |
-|----------|-------|--------------|
-| Background | `bg.canvas` | `#f3f7fc` → `#0b1220` (page bg) |
-| Background | `bg.surface` | `#ffffff` → `#121a2b` (card/panel) |
-| Background | `bg.elevated` | `#ffffff` → elevated |
-| Background | `bg.sunken` | `#f0f4f8` (inset) |
-| Background | `bg.glass` | `rgba(255,255,255,0.80)` (frosted) |
-| Text | `text.primary` | `#1f2937` → `#e6eaf2` |
-| Text | `text.secondary` | `#4b5563` → `#a9b3c6` |
-| Border | `border.subtle` | `rgba(15,23,42,0.07)` |
-| Border | `border.default` | `rgba(15,23,42,0.12)` |
-| Border | `border.strong` | `rgba(15,23,42,0.20)` |
-| Status | `status.success.fg` | `green.600` → `green.300` |
-| Status | `status.error.fg` | `red.600` → `red.300` |
+The values live in `packages/theme/src/foundations/semantic-tokens.ts` — read them there; this table lists the families, not the colors (they change when a design is applied).
+
+| Family | Tokens | Use |
+|--------|--------|-----|
+| Background | `bg.canvas` · `bg.surface` · `bg.elevated` · `bg.sunken` · `bg.muted` · `bg.hover` · `bg.active` · `bg.glass` · `bg.topbar` · `bg.overlay` | page, cards, popovers, insets, hover/active fills, frosted bars |
+| Brand fills | `bg.brand.{subtle,emphasis,solid,solid-hover,solid-active}` · `bg.accent.subtle` | selected nav item, primary action |
+| Component fills | `bg.switch.{track,trackEnd,thumb}` · `bg.glow.{primary,secondary,tertiary}` | the color-mode switch · decorative radial glows (auth) |
+| Text | `text.primary` · `text.secondary` · `text.muted` · `text.disabled` · `text.inverse` · `text.link` · `text.brand` · `text.accent` · `text.onBrand` · `text.switchThumb` | |
+| Border | `border.subtle` · `border.default` · `border.strong` · `border.brand` · `border.accent` · `border.focus` | |
+| Status | `status.{success,warning,error,info,neutral,blue}.{fg,bg,border}` · `status.{success,warning,error,info}.solid` | badges, toasts (`solid` = the filled icon badge) |
 
 Dark mode is automatic via the `_dark` half of each token's value — **never** write color-mode conditionals (`useColorMode().colorMode === "dark" ? ... : ...`) in components.
 
@@ -496,7 +493,7 @@ text: { link: { value: { base: "{colors.brand.700}", _dark: "{colors.brand.300}"
 
 ### Shadows
 
-`card`, `card-hover`, `panel`, `lg` (modals), `inner` (sunken), `brand-glow`, `accent-glow`, `input-focus`, `input-error`.
+`shadow.card`, `shadow.cardHover`, `shadow.panel` (popovers, toasts), `shadow.lg` (modals), `shadow.inner` (sunken), `shadow.switchTrack` / `shadow.switchThumb`, `shadow.brandMark` / `shadow.brandMarkSm` / `shadow.authCard` (auth screens), and the focus/glow family `outline`, `input-focus`, `input-error`, `input-error-focus`, `brand-glow`, `accent-glow`. An unknown shadow name renders nothing — `tokenContract.spec.ts` fails on it.
 
 ### Spacing
 
@@ -530,7 +527,7 @@ Global font-size: `sm` (14px). FormLabel: `xs`, `600`, `gray.600`. Section headi
   >;
   const MotionBox = motion.create(Box) as unknown as ComponentType<MotionBoxProps>;
   ```
-- Card hover: `_hover={{ boxShadow: "card-hover", transform: "translateY(-2px)", borderColor: "brand.200" }}`
+- Card hover: `_hover={{ boxShadow: "shadow.cardHover", transform: "translateY(-2px)", borderColor: "brand.200" }}`
 - Quick actions reveal: `<Flex opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.15s ease">`
 - Fetching state: `<Box opacity={isFetching ? 0.5 : 1} transition="opacity 0.15s ease">`
 

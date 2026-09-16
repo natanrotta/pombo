@@ -74,7 +74,7 @@ export const buttonRecipe = defineRecipe({
         // White in both modes — the danger button is always red (not brand), so
         // it must NOT follow `text.onBrand` (near-black in dark, which would
         // fail contrast on red).
-        color: "#ffffff",
+        color: "white",
         boxShadow: "0 1px 2px rgba(239, 68, 68, 0.20)",
         _hover: {
           bg: "red.600",
