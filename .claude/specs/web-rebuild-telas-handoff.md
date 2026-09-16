@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | in progress |
+| **Status** | implemented |
 | **Branch** | `claude/web-rebuild-roadmap-5b5abe` (um commit por tela) |
 | **Date** | 2026-09-16 |
 | **Size / Risk** | L / Medium |
@@ -33,3 +33,4 @@ Levar as quatro telas restantes do handoff para o app, na mesma linguagem já ap
 - [2026-09-16] Etapa de testes (deixada para o fim, como o usuário pediu): 901 unitários da API e 354 da web verdes; e2e 80/80. Ajustes que os testes pediram: o rótulo da mensagem no sandbox carrega o contador, então o page object casa pelo começo do texto; o teste de cadastro passou a simular também a fila (a Home consulta esse número agora); a linha da fila não repete mais o status em texto e selo.
 - [2026-09-16] Sidebar: a frase "Seu gateway de mensagens" encostava na borda em 244px; no lugar dela entra a versão do build, como no handoff (e ela saiu do menu da conta, onde estava duplicada). A legenda do card de device encurtou ("Ativo desde …") para não ser cortada.
 - [2026-09-16] Segurança do `GET /messages/queue`: 0 Critical/High. O escopo da conta vem pela relação com o device (nunca do pedido), a rota herda auth e limite do módulo, o token público (`pmb_`) não alcança essa rota e a resposta é só um número. Medium anotado como pendência de performance, não de segurança: a contagem não tem índice composto (`device_id, status, wa_message_id`) — só importa se o volume da fila crescer, e uma conta só degrada a própria consulta.
+- [2026-09-16] Revisão final independente do design: 0 Critical/High, aprovada. Medium aplicado: o controle de tema, reescrito de interruptor para dois botões, não tinha nenhum teste de comportamento (as capturas provam o pixel, não o clique) — agora tem três, com prova negativa. Lows aplicados: comentário do `AppVersion` (ele mudou de lugar) e status desta spec. Observação aplicada: `text.muted` no claro passava AA por 0,01 (4,51:1) e é a cor de todo rótulo e metadado da tela — escurecido para 5,3:1. Observação aceita sem mudança: o contador da fila pode atrasar até 15 s (sem polling, como os grupos do device).

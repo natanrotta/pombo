@@ -70,7 +70,7 @@ export const semanticTokens = defineSemanticTokens({
       primary: { value: { base: "#0e1614", _dark: "{colors.neutral.100}" } },
       secondary: { value: { base: "#46554f", _dark: "#9aa8a2" } },
       // Metadata (timestamps, phone numbers, field labels).
-      muted: { value: { base: "#6b7a74", _dark: "{colors.neutral.400}" } },
+      muted: { value: { base: "#626f69", _dark: "{colors.neutral.400}" } },
       disabled: { value: { base: "{colors.neutral.300}", _dark: "{colors.neutral.600}" } },
       inverse: { value: { base: "#ffffff", _dark: "{colors.surface.canvas}" } },
       // Green ink: the accent on dark, the AA-safe deep emerald on white.

@@ -2,9 +2,9 @@ import { Box, type BoxProps } from "@chakra-ui/react";
 import { APP_VERSION } from "@/shared/appVersion";
 
 /** The running web build stamp (`vX.Y` / commit sha in prod) as a muted inline
- *  label, right-aligned on the account menu's sign-out row. Its own clicks are
- *  swallowed so tapping the version never triggers the row's sign-out action.
- *  Layout props (e.g. `ml="auto"`) are forwarded. */
+ *  label, shown under the product name in the sidebar brand. Its own clicks are
+ *  swallowed so tapping the version never triggers a surrounding action.
+ *  Layout props (e.g. `display="block"`) are forwarded. */
 export function AppVersion(props: BoxProps) {
   return (
     <Box
