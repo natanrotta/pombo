@@ -70,6 +70,12 @@ messageRoutes.post(
   asyncHandler(messageController.sendDocument),
 );
 
+// Declared before "/messages/:id" — otherwise "queue" is parsed as an id.
+messageRoutes.get(
+  "/messages/queue",
+  asyncHandler(messageController.getQueueSummary.bind(messageController)),
+);
+
 messageRoutes.get(
   "/messages/:id",
   validateRequest({ params: UuidParamSchema }),

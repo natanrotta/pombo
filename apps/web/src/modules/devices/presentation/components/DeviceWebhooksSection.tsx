@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { Flex, Stack, Text } from "@chakra-ui/react";
+import { Flex, SimpleGrid, Text } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/shared/components/ui/SectionCard";
 import { SaveButton } from "@/shared/components/ui/SaveButton";
@@ -100,14 +100,16 @@ export function DeviceWebhooksSection({ device }: DeviceWebhooksSectionProps) {
 
   return (
     <SectionCard>
-      <Text fontSize="sm" fontWeight="600" color="text.primary" mb={1}>
+      <Text textStyle="sectionTitle" color="text.primary" mb={1}>
         {t("webhooks.title")}
       </Text>
-      <Text fontSize="xs" color="text.secondary" mb={4}>
+      <Text textStyle="caption" color="text.muted" mb={4}>
         {t("webhooks.description")}
       </Text>
 
-      <Stack gap={4}>
+      {/* Two columns from md up: the five hooks (plus the status card above)
+          then fit one screen without scrolling. */}
+      <SimpleGrid columns={{ base: 1, md: 2 }} columnGap={4} rowGap={3}>
         {FIELDS.map((field) => (
           <FormField
             key={field}
@@ -121,7 +123,7 @@ export function DeviceWebhooksSection({ device }: DeviceWebhooksSectionProps) {
             }
           />
         ))}
-      </Stack>
+      </SimpleGrid>
 
       <Flex justify="flex-end" mt={4}>
         <SaveButton

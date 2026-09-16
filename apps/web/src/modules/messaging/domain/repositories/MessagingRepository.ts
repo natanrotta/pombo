@@ -7,6 +7,7 @@ import type {
   SendGroupInput,
   SendMessageResult,
   MessageStatusResult,
+  QueueSummary,
 } from "@/modules/messaging/domain/entities/Message";
 
 export interface MessagingRepository {
@@ -35,4 +36,5 @@ export interface MessagingRepository {
     messageId: string,
     signal?: AbortSignal,
   ): Promise<MessageStatusResult>;
+  getQueueSummary(signal?: AbortSignal): Promise<QueueSummary>;
 }

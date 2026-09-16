@@ -14,5 +14,6 @@ export const queryKeys = {
     all: ["messaging"] as const,
     messageStatus: (id: string) =>
       [...queryKeys.messaging.all, "message-status", id] as const,
+    queueSummary: () => [...queryKeys.messaging.all, "queue-summary"] as const,
   },
 } as const;

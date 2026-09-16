@@ -73,6 +73,13 @@ export interface SendMessageResponseDTO {
   status: MessageStatus;
 }
 
+/** `GET /messages/queue` — the account's send backlog, for the device-list
+ *  counter. */
+export interface QueueSummaryResponseDTO {
+  /** Messages accepted but not yet handed to WhatsApp. */
+  pending: number;
+}
+
 /** `GET /messages/:id` — the authoritative, pollable status. Never carries the
  *  recipient or the content. */
 export interface MessageStatusResponseDTO {

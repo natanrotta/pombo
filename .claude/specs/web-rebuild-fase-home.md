@@ -29,3 +29,5 @@ A tela de dispositivos com o layout do handoff: título em minúsculo com ponto 
 - [2026-09-16] `StatCard` (com ícone e dica) saiu: o handoff usa um bloco único de contadores. A galeria passou a mostrar `StatTiles` e o `ViewToggle`.
 - [2026-09-16] "Desconectado" passou a ser vermelho e "pareando" azul, seguindo as três cores de status do handoff (sem amarelo).
 - [2026-09-16] O `ViewToggle` é um `chakra.button` com o ícone em tamanho fixo: dentro de um `IconButton` o glifo do lucide encolhia para o tamanho de um ponto.
+- [2026-09-16] Contador "na fila" (pedido do usuário): a API ganhou `GET /messages/queue`, que conta as mensagens `PENDING` ainda não entregues ao WhatsApp, por conta (o escopo vem pelo device dono). A web consome por um hook próprio no módulo de mensageria e mostra como quarto contador.
+- [2026-09-16] Detalhe do dispositivo cabe em uma tela (pedido do usuário): os cinco webhooks passaram a duas colunas e o spec visual mede a sobra de rolagem, falhando se voltar a passar da altura da janela. Os rótulos de campo agora seguem o handoff (mono, maiúsculo, com tracking), o que vale para todos os formulários.

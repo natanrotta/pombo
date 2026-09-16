@@ -23,7 +23,8 @@
       "connected": "Connected",
       "connectedHint": "Devices online now",
       "disconnected": "Disconnected",
-      "disconnectedHint": "Offline devices"
+      "disconnectedHint": "Offline devices",
+      "queued": "Queued"
     },
     "filter": {
       "all": "All",

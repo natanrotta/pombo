@@ -23,7 +23,8 @@
       "connected": "Conectados",
       "connectedHint": "Dispositivos en línea ahora",
       "disconnected": "Desconectados",
-      "disconnectedHint": "Dispositivos sin conexión"
+      "disconnectedHint": "Dispositivos sin conexión",
+      "queued": "En cola"
     },
     "filter": {
       "all": "Todos",

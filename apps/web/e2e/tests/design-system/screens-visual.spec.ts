@@ -72,6 +72,12 @@ async function useFixedData(page: Page) {
   await page.clock.setFixedTime(NOW);
   await page.route("**/api/auth/me", (route) => fulfillData(route, USER));
   await page.route("**/api/devices", (route) => fulfillData(route, DEVICES));
+  await page.route("**/api/messages/queue", (route) =>
+    fulfillData(route, { pending: 17 }),
+  );
+  await page.route(`**/api/devices/${DEVICES[1].id}`, (route) =>
+    fulfillData(route, DEVICES[1]),
+  );
 }
 
 async function openSettled(page: Page, path: string, heading: RegExp) {
@@ -93,6 +99,20 @@ for (const scheme of SCHEMES) {
       await openSettled(page, "/devices", /^dispositivos$/i);
       await expect(page.getByText("Atendimento")).toBeVisible();
       await expect(page).toHaveScreenshot(`devices-${scheme}.png`);
+    });
+
+    test("the device detail fits one screen and matches its baseline", async ({
+      page,
+    }) => {
+      await openSettled(page, `/devices/${DEVICES[1].id}`, /^vendas$/i);
+
+      // The whole screen has to fit the viewport — no scrolling to reach the
+      // webhook fields or the save button.
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollHeight - window.innerHeight,
+      );
+      expect(overflow).toBeLessThanOrEqual(0);
+      await expect(page).toHaveScreenshot(`device-detail-${scheme}.png`);
     });
 
     test("the profile page matches its baseline", async ({ page }) => {

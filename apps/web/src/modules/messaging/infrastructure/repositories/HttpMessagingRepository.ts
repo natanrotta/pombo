@@ -9,6 +9,7 @@ import type {
   SendGroupInput,
   SendMessageResult,
   MessageStatusResult,
+  QueueSummary,
 } from "@/modules/messaging/domain/entities/Message";
 
 /** A unique idempotency key per send. `crypto.randomUUID` only exists in a
@@ -71,6 +72,10 @@ export class HttpMessagingRepository implements MessagingRepository {
       `/messages/${messageId}`,
       { signal },
     );
+  }
+
+  getQueueSummary(signal?: AbortSignal): Promise<QueueSummary> {
+    return httpClient.get<never, QueueSummary>("/messages/queue", { signal });
   }
 
   /** Every send needs a unique Idempotency-Key (required by the endpoint). The

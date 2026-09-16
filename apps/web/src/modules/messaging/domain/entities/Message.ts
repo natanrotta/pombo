@@ -4,6 +4,7 @@
  */
 import type {
   MessageStatusResponseDTO,
+  QueueSummaryResponseDTO,
   MessageType,
   SendAudioMessageRequestDTO,
   SendDocumentMessageRequestDTO,
@@ -31,3 +32,5 @@ export type SendDocumentInput = SendDocumentMessageRequestDTO;
 export type SendMessageResult = SendMessageResponseDTO;
 /** `GET /messages/:id` — the authoritative, pollable status. */
 export type MessageStatusResult = MessageStatusResponseDTO;
+/** `GET /messages/queue` — how many sends are still waiting. */
+export type QueueSummary = QueueSummaryResponseDTO;

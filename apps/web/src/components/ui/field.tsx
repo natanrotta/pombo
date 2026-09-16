@@ -20,11 +20,9 @@ export const Field = React.forwardRef<HTMLDivElement, FieldProps>(
       <ChakraField.Root ref={ref} width="full" {...rest}>
         {label && (
           <ChakraField.Label
-            fontSize="xs"
-            fontWeight="600"
-            color="text.secondary"
-            mb="1"
-            letterSpacing="0.01em"
+            textStyle="eyebrow"
+            color="text.muted"
+            mb="1.5"
           >
             {label}
             <ChakraField.RequiredIndicator fallback={optionalText} />

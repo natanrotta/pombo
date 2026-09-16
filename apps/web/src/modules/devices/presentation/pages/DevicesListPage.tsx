@@ -24,6 +24,7 @@ import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useNotify } from "@/shared/hooks/useNotify";
 import { STORAGE_KEYS } from "@/shared/constants/storageKeys";
 import { ROUTE_PATHS } from "@/app/router/RoutePaths";
+import { useQueuedMessages } from "@/modules/messaging";
 import { DeviceCard } from "@/modules/devices/presentation/components/DeviceCard";
 import { DeviceRow } from "@/modules/devices/presentation/components/DeviceRow";
 import { CreateDeviceModal } from "@/modules/devices/presentation/components/CreateDeviceModal";
@@ -69,6 +70,7 @@ export function DevicesListPage() {
   const { showSuccess } = useNotify();
 
   const { data: devices = [], isLoading, isFetching } = useDevicesList();
+  const { data: queue } = useQueuedMessages();
   const deleteDevice = useDeleteDevice();
   const disconnectDevice = useDisconnectDevice();
   const prefetchDevice = usePrefetchDevice();
@@ -178,6 +180,11 @@ export function DevicesListPage() {
                 label: t("list.stats.disconnected"),
                 value: padCount(stats.disconnected),
                 tone: "error",
+              },
+              {
+                label: t("list.stats.queued"),
+                value: padCount(queue?.pending ?? 0),
+                tone: "info",
               },
             ]}
           />

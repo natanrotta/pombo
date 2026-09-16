@@ -97,7 +97,7 @@ function DeviceDetailContent({ device }: { device: Device }) {
         >
           <SimpleGrid columns={{ base: 1, sm: 3 }} gap={5} flex="1">
             <Stack gap={1.5} align="flex-start">
-              <Text fontSize="xs" color="text.secondary">
+              <Text textStyle="eyebrow" color="text.muted">
                 {t("detail.statusLabel")}
               </Text>
               <Box>
