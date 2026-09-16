@@ -44,6 +44,21 @@ const config = defineConfig({
         "0%, 100%": { opacity: "1" },
         "50%": { opacity: "0.35" },
       },
+      // The auth screen's brand mark: it floats, sends out a ring, and the
+      // highlighted word in the headline sweeps.
+      brandFloat: {
+        "0%, 100%": { transform: "translateY(0)" },
+        "50%": { transform: "translateY(-5px)" },
+      },
+      brandRing: {
+        "0%": { transform: "scale(0.9)", opacity: "0.5" },
+        "70%": { transform: "scale(1.5)", opacity: "0" },
+        "100%": { opacity: "0" },
+      },
+      brandSweep: {
+        "0%": { backgroundPosition: "0% 50%" },
+        "100%": { backgroundPosition: "200% 50%" },
+      },
     },
   },
 });

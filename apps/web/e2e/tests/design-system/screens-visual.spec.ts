@@ -88,6 +88,29 @@ async function openSettled(page: Page, path: string, heading: RegExp) {
 }
 
 for (const scheme of SCHEMES) {
+  test.describe(`Auth screen — ${scheme}`, () => {
+    // Signed out, and with the locale pinned: the sign-in page is public.
+    test.use({
+      colorScheme: scheme,
+      viewport: DESKTOP,
+      storageState: { cookies: [], origins: [] },
+      locale: "pt-BR",
+    });
+
+    test("the sign-in screen matches its baseline", async ({ page }) => {
+      await page.goto("/sign-in");
+      await expect(
+        page.getByRole("heading", { name: /acesse sua conta/i }),
+      ).toBeVisible();
+      await waitForSettledUi(page);
+
+      await expect(page).toHaveScreenshot(`sign-in-${scheme}.png`, {
+        // Google renders its own button in an iframe — not ours to pin.
+        mask: [page.getByTestId("google-signin")],
+      });
+    });
+  });
+
   test.describe(`App screens — ${scheme}`, () => {
     test.use({ colorScheme: scheme, viewport: DESKTOP });
 

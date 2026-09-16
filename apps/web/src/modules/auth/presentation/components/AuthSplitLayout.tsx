@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from "react";
 import {
   Box,
+  chakra,
   Flex,
   Heading,
   Image,
@@ -8,12 +9,9 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react";
-import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { AuthControls } from "@/modules/auth/presentation/components/AuthControls";
 import pomboIcon from "@assets/pombo-icon.svg";
-
-const MotionImage = motion.create(Image);
 
 interface GlowSpec {
   id: string;
@@ -119,36 +117,113 @@ function AuthHero() {
       minH={{ lg: "100vh" }}
       display={{ base: "none", lg: "flex" }}
     >
-      <Stack gap={7} position="relative" maxW="440px" w="full">
-        <MotionImage
-          src={pomboIcon}
-          alt={tc("platform.name")}
-          w={24}
-          h={24}
-          borderRadius="22%"
-          objectFit="cover"
-          boxShadow="shadow.brandMark"
-          initial={{ opacity: 0, y: 12, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-        />
+      <Stack gap={3} position="relative" maxW="520px" w="full">
+        <BrandTile />
+        <BrandEyebrow />
 
-        <Stack gap={3}>
-          <BrandEyebrow />
-          <Heading
-            fontSize={{ lg: "4xl", xl: "5xl" }}
-            lineHeight="1.1"
-            letterSpacing="-0.02em"
-            color="text.primary"
-            fontWeight="800"
+        <Heading
+          as="h1"
+          fontFamily="heading"
+          fontWeight="600"
+          fontSize={{ lg: "46px", xl: "56px" }}
+          lineHeight="1.04"
+          letterSpacing="-3px"
+          maxW="13ch"
+          color="text.primary"
+          mt={2}
+        >
+          {t("hero.titleLead")}{" "}
+          <chakra.span
+            // The one word that carries the brand, swept by a slow gradient.
+            backgroundImage="linear-gradient(100deg, {colors.brand.400}, {colors.brand.200}, {colors.brand.400})"
+            backgroundSize="200% auto"
+            backgroundClip="text"
+            color="transparent"
+            animation="brandSweep 5s linear infinite"
           >
-            {t("signIn.subtitle")}
-          </Heading>
-          <Text fontSize="md" color="text.secondary">
-            {tc("platform.tagline")}
-          </Text>
-        </Stack>
+            {t("hero.titleHighlight")}
+          </chakra.span>
+          <chakra.span color="text.brand" aria-hidden="true">
+            .
+          </chakra.span>
+        </Heading>
+
+        <Text fontSize="17px" lineHeight="1.5" color="text.secondary" maxW="36ch">
+          {tc("platform.tagline")}
+        </Text>
+
+        <Flex gap={2} wrap="wrap" mt={2.5}>
+          <HeroPill label={t("hero.pills.api")} isLive />
+          <HeroPill label={t("hero.pills.pace")} />
+          <HeroPill label={t("hero.pills.webhooks")} />
+        </Flex>
       </Stack>
+    </Flex>
+  );
+}
+
+/** The brand mark: the icon on a panel tile, floating, with a ring leaving it. */
+function BrandTile() {
+  const { t } = useTranslation("common");
+
+  return (
+    <Box position="relative" w="74px" h="74px" animation="brandFloat 5.5s ease-in-out infinite">
+      <Box
+        aria-hidden
+        position="absolute"
+        inset={0}
+        borderRadius="xl"
+        borderWidth="1px"
+        borderColor="border.brand"
+        animation="brandRing 3.2s ease-out infinite"
+      />
+      <Flex
+        position="relative"
+        w="74px"
+        h="74px"
+        align="center"
+        justify="center"
+        borderRadius="xl"
+        bg="bg.surface"
+        borderWidth="1px"
+        borderColor="border.accent"
+        boxShadow="shadow.brandMark"
+      >
+        <Image src={pomboIcon} alt={t("platform.name")} w="44px" h="44px" />
+      </Flex>
+    </Box>
+  );
+}
+
+/** A capability the product states on the auth screen. */
+function HeroPill({ label, isLive = false }: { label: string; isLive?: boolean }) {
+  return (
+    <Flex
+      align="center"
+      gap={2}
+      bg="bg.surface"
+      borderWidth="1px"
+      borderColor="border.default"
+      borderRadius="full"
+      px={3.5}
+      py={2}
+      textStyle="mono"
+      fontSize="13.5px"
+      color="text.secondary"
+    >
+      {isLive && (
+        <Box
+          as="span"
+          w="5px"
+          h="5px"
+          borderRadius="full"
+          bg="status.success.fg"
+          boxShadow="0 0 8px currentColor"
+          color="status.success.fg"
+          animation="statusBlink 2.4s ease-in-out infinite"
+        />
+      )}
+      {label}
     </Flex>
   );
 }
@@ -183,9 +258,10 @@ function BrandEyebrow() {
 
   return (
     <Text
-      fontSize="xs"
-      fontWeight="700"
-      letterSpacing="0.18em"
+      fontFamily="mono"
+      fontSize="12.5px"
+      fontWeight="500"
+      letterSpacing="3.4px"
       textTransform="uppercase"
       color="text.brand"
     >

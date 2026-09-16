@@ -41,9 +41,9 @@ export function AuthCard({
     <MotionBox
       bg="bg.surface"
       borderWidth="1px"
-      borderColor="border.subtle"
+      borderColor="border.default"
       boxShadow={isSplit ? "shadow.authCard" : "shadow.panel"}
-      borderRadius="3xl"
+      borderRadius="xl"
       p={{ base: 6, md: 8 }}
       initial={initial}
       animate={{ opacity: 1, x: 0, y: 0 }}
@@ -61,10 +61,18 @@ export function AuthCard({
             {t("platform.name")}
           </Text>
         )}
-        <Heading size="lg" letterSpacing={isSplit ? "-0.01em" : undefined}>
+        <Heading
+          as="h2"
+          fontFamily="heading"
+          fontWeight="500"
+          fontSize={{ base: "22px", md: "26px" }}
+          letterSpacing="-0.9px"
+          textTransform="lowercase"
+          color="text.primary"
+        >
           {title}
         </Heading>
-        <Text color="text.secondary" fontSize={isSplit ? "sm" : undefined}>
+        <Text color="text.secondary" fontSize="15px">
           {subtitle}
         </Text>
       </Stack>
