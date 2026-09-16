@@ -93,11 +93,14 @@ function restoreDevice(
   ];
 }
 
+const DELETE_DEVICE_MUTATION_KEY = ["devices", "delete"] as const;
+
 /** Optimistic: the device leaves the list at once and comes back on failure. */
 export function useDeleteDevice() {
   const queryClient = useQueryClient();
   const { handleError } = useErrorHandler();
   return useMutation({
+    mutationKey: DELETE_DEVICE_MUTATION_KEY,
     mutationFn: (id: string) => repositories.devices.delete(id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.devices.list() });
@@ -131,8 +134,18 @@ export function useDeleteDevice() {
         queryClient.removeQueries({ queryKey, type: "inactive" });
       }
     },
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: queryKeys.devices.list() }),
+    onSettled: () => {
+      // Refetch only when the last overlapping delete settles: an earlier
+      // refetch could bring back a device whose delete is still in flight.
+      // (This mutation still counts as pending while its onSettled runs.)
+      const pendingDeletes = queryClient.isMutating({
+        mutationKey: DELETE_DEVICE_MUTATION_KEY,
+      });
+      if (pendingDeletes > 1) return;
+      return queryClient.invalidateQueries({
+        queryKey: queryKeys.devices.list(),
+      });
+    },
   });
 }
 
